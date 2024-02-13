@@ -19,7 +19,7 @@ request_result=requests.get( url )
 soup = bs4.BeautifulSoup(request_result.text, 
                          "html.parser") 
 #print(soup) 
-heading_object=soup.find_all( 'h3' ) 
+heading_object=soup #.find_all( 'h1' ) 
   
 # Iterate through the object  
 # and print it as a string. 
