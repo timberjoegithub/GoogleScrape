@@ -1,2 +1,4 @@
 Driver/chromedriver*
 __pycache__/
+out.xlsx
+Output/

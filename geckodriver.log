@@ -63,3 +63,131 @@ JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been i
 JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
 JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
 JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+1707858717237	geckodriver	INFO	Listening on 127.0.0.1:49918
+1707858721116	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "49919" "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\jsadmin\\AppData\\Local\\Temp\\rust_mozprofileA5Tgl0"
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1707858727117	Marionette	INFO	Marionette enabled
+Dynamically enable window occlusion 0
+1707858727982	Marionette	INFO	Listening on port 49992
+WebDriver BiDi listening on ws://127.0.0.1:49919
+Read port: 49992
+Read port: 49992
+1707858730395	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+DevTools listening on ws://127.0.0.1:49919/devtools/browser/6a09b728-5cbb-4bd4-b599-8bca39a37771
+1707858757284	addons.xpi	ERROR	System addon update list error SyntaxError: XMLHttpRequest.open: 'http://%(server)s/dummy-system-addons.xml' is not a valid URL.
+1707859388677	geckodriver	INFO	Listening on 127.0.0.1:53527
+1707859391870	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "53528" "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\jsadmin\\AppData\\Local\\Temp\\rust_mozprofile6yONhU"
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1707859394558	Marionette	INFO	Marionette enabled
+Dynamically enable window occlusion 0
+1707859395294	Marionette	INFO	Listening on port 53561
+WebDriver BiDi listening on ws://127.0.0.1:53528
+Read port: 53561
+Read port: 53561
+1707859396688	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+DevTools listening on ws://127.0.0.1:53528/devtools/browser/9720cf85-a722-40ce-83f7-f9f911bee115
+JavaScript warning: https://www.google.com/maps/_/js/k=maps.m.en.HXWVV5ZNQws.2019.O/m=sc2,per,mo,lp,ep,ti,ds,stx,dwi,enr,pwd,dw,pcb,log,b/am=BoARAAE/rt=j/d=1/rs=ACT90oGW4Uq-j-i4OLA6kW0N-BuIGaydMw?wli=m.fI4agCATcBc.loadSv.O%3A%3Bm.hvCP8XE5nt0.mapcore.O%3A%3B, line 2597: WEBGL_debug_renderer_info is deprecated in Firefox and will be removed. Please use RENDERER.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+1707859424663	addons.xpi	ERROR	System addon update list error SyntaxError: XMLHttpRequest.open: 'http://%(server)s/dummy-system-addons.xml' is not a valid URL.
+1707865497605	geckodriver	INFO	Listening on 127.0.0.1:55259
+1707865500712	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--headless" "--remote-debugging-port" "552 ...  "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\jsadmin\\AppData\\Local\\Temp\\rust_mozprofileXQsfO4"
+*** You are running in headless mode.
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1707865502094	Marionette	INFO	Marionette enabled
+Dynamically enable window occlusion 0
+1707865502281	Marionette	INFO	Listening on port 55304
+WebDriver BiDi listening on ws://127.0.0.1:55260
+Read port: 55304
+1707865502756	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+console.error: ({})
+DevTools listening on ws://127.0.0.1:55260/devtools/browser/91eca0cf-d69d-4919-b894-4e7f1dbbf6ee
+JavaScript warning: https://www.google.com/maps/_/js/k=maps.m.en.HXWVV5ZNQws.2019.O/m=sc2,per,mo,lp,ep,ti,ds,stx,dwi,enr,pwd,dw,pcb,log,b/am=BoARAAE/rt=j/d=1/rs=ACT90oGW4Uq-j-i4OLA6kW0N-BuIGaydMw?wli=m.fI4agCATcBc.loadSv.O%3A%3Bm.hvCP8XE5nt0.mapcore.O%3A%3B, line 2597: WEBGL_debug_renderer_info is deprecated in Firefox and will be removed. Please use RENDERER.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+1707865532175	addons.xpi	ERROR	System addon update list error SyntaxError: XMLHttpRequest.open: 'http://%(server)s/dummy-system-addons.xml' is not a valid URL.
+1707865668641	geckodriver	INFO	Listening on 127.0.0.1:56712
+1707865671644	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--headless" "--remote-debugging-port" "567 ...  "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\jsadmin\\AppData\\Local\\Temp\\rust_mozprofileMY0HO2"
+*** You are running in headless mode.
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1707865673062	Marionette	INFO	Marionette enabled
+Dynamically enable window occlusion 0
+1707865673287	Marionette	INFO	Listening on port 56765
+WebDriver BiDi listening on ws://127.0.0.1:56713
+Read port: 56765
+1707865673826	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+console.error: ({})
+DevTools listening on ws://127.0.0.1:56713/devtools/browser/c3266491-47a4-4925-8377-b5263d40dedf
+JavaScript warning: https://www.google.com/maps/_/js/k=maps.m.en.HXWVV5ZNQws.2019.O/m=sc2,per,mo,lp,ep,ti,ds,stx,dwi,enr,pwd,dw,pcb,log,b/am=BoARAAE/rt=j/d=1/rs=ACT90oGW4Uq-j-i4OLA6kW0N-BuIGaydMw?wli=m.fI4agCATcBc.loadSv.O%3A%3Bm.hvCP8XE5nt0.mapcore.O%3A%3B, line 2597: WEBGL_debug_renderer_info is deprecated in Firefox and will be removed. Please use RENDERER.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+1707865703691	addons.xpi	ERROR	System addon update list error SyntaxError: XMLHttpRequest.open: 'http://%(server)s/dummy-system-addons.xml' is not a valid URL.
+1707865920940	geckodriver	INFO	Listening on 127.0.0.1:58417
+1707865923981	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--headless" "--remote-debugging-port" "584 ...  "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\jsadmin\\AppData\\Local\\Temp\\rust_mozprofileHgXzoM"
+*** You are running in headless mode.
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1707865925116	Marionette	INFO	Marionette enabled
+Dynamically enable window occlusion 0
+1707865925332	Marionette	INFO	Listening on port 58481
+WebDriver BiDi listening on ws://127.0.0.1:58418
+Read port: 58481
+1707865925842	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+console.error: ({})
+DevTools listening on ws://127.0.0.1:58418/devtools/browser/508ca359-90e9-4137-8fc3-dd1ce031b03b
+JavaScript warning: https://www.google.com/maps/_/js/k=maps.m.en.HXWVV5ZNQws.2019.O/m=sc2,per,mo,lp,ep,ti,ds,stx,dwi,enr,pwd,dw,pcb,log,b/am=BoARAAE/rt=j/d=1/rs=ACT90oGW4Uq-j-i4OLA6kW0N-BuIGaydMw?wli=m.fI4agCATcBc.loadSv.O%3A%3Bm.hvCP8XE5nt0.mapcore.O%3A%3B, line 2597: WEBGL_debug_renderer_info is deprecated in Firefox and will be removed. Please use RENDERER.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+1707865956784	addons.xpi	ERROR	System addon update list error SyntaxError: XMLHttpRequest.open: 'http://%(server)s/dummy-system-addons.xml' is not a valid URL.
+1707865998040	geckodriver	INFO	Listening on 127.0.0.1:59135
+1707866001085	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "59136" "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\jsadmin\\AppData\\Local\\Temp\\rust_mozprofileuzugEi"
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1707866002568	Marionette	INFO	Marionette enabled
+Dynamically enable window occlusion 0
+1707866002882	Marionette	INFO	Listening on port 59201
+WebDriver BiDi listening on ws://127.0.0.1:59136
+Read port: 59201
+1707866003643	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+DevTools listening on ws://127.0.0.1:59136/devtools/browser/0d953379-8908-4192-af7e-f0c26a24abc7
+JavaScript warning: https://www.google.com/maps/_/js/k=maps.m.en.HXWVV5ZNQws.2019.O/m=sc2,per,mo,lp,ep,ti,ds,stx,dwi,enr,pwd,dw,pcb,log,b/am=BoBRAAE/rt=j/d=1/rs=ACT90oHL1s9ByeoBOYyRrMJ4XgV5CVZgbQ?wli=m.fI4agCATcBc.loadSv.O%3A%3Bm.hvCP8XE5nt0.mapcore.O%3A%3B, line 2597: WEBGL_debug_renderer_info is deprecated in Firefox and will be removed. Please use RENDERER.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Texture has not been initialized prior to a partial upload, forcing the browser to clear it. This may be slow.
+JavaScript warning: , line 0: WebGL warning: texSubImage: Tex image TEXTURE_2D level 0 is incurring lazy initialization.
+1707866032891	addons.xpi	ERROR	System addon update list error SyntaxError: XMLHttpRequest.open: 'http://%(server)s/dummy-system-addons.xml' is not a valid URL.
