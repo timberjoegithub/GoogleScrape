@@ -36,10 +36,16 @@ def get_data(driver):
     lst_data = []
     for data in elements:
         name = data.find_element(By.CSS_SELECTOR, 'div.d4r55.YJxk2d').text 
-        print ('Name of location: ',name)
+        try: address = data.find_element(By.CSS_SELECTOR, 'div.RfnDt.xJVozb').text
+        except: address = 'Unknonwn'
+        print ('Name of location: ',name, '   Address:',address)
+        try: visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
+        except: visitdate = "Unknown"
+        print('Visited: ',visitdate)  
         try: text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text 
         except: text = '' 
-        score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")  #find_element(By.CSS_SELECTOR,'aria-label').text #)  ##QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf > div.m6QErb > div:nth-child(3) > div:nth-child(2) > div > div:nth-child(4) > div.DU9Pgb > span.kvMYJc
+        try: score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")  #find_element(By.CSS_SELECTOR,'aria-label').text #)  ##QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf > div.m6QErb > div:nth-child(3) > div:nth-child(2) > div > div:nth-child(4) > div.DU9Pgb > span.kvMYJc
+        except: score = "Unknown"
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d') 
         pics= [] 
         pics2 = []
@@ -58,6 +64,16 @@ def get_data(driver):
             # Grab the name of the file and remove all spaces and special charecters to name the folder
             filename = re.sub( r'[^a-zA-Z0-9]','', str(lmpics.get_attribute("aria-label")))
 #            filename = re.sub( r'[^a-zA-Z0-9]','', filename) 
+            
+            if lmpics == more_specific_pics[0]:
+                lmpics.click()
+                time.sleep(2)
+                #iframe = driver.find_element(By.TAG_NAME, "iframe")
+                tempdate = str((driver.find_element(By.CLASS_NAME,'mqX5ad')).text).rsplit("-",1)
+                visitdate = re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
+                print ('Visited: ',visitdate)
+                # driver.switch_to.default_content()
+
             # Check to see if it has a sub div, which represents the label with the video length displayed, this will be done 
             # because videos are represented by pictures in the main dialogue, so we need to click through and grab the video URL
             if (lmpics.find_elements(By.CSS_SELECTOR,'div.fontLabelMedium.e5A3N')) :
@@ -79,12 +95,15 @@ def get_data(driver):
             # Add the correct extension to the file name
             filename = filename+ext
             # Test to see if file already exists, and if it does not grab the media and store it in location folder
-            if not os.path.isfile('./Output/Pics/'+cleanname+'/'+filename):
-                urlretrieve(urlmedia, './Output/Pics/'+cleanname+'/'+filename)
+            if not os.path.exists('./Output/Pics/'+cleanname+'/'+visitdate):
+                os.makedirs('./Output/Pics/'+cleanname+'/'+visitdate)
+            if not os.path.isfile('./Output/Pics/'+cleanname+'/'+visitdate+'/'+filename):
+                urlretrieve(urlmedia, './Output/Pics/'+cleanname+'/'+visitdate+'/'+filename)
             # Store the local path to be used in the excel document
-            picsLocalpath = "./Output/Pics/"+cleanname+"/"+filename
+            picsLocalpath = "./Output/Pics/"+cleanname+"/"+visitdate+'/'+filename
             pics2.append(picsLocalpath)
-        lst_data.append([name , text, score,pics,pics2,"GoogleMaps",today])
+        dictPostComplete= {'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,'Instagram':0,'tiktok':0}
+        lst_data.append([name , text, score,pics,pics2,"GoogleMaps",visitdate,address,dictPostComplete])
     return lst_data
 
 # Grab a count of how far we need to scroll
@@ -116,7 +135,8 @@ def scrolling(counter):
 
 def write_to_xlsx(data):
     print('write to excel...')
-    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date']
+
+    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
     df = pd.DataFrame(data, columns=cols)
     df.to_excel('./Output/reviews.xlsx')
 
@@ -147,8 +167,8 @@ if __name__ == "__main__":
     driver.get(URL)
     time.sleep(5)
 
-#    counter = counter()
-#    scrolling(counter)
+    counter = counter()
+    scrolling(counter)
 
     data = get_data(driver)
     driver.close()

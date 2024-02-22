@@ -2,3 +2,4 @@ Driver/chromedriver*
 __pycache__/
 out.xlsx
 Output/
+env.py
