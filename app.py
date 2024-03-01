@@ -9,7 +9,6 @@ import urllib3
 from urllib.request import urlretrieve
 from openpyxl import Workbook
 import pandas as pd
-import urllib3
 from env import URL, DriverLocation
 from datetime import datetime
 
