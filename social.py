@@ -35,9 +35,10 @@ from instagrapi.story import StoryBuilder
 from moviepy.editor import *
 import moviepy
 
-
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
+#import mysqlclient
+#import mysql-connector-python
 Base = declarative_base()
 
 #########################################################################################################################################################
@@ -115,9 +116,14 @@ def authconnect():
         connections.update({'postssession':session})
     if data:
         print('  loading XLS content data source ...')
-        wb = load_workbook(filename = xls)
+        if (os.path.exists(xls)):
+            wb = load_workbook(filename = xls)
+            xlswbDF = pd.read_excel(xls)
+        if (os.path.exists('./GoogleScrape/'+ xls)):
+            wb = load_workbook(filename = './GoogleScrape/'+ xls)
+            xlswbDF = pd.read_excel('./GoogleScrape/'+ xls)
         ws = wb['Sheet1']
-        xlswbDF = pd.read_excel(xls)
+        #xlswbDF = pd.read_excel(xls)
         connections.update({'xlsdf':xlswbDF})
         connections.update({'data':ws})
         connections.update({'datawb':wb})
@@ -176,6 +182,7 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
     page_id_1 = facebookpageID
     facebook_access_token = facebookpass
     #facebook_access_token = 'paste-your-page-access-token-here'
+#    image_url = 'https://graph.facebook.com/{}/feed'.format(page_id_1)
     image_url = 'https://graph.facebook.com/{}/photos'.format(page_id_1)
     image_location = pics[0]
     img_payload = {
@@ -186,6 +193,93 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
     #Send the POST request
     r = requests.post(image_url, data=img_payload)
     print('    Facebook response: ',r.text, img_payload)
+    return  (r)
+
+#########################################################################################################################################################
+def postImage(group_id, img,auth_token):
+    files=dict
+    url = f"https://graph.facebook.com/{group_id}/photos?access_token=" + auth_token
+    for eachfile in img:
+        files.update({eachfile: open(eachfile, 'rb')})
+    data = {
+        "published" : False
+    }
+    try: r = requests.post(url, files=files, data=data).json()
+    #r = requests.post(url, files=files, data=data).json()
+    except Exception as error:
+        print("    An error getting date occurred:", type(error).c) # An error occurred:
+        r = False
+    print (r)
+    print ('r id  = ',r['id'])
+    time.sleep(facebooksleep)
+    return r
+
+def postVideo(group_id, video_path,auth_token):
+    url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
+    files={}
+    for eachfile in video_path:
+       # my_dict['key'].append(1)
+        files.update({eachfile: open(eachfile, 'rb')})
+    data = {
+        "published" : False
+    }
+    #try: r = requests.post(url, files=files, data=data)
+    try: r = requests.post(url, files=files, data=data).json()
+    except Exception as error:
+        print("    An error getting date occurred:", type(error).c) # An error occurred:
+        r = False
+    time.sleep(facebooksleep)
+    print (r)
+    print ('r id  = ',r['id'])
+    return r
+
+def post_facebook2(title, content, date, rating, address, picslist, instasession):
+    #msg = 'Purple Ombre Bob Lace Wig Natural Human Hair now available on https://lace-wigs.co.za/'
+    pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+    group_id = facebookpageID
+    auth_token = facebookpass
+    page_id_1 = facebookpageID
+    facebook_access_token = facebookpass
+    imgs_id = []
+    imgs_vid = []
+    imgs_pic = []
+    img_list = pics
+    for img in img_list:
+        if ('.mp4' in img ):
+            imgs_vid.append(img)
+        else:
+            imgs_pic.append(img)
+    if (imgs_vid ):
+        print ("loop")
+        try: 
+            post_id = postVideo(group_id, imgs_vid,auth_token)
+            imgs_id.append(post_id['id'])
+        except Exception as error:
+            print("    An error occurred:", type(error).c) # An error occurred:
+    if (imgs_pic):
+        try: 
+            post_id = postImage(group_id ,imgs_pic,auth_token)
+            imgs_id.append(post_id['id'])
+        except Exception as error:
+            print("    An error occurred:", type(error).c) # An error occurred:
+    # try: 
+    #     imgs_id.append(post_id['id'])
+    # except Exception as error:
+    #     print("    An error occurred:", type(error).c) # An error occurred:
+    args=dict()
+    args["message"]=title + "  "+ content
+    for img_id in imgs_id:
+        key="attached_media["+str(imgs_id.index(img_id))+"]"
+        args[key]="{'media_fbid': '"+img_id+"'}"
+    url = f"https://graph.facebook.com/{group_id}/feed?access_token=" + auth_token
+    print ("r = request.post(" +url+", data="+args+")")
+    try: r = requests.post(url, data=args)
+    #try: r = requests.post(url, data=args).json()
+    except Exception as error:
+        print("    An error getting date occurred:", type(error).c) # An error occurred:
+        r = False
+    time.sleep(facebooksleep)
+    print('    Facebook response: ',r)
     return  (r)
 
 #########################################################################################################################################################
@@ -351,7 +445,7 @@ def write_to_xlsx2(data, outputs):
                 d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
                 # Append the above Python dictionary object as a row to the existing pandas DataFrame
                 # Using the DataFrame.append() function
-                df = df.append(d_row,ignore_index=True)
+                df = pd.concat([df, pd.DataFrame([d_row])], ignore_index=True)
                 if not (processrow[1] in outputs['posts']) : #and (processrow[4] in outputs['posts']):
                     try:
                         outputs['postssession'].add(d2_row)
@@ -764,13 +858,13 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
   #          hashtags=[StoryHashtag(hashtag=hastags(address,title), x=0.23, y=0.32, width=0.5, height=0.22)],
             #medias=[StoryMedia(media_pk=media_pk, x=0.5, y=0.5, width=0.6, height=0.8)],
         )
-            #story = instasession.story_photo("path/to/photo.jpg")
-            # instasession.video_elements.add_link("https://www.joeeatswhat.com")
-            # #story.add_link("https://www.joeeatswhat.com")
-            # instasession.video_elements.add_hashtags(hastags)
-            # story = instasession.video_upload_to_story(outputmontage)
-            #story.upload()
- #           instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: hastags )
+            story = instasession.story_photo("path/to/photo.jpg")
+            instasession.video_elements.add_link("https://www.joeeatswhat.com")
+            #story.add_link("https://www.joeeatswhat.com")
+            instasession.video_elements.add_hashtags(hastags)
+            story = instasession.video_upload_to_story(outputmontage)
+            story.upload()
+            #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: hastags )
             # temp = dict()
             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=hastags)
         except Exception as error:
@@ -816,7 +910,7 @@ def process_reviews(outputs):
         options.add_argument("--log-level=3")
         options.add_argument("--ignore-certificate-error")
         options.add_argument("--ignore-ssl-errors")
-        #options.add_argument("--headless")  # show browser or not ||| HEAD =>  43.03 ||| No Head => 39 seg
+        if not showchrome: options.add_argument("--headless")  # show browser or not ||| HEAD =>  43.03 ||| No Head => 39 seg
         options.add_argument("--lang=en-US")
         options.add_argument("--disable-blink-features=AutomationControlled") 
         # Exclude the collection of enable-automation switches 
@@ -824,6 +918,11 @@ def process_reviews(outputs):
         # Turn-off userAutomationExtension 
         options.add_experimental_option("useAutomationExtension", False) 
         # Setting the driver path and requesting a page 
+        caps = webdriver.DesiredCapabilities.CHROME.copy()
+        caps['acceptInsecureCerts'] = True
+        caps['acceptSslCerts'] = True
+        options.set_capability('cloud:options', caps)
+        #driver = webdriver.Chrome(desired_capabilities=caps)
         driver = webdriver.Chrome(options=options) # Firefox(options=options)  
         # Changing the property of the navigator value for webdriver to undefined 
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
@@ -907,7 +1006,7 @@ def process_reviews(outputs):
                         if (facebookcount <= postsperrun):
                             try: 
                                 print('  Starting to generate Facebook post')
-                                NewFacebookPost = post_facebook(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[4].value,outputs['facebook'] )
+                                NewFacebookPost = post_facebook2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['facebook'] )
                                 try:
                                     print ('  Start generating content to post to facebook')
                                     writtento["facebook"] = 1
@@ -920,7 +1019,7 @@ def process_reviews(outputs):
                                 try: 
                                     print('  write to xls for facebook')
                                     outputs['datawb'].save(xls)
-                                    print('  write to mariadb for instagram')
+                                    print('  write to mariadb for facebook')
                                     # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
                                     # outputs['postssession'].commit()
                                 except Exception as error:
@@ -931,10 +1030,92 @@ def process_reviews(outputs):
                             print ('  Exceeded the number of facebook posts per run, skipping', processrow[1].value)
                     else:
                         print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
+                if False:
+                    if (writtento["xtwitter"] == 0 ):
+                        if (xtwittercount <= postsperrun):
+                            try: 
+                                print('  Starting to generate xtwitter post')
+                                NewxtwitterPost = post_x(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['xtwitter'] )
+                                try:
+                                    print ('  Start generating content to post to xtwitter')
+                                    writtento["facebook"] = 1
+                                    processrow[9].value = str(writtento)
+                                except Exception as error:
+                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
+                                print ('  Success Posting to xtwitter: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
+                                if NewxtwitterPost == True:
+                                    xtwittercount +=1
+                                try: 
+                                    print('  write to xls for xtwitter')
+                                    outputs['datawb'].save(xls)
+                                    print('  write to mariadb for xtwitter')
+                                    # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
+                                    # outputs['postssession'].commit()
+                                except Exception as error:
+                                    print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                            except Exception as error: 
+                                print ('  Error writing xtwitter post : ',processrow[1].value, processrow[2].value, outputs['faceook'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
+                        else:
+                            print ('  Exceeded the number of xtwitter posts per run, skipping', processrow[1].value)
+                    else:
+                        print ('  Xtwitter: Skipping posting for ',processrow[1].value,' previously written')
+    #post_x(title, content, date, rating, address, picslist, instasession)
     # else:
     #     print ('Exceeded the number of posts per run, exiting')
+                # if xtwitter:
+                #     namedict = {'name':'xtwitter', 'namecount':xtwittercount, 'namepost':'NewxtwitterPost', 'subroutine':post_x}
+                #    # junction('xtwitter',xtwittercount,'NewxtwitterPost','post_x', outputs, writtento, processrow)
+                #     socials('xtwitter',namedict,outputs,writtento, processrow,post_x)
     return #(outputs['web'])
 
+
+
+
+#########################################################################################################################################################
+
+# def junction(name,namedict, outputs, writtento, processrow ):
+#     if name == "xtwitter":
+#         twitteroptions = {'name':'xtwitter', 'namecount':namedict['namecount'], 'namepost':'NewxtwitterPost', 'subroutine':'post_x'}
+#         namedict.update({'xtwitter':twitteroptions}) 
+#         stationout = socials(name, namedict, outputs, writtento, processrow)
+#     return namedict
+
+#def socials(namedict, outputs, writtento, processrow):
+#def socials(name, namecount, namepost, subroutine, outputs, writtento, processrow):
+def socials(name, namedict,outputs, writtento, processrow,funct):# namecount, namepost, subroutine, outputs, writtento, processrow):
+    #namedict{'name':name, 'namecount':namecount, 'namepost':namepost, 'subroutine':subroutine}
+    #namedict{'name':xtwitter, 'namecount':xtwiteercount, 'namepost':NewxtwitterPost, 'subroutine':postx}
+    if name:
+        if (writtento[name] == 0 ):
+            print (namedict['namecount'])
+            if (int(namedict['namecount']) <= postsperrun):
+                try: 
+                    print('  Starting to generate xtwitter post : ',namedict['subroutine'])
+                    postoutput = funct(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[4].value,outputs )
+                    try:
+                        print ('  Start generating content to post to xtwitter : ') #,namedict['subroutine'])
+                        writtento[name] = 1
+                        processrow[9].value = str(writtento)
+                    except Exception as error:
+                        print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
+                    print ('  Success Posting to '+name+': '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
+                    if namedict['namepost'].value == True:
+                        namecount +=1
+                    try: 
+                        print('  write to xls for '+name)
+                        outputs['datawb'].save(xls)
+                        print('  write to mariadb for '+name)
+                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
+                        # outputs['postssession'].commit()
+                    except Exception as error:
+                        print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                except Exception as error: 
+                    print ('  Error writing '+name+' post : ',processrow[1].value, processrow[2].value, outputs[name],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento[name], type(error).__name__ )
+            else:
+                print ('  Exceeded the number of '+name+' posts per run, skipping', processrow[1].value)
+        else:
+            print ('  '+name+': Skipping posting for ',processrow[1].value,' previously written')
+    return namedict
 
 #########################################################################################################################################################
     
