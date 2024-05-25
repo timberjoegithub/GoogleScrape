@@ -197,7 +197,7 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
 
 #########################################################################################################################################################
 def postImage(group_id, img,auth_token):
-    files=dict
+    files={}
     url = f"https://graph.facebook.com/{group_id}/photos?access_token=" + auth_token
     for eachfile in img:
         files.update({eachfile: open(eachfile, 'rb')})
@@ -209,19 +209,22 @@ def postImage(group_id, img,auth_token):
     except Exception as error:
         print("    An error getting date occurred:", type(error).c) # An error occurred:
         r = False
-    print (r)
-    print ('r id  = ',r['id'])
+#    print (r)
+#    print ('r id  = ',r['id'])
     time.sleep(facebooksleep)
     return r
 
-def postVideo(group_id, video_path,auth_token):
+def postVideo(group_id, video_path,auth_token,title, content, date, rating, address):
     url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
     files={}
+    addresshtml = re.sub(" ", ".",address)
+    #args={}
+    #data["message"]=title + "\n"+address+"\n\n"+ content + "\n"+rating+"\n"+date
     for eachfile in video_path:
        # my_dict['key'].append(1)
         files.update({eachfile: open(eachfile, 'rb')})
-    data = {
-        "published" : False
+    data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
+             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True
     }
     #try: r = requests.post(url, files=files, data=data)
     try: r = requests.post(url, files=files, data=data).json()
@@ -232,6 +235,8 @@ def postVideo(group_id, video_path,auth_token):
     print (r)
     print ('r id  = ',r['id'])
     return r
+
+
 
 def post_facebook2(title, content, date, rating, address, picslist, instasession):
     #msg = 'Purple Ombre Bob Lace Wig Natural Human Hair now available on https://lace-wigs.co.za/'
@@ -249,30 +254,33 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
             imgs_vid.append(img)
         else:
             imgs_pic.append(img)
-    if (imgs_vid ):
-        print ("loop")
-        try: 
-            post_id = postVideo(group_id, imgs_vid,auth_token)
-            imgs_id.append(post_id['id'])
-        except Exception as error:
-            print("    An error occurred:", type(error).c) # An error occurred:
+    # if (imgs_vid ):
+    #     print ("loop")
+    #     try: 
+    #         post_id = postVideo(group_id, imgs_vid,auth_token)
+    #         imgs_id.append(post_id['id'])
+    #     except Exception as error:
+    #         print("    An error occurred:", type(error).c) # An error occurred:
     if (imgs_pic):
         try: 
             post_id = postImage(group_id ,imgs_pic,auth_token)
             imgs_id.append(post_id['id'])
         except Exception as error:
-            print("    An error occurred:", type(error).c) # An error occurred:
+            print("    An error occurred:", type(error)) # An error occurred:
+
     # try: 
     #     imgs_id.append(post_id['id'])
     # except Exception as error:
     #     print("    An error occurred:", type(error).c) # An error occurred:
     args=dict()
+ #   args['title']= title
     args["message"]=title + "  "+ content
     for img_id in imgs_id:
         key="attached_media["+str(imgs_id.index(img_id))+"]"
         args[key]="{'media_fbid': '"+img_id+"'}"
+    #url = f"https://graph.facebook.com/me/feed?access_token=" + auth_token
     url = f"https://graph.facebook.com/{group_id}/feed?access_token=" + auth_token
-    print ("r = request.post(" +url+", data="+args+")")
+    #print ("r = request.post(" +url+", data="+args+")")
     try: r = requests.post(url, data=args)
     #try: r = requests.post(url, data=args).json()
     except Exception as error:
@@ -281,6 +289,57 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
     time.sleep(facebooksleep)
     print('    Facebook response: ',r)
     return  (r)
+
+
+def post_facebook3(title, content, date, rating, address, picslist, instasession):
+    pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+    group_id = facebookpageID
+    auth_token = facebookpass
+    page_id_1 = facebookpageID
+    facebook_access_token = facebookpass
+    imgs_id = []
+    imgs_vid = []
+    imgs_pic = []
+    img_list = pics
+    for img in img_list:
+        if ('montage.mp4' in img ):
+            imgs_vid.append(img)
+        else:
+            imgs_pic.append(img)
+    if (imgs_vid ):
+       # print ("loop")
+        try: 
+            post_id = postVideo(group_id, imgs_vid,auth_token,title, content, date, rating, address)
+            imgs_id.append(post_id['id'])
+        except Exception as error:
+            print("    An error occurred:", type(error).c) # An error occurred:
+    # if (imgs_pic):
+    #     try: 
+    #         post_id = postImage(group_id ,imgs_pic,auth_token)
+    #         imgs_id.append(post_id['id'])
+    #     except Exception as error:
+    #         print("    An error occurred:", type(error)) # An error occurred:
+    # try: 
+    #     imgs_id.append(post_id['id'])
+    # except Exception as error:
+    #     print("    An error occurred:", type(error).c) # An error occurred:
+#     args=dict()
+#  #   args['title']= title
+#     args["message"]=title + "  "+ content
+#     for img_id in imgs_id:
+#         key="attached_media["+str(imgs_id.index(img_id))+"]"
+#         args[key]="{'media_fbid': '"+img_id+"'}"
+#     #url = f"https://graph.facebook.com/me/feed?access_token=" + auth_token
+#     url = f"https://graph.facebook.com/{group_id}/feed?access_token=" + auth_token
+#     #print ("r = request.post(" +url+", data="+args+")")
+#     try: r = requests.post(url, data=args)
+#     #try: r = requests.post(url, data=args).json()
+#     except Exception as error:
+#         print("    An error getting date occurred:", type(error).c) # An error occurred:
+#         r = False
+    time.sleep(facebooksleep)
+    print('    Facebook response: ',post_id)
+    return  (True)
 
 #########################################################################################################################################################
    
@@ -1006,7 +1065,7 @@ def process_reviews(outputs):
                         if (facebookcount <= postsperrun):
                             try: 
                                 print('  Starting to generate Facebook post')
-                                NewFacebookPost = post_facebook2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['facebook'] )
+                                NewFacebookPost = post_facebook3(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['facebook'] )
                                 try:
                                     print ('  Start generating content to post to facebook')
                                     writtento["facebook"] = 1
