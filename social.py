@@ -23,6 +23,7 @@ import requests
 from openpyxl import Workbook, load_workbook
 import datetime as dt
 import json
+import jsonpickle
 
 #Instgram
 #from instapy import InstaPy
@@ -224,7 +225,7 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
        # my_dict['key'].append(1)
         files.update({eachfile: open(eachfile, 'rb')})
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
-             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True
+             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+"\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True
     }
     #try: r = requests.post(url, files=files, data=data)
     try: r = requests.post(url, files=files, data=data).json()
@@ -292,7 +293,7 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
 
 
 def post_facebook3(title, content, date, rating, address, picslist, instasession):
-    pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+    pics = ((picslist[1:-1]).replace("'","")).split(",")
     group_id = facebookpageID
     auth_token = facebookpass
     page_id_1 = facebookpageID
@@ -303,9 +304,9 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
     img_list = pics
     for img in img_list:
         if ('montage.mp4' in img ):
-            imgs_vid.append(img)
+            imgs_vid.append(img.strip())
         else:
-            imgs_pic.append(img)
+            imgs_pic.append(img.strip())
     if (imgs_vid ):
        # print ("loop")
         try: 
@@ -345,6 +346,10 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
    
 
 def get_data(driver,outputs ):
+    
+#     curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H "X-Goog-FieldMask: id,displayName,formattedAddress,plusCode" https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri  AIzaSyB_hglzM7N8HzjXwi1dF1E8WYTql3akS7Q
+
+    
     """
     this function get main text, score, name
     """
@@ -382,6 +387,8 @@ def get_data(driver,outputs ):
             os.makedirs('./Output/Pics/'+cleanname)
         # Walk through all the pictures and videos for a given review
         for lmpics in more_specific_pics:  
+            # if pics2 and not pics:
+            #     pics2 = []
             # Grab URL from style definiton (long multivalue string), and remove the -p-k so that it is full size 
             urlmedia = re.sub('=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]", lmpics.get_attribute("style")))[0])
             print ('URL : ',urlmedia)
@@ -423,8 +430,9 @@ def get_data(driver,outputs ):
             # Store the local path to be used in the excel document
             picsLocalpath = "./Output/Pics/"+cleanname+"/"+visitdate+'/'+filename
             pics2.append(picsLocalpath)
-        make_video(pics2)
-        pics2.append("./Output/Pics/"+cleanname+"/"+visitdate+'/'+'montage.mp4') 
+        if pics2:
+            make_video(pics2)
+            pics2.append("./Output/Pics/"+cleanname+"/"+visitdate+'/'+'montage.mp4') 
         dictPostComplete= {'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,'instagram':0,'tiktok':0}
         lst_data.append([name , text, score,pics,pics2,"GoogleMaps",visitdate,address,dictPostComplete])
   
@@ -490,32 +498,35 @@ def write_to_xlsx2(data, outputs):
     rows = list(data)
     if needreversed:
         rows = reversed(rows)
+    #jsonposts = json.dumps(outputs['posts'], default=Posts)
+    print("Encode Object into JSON formatted Data using jsonpickle")
+    jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
     for processrow in df2.values:
         if  (processrow[1] in df.values):
-            print ('  Row ',processrow[0],'  already in XLS sheet')
+            print ('  Row ',processrow[0],' ', processrow[1],'  already in XLS sheet')
             d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-            if not (processrow[1] in outputs['posts']) : 
-                outputs['postssession'].add(d2_row)
-                outputs['postssession'].commit()
+            # if not (processrow[1] in outputs['posts']) : 
+            #     outputs['postssession'].add(d2_row)
+            #     outputs['postssession'].commit()
         else:
             if (processrow[1] != None):
                 # Create a Python dictionary object with all the column values
                 d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
                 d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-                # Append the above Python dictionary object as a row to the existing pandas DataFrame
-                # Using the DataFrame.append() function
-                df = pd.concat([df, pd.DataFrame([d_row])], ignore_index=True)
-                if not (processrow[1] in outputs['posts']) : #and (processrow[4] in outputs['posts']):
-                    try:
-                        outputs['postssession'].add(d2_row)
-                        outputs['postssession'].commit()
-                        #outputs('posts').append(d_row)
-                    except Exception as error:
-                        print('    Not able to write to post data table: ' , type(error))
-                        outputs['postssession'].rollback()
-                        raise
-                    else:
-                        outputs['postssession'].commit()
+                print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
+        # Append the above Python dictionary object as a row to the existing pandas DataFrame
+        # Using the DataFrame.append() function
+        try:
+            if (processrow[1] in jsonposts) : #outputs['posts']):
+                print ('  Row ',processrow[0],' ', processrow[1],'  already in Database')
+            else:
+                outputs['postssession'].add(d2_row)
+                outputs['postssession'].commit()
+                print ('  Row ',processrow[0],' ', processrow[1],'  added to Database')
+        except Exception as error:
+            print('    Not able to write to post data table: ' , type(error))
+            outputs['postssession'].rollback()
+            raise
     df.to_excel(xls)
     return data
 
@@ -605,7 +616,7 @@ def check_post(postname,postdate,headers2):
 #########################################################################################################################################################
 
 def post_x(title, content, date, rating, address, picslist, instasession):
-    pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+    pics = ((picslist[1:-1]).replace("'","")).split(",")
     from requests_oauthlib import OAuth1Session
     # Be sure to add replace the text of the with the text you wish to Tweet. You can also add parameters to post polls, quote Tweets, Tweet with reply settings, and Tweet to Super Followers in addition to other features.
     payload = {"text": content}
@@ -892,15 +903,18 @@ def make_video(inphotos):
 def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
     #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
     #montageexists = "montage.mp4" in picslist
-    if ((picslist != '[]' ) and not ("montage.mp4" in picslist)):
+    if ((picslist != '[]' ) and ("montage.mp4" in picslist)):
         outputmontage = ''
+        addresshtml = re.sub(" ", ".",address)
         #content = content + hastags(address, title)
         pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
         video, outputmontage = make_video(pics)
         try:
-            video2 = instasession.video_upload(outputmontage, content + hastags(address, title))
+            data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
+            video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+            return False
         #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
         #media_path = instasession.video_download(media_pk)
         # joeeatswhat = instasession.user_info_by_username('timberjoe')
@@ -908,26 +922,27 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
         # except Exception as error:
         #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
         # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
-        try:   
-            instasession.video_upload_to_story(
-            outputmontage,
-            "Credits @joeeatswhat",
- #           mentions=[StoryMention(user='timberjoe', x=0.49892962, y=0.703125, width=0.8333333333333334, height=0.125)],
-            links=[StoryLink(webUri='https://www.joeeatswhat.com')],
-  #          hashtags=[StoryHashtag(hashtag=hastags(address,title), x=0.23, y=0.32, width=0.5, height=0.22)],
-            #medias=[StoryMedia(media_pk=media_pk, x=0.5, y=0.5, width=0.6, height=0.8)],
-        )
-            story = instasession.story_photo("path/to/photo.jpg")
-            instasession.video_elements.add_link("https://www.joeeatswhat.com")
-            #story.add_link("https://www.joeeatswhat.com")
-            instasession.video_elements.add_hashtags(hastags)
-            story = instasession.video_upload_to_story(outputmontage)
-            story.upload()
-            #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: hastags )
-            # temp = dict()
-            # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=hastags)
-        except Exception as error:
-            print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+#         try:   
+#             instasession.video_upload_to_story(
+#             outputmontage,
+#             "Credits @joeeatswhat",
+#  #           mentions=[StoryMention(user='timberjoe', x=0.49892962, y=0.703125, width=0.8333333333333334, height=0.125)],
+#             links=[StoryLink(webUri='https://www.joeeatswhat.com')],
+#   #          hashtags=[StoryHashtag(hashtag=hastags(address,title), x=0.23, y=0.32, width=0.5, height=0.22)],
+#             #medias=[StoryMedia(media_pk=media_pk, x=0.5, y=0.5, width=0.6, height=0.8)],
+#         )
+#             story = instasession.story_photo("path/to/photo.jpg")
+#             instasession.video_elements.add_link("https://www.joeeatswhat.com")
+#             #story.add_link("https://www.joeeatswhat.com")
+#             instasession.video_elements.add_hashtags(hastags)
+#             story = instasession.video_upload_to_story(outputmontage)
+#             story.upload()
+#             #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: hastags )
+#             # temp = dict()
+#             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=hastags)
+#         except Exception as error:
+#             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+#             return False
         return True
     else:
         return False 
@@ -947,7 +962,7 @@ def hastags (address, name):
     zip = addressdict[3]
     state = addressdict[2]
     city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
-    defaulttags = "\n\n\n#"+nameNoSpaces+" #foodie #music #food #travel # drinks #instagood #feedme #joeeatswhat @timberjoe"
+    defaulttags = "\n\n\n#"+nameNoSpaces+" #foodie #music #food #travel #drinks #instagood #feedme #joeeatswhat @timberjoe"
     citytag = "#"+city
     statetag = "#"+state
     ziptag = "#"+zip
@@ -1084,7 +1099,7 @@ def process_reviews(outputs):
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
                             except Exception as error: 
-                                print ('  Error writing facebook post : ',processrow[1].value, processrow[2].value, outputs['faceook'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["facebook"], type(error).__name__ )
+                                print ('  Error writing facebook post : ',processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["facebook"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of facebook posts per run, skipping', processrow[1].value)
                     else:
@@ -1113,7 +1128,7 @@ def process_reviews(outputs):
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
                             except Exception as error: 
-                                print ('  Error writing xtwitter post : ',processrow[1].value, processrow[2].value, outputs['faceook'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
+                                print ('  Error writing xtwitter post : ',processrow[1].value, processrow[2].value, outputsmo,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of xtwitter posts per run, skipping', processrow[1].value)
                     else:
