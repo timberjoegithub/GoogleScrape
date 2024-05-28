@@ -439,8 +439,7 @@ def scrolling(counter,driver):
     for _i in range(counter):
         try:
             scrolling = driver.execute_script(
-                'document.getElementsByClassName("dS8AEf")[0].scrollTop = /
-                document.getElementsByClassName("dS8AEf")[0].scrollHeight',
+                'document.getElementsByClassName("dS8AEf")[0].scrollTop=document.getElementsByClassName("dS8AEf")[0].scrollHeight',
                 scrollable_div
             )
             time.sleep(3)
