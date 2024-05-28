@@ -1,28 +1,28 @@
 import sqlalchemy
-from env import *
+import env
 
 #data
 import time
 import os
 from selenium import webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver
-from selenium.webdriver.chrome.service import Service
+#from selenium.webdriver.chrome.webdriver import WebDriver
+#from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 import re
 import urllib3
 from urllib.request import urlretrieve
-from openpyxl import Workbook
+#from openpyxl import Workbook, load_workbook
+from openpyxl import load_workbook
 import pandas as pd
-from datetime import datetime, date, timedelta
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 #instagram
 import ast
 import base64
 import requests
-from openpyxl import Workbook, load_workbook
 import datetime as dt
-import json
+#import json
 import jsonpickle
 
 #Instgram
@@ -31,12 +31,11 @@ import jsonpickle
 #from instabot import Bot
 import pathlib
 import instagrapi
-from instagrapi.types import StoryMention, StoryMedia, StoryLink, StoryHashtag
-from instagrapi.story import StoryBuilder
-from moviepy.editor import *
-import moviepy
+#from instagrapi.types import StoryMention, StoryMedia, StoryLink, StoryHashtag
+#from instagrapi.story import StoryBuilder
+from moviepy.editor import VideoFileClip, concatenate_videoclips
+#import moviepy
 
-import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 #import mysqlclient
 #import mysql-connector-python
@@ -99,11 +98,11 @@ class Posts(Base):
 
 def authconnect():
     connections = {}
-    if mariadb:
+    if env.mariadb:
         print('Connecting to MariaDB for configuration and storage')
-        from sqlalchemy import create_engine
-        engine = sqlalchemy.create_engine("mysql+mysqldb://"+mariadbuser+":"+mariadbpass+
-            "@"+mariadbserver+"/"+mariadbdb+"?charset=utf8mb4", echo=False)
+        #from sqlalchemy import create_engine
+        engine = sqlalchemy.create_engine("mysql+mysqldb://"+env.mariadbuser+":"+env.mariadbpass+
+            "@"+env.mariadbserver+"/"+env.mariadbdb+"?charset=utf8mb4", echo=False)
         Session = sqlalchemy.orm.sessionmaker()
         Session.configure(bind=engine)
         session = Session()
@@ -115,15 +114,15 @@ def authconnect():
         posts = session.query(Posts).all()
         connections.update({'posts':posts})
         connections.update({'postssession':session})
-    if data:
+    if env.data:
         print('  loading XLS content data source ...')
-        if os.path.exists(xls):
-            wb = load_workbook(filename = xls)
-            xlswbDF = pd.read_excel(xls)
+        if os.path.exists(env.xls):
+            wb = load_workbook(filename = env.xls)
+            xlswbDF = pd.read_excel(env.xls)
         else:
-            if os.path.exists('./GoogleScrape/'+ xls):
-                wb = load_workbook(filename = './GoogleScrape/'+ xls)
-                xlswbDF = pd.read_excel('./GoogleScrape/'+ xls)
+            if os.path.exists('./GoogleScrape/'+ env.xls):
+                wb = load_workbook(filename = './GoogleScrape/'+ env.xls)
+                xlswbDF = pd.read_excel('./GoogleScrape/'+ env.xls)
             else:
                 input("Not able to find xls file Press any key to continue...")
         ws = wb['Sheet1']
@@ -131,12 +130,12 @@ def authconnect():
         connections.update({'xlsdf':xlswbDF})
         connections.update({'data':ws})
         connections.update({'datawb':wb})
-    if instagram :
+    if env.instagram :
         print('  Connecting to Instagram ...')
         instasessionclient = instagrapi.Client()
-        instasessionclient.login(instagramuser, instagrampass)
+        instasessionclient.login(env.instagramuser, env.instagrampass)
         connections.update({'instagram':instasessionclient})
-    if facebook :
+    if env.facebook :
         print('  Connecting to facebook ...')
         # page_id_1 = facebookpageID
         # facebook_access_token = 'paste-your-page-access-token-here'
@@ -151,21 +150,21 @@ def authconnect():
         # r = requests.post(image_url, data=img_payload)
         # print(r.text)
         connections.update({'facebook':posts})
-    if yelp :
+    if env.yelp :
         print('  Connecting to yelp ...')
-    if xtwitter :
+    if env.xtwitter :
         print('  Connecting to xtwitter ...')
-    if threads :
+    if env.threads :
         print('  Connecting to threads ...')
-    if web :
+    if env.web :
         print('  Connecting to joeeatswhat.com ...')
-        data_string = f"{user}:{password}"
+        data_string = f"{env.user}:{env.password}"
         token = base64.b64encode(data_string.encode()).decode("utf-8")
         headers = {"Authorization": f"Basic {token}"}
         connections.update({'web' : headers})
-    if tiktok :
+    if env.tiktok :
         print('  Connecting to Instagram ...')
-    return (connections)
+    return connections
 
 ##################################################################################################
 
@@ -182,8 +181,8 @@ def counter(driver):
 def post_facebook(title, content, date, rating, address, picslist, instasession):
     #msg = 'Purple Ombre Bob Lace Wig Natural Human Hair now available on https://lace-wigs.co.za/'
     pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-    page_id_1 = facebookpageID
-    facebook_access_token = facebookpass
+    page_id_1 = env.facebookpageID
+    facebook_access_token = env.facebookpass
     #facebook_access_token = 'paste-your-page-access-token-here'
 #    image_url = 'https://graph.facebook.com/{}/feed'.format(page_id_1)
     image_url = 'https://graph.facebook.com/{}/photos'.format(page_id_1)
@@ -213,7 +212,7 @@ def postImage(group_id, img,auth_token):
     except Exception as error:
         print("    An error getting date occurred:", type(error).c) # An error occurred:
         r = False
-    time.sleep(facebooksleep)
+    time.sleep(env.facebooksleep)
     return (r)
 
 ##################################################################################################
@@ -232,11 +231,12 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
              "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+
              "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True
     }
-    try: r = requests.post(url, files=files, data=data).json()
+    try:
+        r = requests.post(url, files=files, data=data).json()
     except Exception as error:
         print("    An error getting date occurred:", type(error).c) # An error occurred:
         r = False
-    time.sleep(facebooksleep)
+    time.sleep(env.facebooksleep)
     return r
 
 ##################################################################################################
@@ -244,27 +244,26 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
 def post_facebook2(title, content, date, rating, address, picslist, instasession):
     #msg = 'Purple Ombre Bob Lace Wig Natural Human Hair now available on https://lace-wigs.co.za/'
     pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-    group_id = facebookpageID
-    auth_token = facebookpass
-    page_id_1 = facebookpageID
-    facebook_access_token = facebookpass
+    group_id = env.facebookpageID
+    auth_token = env.facebookpass
+    #page_id_1 = env.facebookpageID
     imgs_id = []
     imgs_vid = []
     imgs_pic = []
     img_list = pics
     for img in img_list:
-        if ('.mp4' in img ):
+        if '.mp4' in img:
             imgs_vid.append(img)
         else:
             imgs_pic.append(img)
-    # if (imgs_vid ):
+    # if imgs_vid :
     #     print ("loop")
     #     try:
     #         post_id = postVideo(group_id, imgs_vid,auth_token)
     #         imgs_id.append(post_id['id'])
     #     except Exception as error:
     #         print("    An error occurred:", type(error).c) # An error occurred:
-    if (imgs_pic):
+    if imgs_pic:
         try:
             post_id = postImage(group_id ,imgs_pic,auth_token)
             imgs_id.append(post_id['id'])
@@ -283,12 +282,13 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
     #url = f"https://graph.facebook.com/me/feed?access_token=" + auth_token
     url = f"https://graph.facebook.com/{group_id}/feed?access_token=" + auth_token
     #print ("r = request.post(" +url+", data="+args+")")
-    try: r = requests.post(url, data=args)
+    try: 
+        r = requests.post(url, data=args)
     #try: r = requests.post(url, data=args).json()
     except Exception as error:
         print("    An error getting date occurred:", type(error).c) # An error occurred:
         r = False
-    time.sleep(facebooksleep)
+    time.sleep(env.facebooksleep)
     print('    Facebook response: ',r)
     return  (r)
 
@@ -296,10 +296,8 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
 
 def post_facebook3(title, content, date, rating, address, picslist, instasession):
     pics = ((picslist[1:-1]).replace("'","")).split(",")
-    group_id = facebookpageID
-    auth_token = facebookpass
-    page_id_1 = facebookpageID
-    facebook_access_token = facebookpass
+    group_id = env.facebookpageID
+    auth_token = env.facebookpass
     imgs_id = []
     imgs_vid = []
     imgs_pic = []
@@ -317,17 +315,15 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
             imgs_id.append(post_id['id'])
         except Exception as error:
             print("    An error occurred:", type(error).c) # An error occurred:
-    time.sleep(facebooksleep)
+    time.sleep(env.facebooksleep)
     print('    Facebook response: ',post_id)
     return  (True)
 
 ##################################################################################################
 
-
 def get_data(driver,outputs ):
-
-# curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H 
-#   "X-Goog-FieldMask: id,displayName,formattedAddress,plusCode" 
+# curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H
+#   "X-Goog-FieldMask: id,displayName,formattedAddress,plusCode"
 #   https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri
     """
     this function get main text, score, name
@@ -348,20 +344,28 @@ def get_data(driver,outputs ):
     lst_data = []
     for data in elements:
         name = data.find_element(By.CSS_SELECTOR, 'div.d4r55.YJxk2d').text
-        try: address = data.find_element(By.CSS_SELECTOR, 'div.RfnDt.xJVozb').text
-        except: address = 'Unknonwn'
+        try:
+            address = data.find_element(By.CSS_SELECTOR, 'div.RfnDt.xJVozb').text
+        except Exception:
+            address = 'Unknonwn'
         print ('Name of location: ',name, '   Address:',address)
-        try: visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
-        except: visitdate = "Unknown"
+        try: 
+            visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
+        except Exception:
+            visitdate = "Unknown"
         print('Visited: ',visitdate)
-        try: text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
-        except: text = ''
-        try: score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")
+        try: 
+            text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
+        except Exception:
+            text = ''
+        try: 
+            score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")
         #find_element(By.CSS_SELECTOR,'aria-label').text #)  ##QA0Szd > div > div > div.w6VYqd >
         #  div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf
         #  > div.m6QErb > div:nth-child(3) > div:nth-child(2) > div > div:nth-child(4) > div.DU9Pgb
         #  > span.kvMYJc
-        except: score = "Unknown"
+        except Exception:
+            score = "Unknown"
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
         pics= []
         pics2 = []
@@ -391,7 +395,7 @@ def get_data(driver,outputs ):
             # displayed, this will be done
             # because videos are represented by pictures in the main dialogue, so we need to click
             # through and grab the video URL
-            if (lmpics.find_elements(By.CSS_SELECTOR,'div.fontLabelMedium.e5A3N')) :
+            if lmpics.find_elements(By.CSS_SELECTOR,'div.fontLabelMedium.e5A3N') :
                 ext='.mp4'
                 lmpics.click()
                 time.sleep(2)
@@ -446,6 +450,7 @@ def scrolling(counter,driver):
         except Exception as e:
             print(f"Error while scrolling: {e}")
             break
+    return scrolling
 
 ##################################################################################################
 
@@ -455,15 +460,16 @@ def write_to_xlsx(webdata, outputs):
         'dictPostComplete']
     # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
     rows = list(webdata)
-    if needreversed:
+    if env.needreversed:
         rows = reversed(rows)
     for processrow in rows:
         print (processrow[4], processrow[0])
-        if (processrow[4] in outputs['data']) and (processrow[0] in outputs['data']):
+        if processrow[4] in outputs['data'] and processrow[0] in outputs['data']:
             print ('  Row ',processrow[0],'  already in XLS sheet')
         else:
-            if (processrow[0] != None):
-#                processrow.append({'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,'Instagram':0,'tiktok':0})
+            if processrow[0] is not None:
+#                processrow.append({'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,
+#                   'Instagram':0,'tiktok':0})
                 outputs['data'].append([processrow[0],processrow[1],processrow[2],str(
                     processrow[3]),str(processrow[4]),str(processrow[5]),str(processrow[6]),
                     str(processrow[7]),str(processrow[8])]) # sheet_obj.append([col1, col2])
@@ -472,7 +478,7 @@ def write_to_xlsx(webdata, outputs):
     cols = ['num',"name", "comment", 'rating','picsURL','picsLocalpath','source','date',
         'address','dictPostComplete', 'test']
     df = pd.DataFrame(outputs['data'], columns=cols)
-    df.to_excel(xls)
+    df.to_excel(env.xls)
     return True
 
     #df = pd.DataFrame(data, columns=cols)
@@ -481,15 +487,17 @@ def write_to_xlsx(webdata, outputs):
 def write_to_xlsx2(data, outputs):
     print('write to excel...')
     sqlalchemy.null()
-    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
-    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
+    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
+        'dictPostComplete']
+    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+        'address','dictPostComplete']
     df = pd.DataFrame(data, columns=cols)
     df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2)
     #df2 = df1.where((pd.notnull(df)), None)  # take out NAN problems
     #df3.astype(object).where(pd.notnull(df2), None)
     print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
     rows = list(data)
-    if needreversed:
+    if env.needreversed:
         rows = reversed(rows)
     #jsonposts = json.dumps(outputs['posts'], default=Posts)
     print("Encode Object into JSON formatted Data using jsonpickle")
@@ -497,17 +505,23 @@ def write_to_xlsx2(data, outputs):
     for processrow in df2.values:
         if  (processrow[1] in df.values):
             print ('  Row ',processrow[0],' ', processrow[1],'  already in XLS sheet')
-            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
+            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
+                picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
+                date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
         else:
-            if (processrow[1] != None):
+            if processrow[1] is not None:
                 # Create a Python dictionary object with all the column values
-                d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
-                d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
+                # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
+                #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
+                #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
+                d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
+                    picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
+                    date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
                 print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
-            if (processrow[1] in jsonposts) : #outputs['posts']):
+            if processrow[1] in jsonposts : #outputs['posts']):
                 print ('  Row ',processrow[0],' ', processrow[1],'  already in Database')
             else:
                 outputs['postssession'].add(d2_row)
@@ -517,7 +531,7 @@ def write_to_xlsx2(data, outputs):
             print('    Not able to write to post data table: ' , type(error))
             outputs['postssession'].rollback()
             raise
-    df.to_excel(xls)
+    df.to_excel(env.xls)
     return data
 
 ##################################################################################################
@@ -535,32 +549,32 @@ def database_read(data):
 
 def check_web_media(filename,headers):
     file_name_minus_extension = filename
-    response = requests.get(wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
+    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
         link = result[0]['guid']['rendered']
         return file_id, link
     except Exception as error:
-        print('    No existing media with same name in Wordpress media folder: ' + filename)
+        print('    No existing media with same name in Wordpress media folder: '+filename+' '+error)
         return (False, False)
- 
+
 ##################################################################################################
-       
+
 def check_web_post(postname,postdate,headers):
-    response = requests.get(wpAPI+"/posts?search="+postname, headers=headers)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers)
     try:
         result = response.json()
         post_id = int(result[0]['id'])
         post_date = result[0]['date']
         if postdate == post_date:
             return post_id
-    except:
+    except Exception:
         print('No existing post with same name: ' + postname)
     return False
 
 ##################################################################################################
-    
+
 def is_port_open(host, port):
     try:
         isWebUp = urllib3.request("GET", host)
@@ -568,28 +582,28 @@ def is_port_open(host, port):
             return True
     except Exception as error:
         print ('Could not open port to website: ', host,  type(error))
-        return False     
+        return False
 
 ##################################################################################################
-    
+
 def check_media(filename, headers):
     # Regex gilename to format like in WordPress media name
     #file_name_minus_extension = re.sub(r'\'|(....$)','', filename, flags=re.IGNORECASE)
     file_name_minus_extension = filename
-    response = requests.get(wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
+    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
         link = result[0]['guid']['rendered']
         return file_id, link
     except Exception as error:
-        print('    No existing media with same name in Wordpress media folder: ' + filename)
+        print('    No existing media with same name in Wordpress media folder: ' + filename+' '+error)
         return False, False
-    
+
 ##################################################################################################
-    
+
 def check_post(postname,postdate,headers2):
-    response = requests.get(wpAPI+"/posts?search="+postname, headers=headers2)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2)
     result = response.json()
     if len(result) > 0 :
         post_id = int(result[0]['id'])
@@ -606,64 +620,69 @@ def check_post(postname,postdate,headers2):
 ##################################################################################################
 
 def post_x(title, content, date, rating, address, picslist, instasession):
-    pics = ((picslist[1:-1]).replace("'","")).split(",")
-    from requests_oauthlib import OAuth1Session
-    # Be sure to add replace the text of the with the text you wish to Tweet. You can also add parameters to post polls, quote Tweets, Tweet with reply settings, and Tweet to Super Followers in addition to other features.
-    payload = {"text": content}
-    # Get request token
-    request_token_url = "https://api.twitter.com/oauth/request_token?oauth_callback=oob&x_auth_access_type=write"
-    oauth = OAuth1Session(consumer_key, client_secret=consumer_secret)
-    try:
-        fetch_response = oauth.fetch_request_token(request_token_url)
-    except ValueError:
-        print("There may have been an issue with the consumer_key or consumer_secret you entered.")
-    resource_owner_key = fetch_response.get("oauth_token")
-    resource_owner_secret = fetch_response.get("oauth_token_secret")
-    print("Got OAuth token: %s" % resource_owner_key)
-    # Get authorization
-    base_authorization_url = "https://api.twitter.com/oauth/authorize"
-    authorization_url = oauth.authorization_url(base_authorization_url)
-    print("Please go here and authorize: %s" % authorization_url)
-    verifier = input("Paste the PIN here: ")
-    # Get the access token
-    access_token_url = "https://api.twitter.com/oauth/access_token"
-    oauth = OAuth1Session(
-        consumer_key,
-        client_secret=consumer_secret,
-        resource_owner_key=resource_owner_key,
-        resource_owner_secret=resource_owner_secret,
-        verifier=verifier,
-    )
-    oauth_tokens = oauth.fetch_access_token(access_token_url)
-    access_token = oauth_tokens["oauth_token"]
-    access_token_secret = oauth_tokens["oauth_token_secret"]
-    # Make the request
-    oauth = OAuth1Session(
-        consumer_key,
-        client_secret=consumer_secret,
-        resource_owner_key=access_token,
-        resource_owner_secret=access_token_secret,
-    )
-    # Making the request
-    response = oauth.post("https://api.twitter.com/2/tweets",json=payload)
-    if response.status_code != 201:
-        raise Exception("Request returned an error: {} {}".format(response.status_code, response.text) )
-    print("Response code: {}".format(response.status_code))
-    # Saving the response as JSON
-    json_response = response.json()
-    print(json.dumps(json_response, indent=4, sort_keys=True))
-    return
+#     pics = ((picslist[1:-1]).replace("'","")).split(",")
+#     from requests_oauthlib import OAuth1Session
+#     # Be sure to add replace the text of the with the text you wish to Tweet. You can also add
+#     # parameters to post polls, quote Tweets, Tweet with reply settings, and Tweet to Super
+#     # Followers in addition to other features.
+#     payload = {"text": content}
+#     # Get request token
+#     request_token_url = \
+#         "https://api.twitter.com/oauth/request_token?oauth_callback=oob&x_auth_access_type=write"
+#     oauth = OAuth1Session(env.consumer_key, client_secret=env.consumer_secret)
+#     try:
+#         fetch_response = oauth.fetch_request_token(request_token_url)
+#     except ValueError:
+#         print("There may have been an issue with the consumer_key or consumer_secret you entered.")
+#     resource_owner_key = fetch_response.get("oauth_token")
+#     resource_owner_secret = fetch_response.get("oauth_token_secret")
+#     print("Got OAuth token: %s" % resource_owner_key)
+#     # Get authorization
+#     base_authorization_url = "https://api.twitter.com/oauth/authorize"
+#     authorization_url = oauth.authorization_url(base_authorization_url)
+#     print("Please go here and authorize: %s" % authorization_url)
+#     verifier = input("Paste the PIN here: ")
+#     # Get the access token
+#     access_token_url = "https://api.twitter.com/oauth/access_token"
+#     oauth = OAuth1Session(
+#         env.consumer_key,
+#         client_secret=env.consumer_secret,
+#         resource_owner_key=env.resource_owner_key,
+#         resource_owner_secret=env.resource_owner_secret,
+#         verifier=verifier,
+#     )
+#     oauth_tokens = oauth.fetch_access_token(access_token_url)
+#     access_token = oauth_tokens["oauth_token"]
+#     access_token_secret = oauth_tokens["oauth_token_secret"]
+#     # Make the request
+#     oauth = OAuth1Session(
+#         env.consumer_key,
+#         client_secret=env.consumer_secret,
+#         resource_owner_key=env.access_token,
+#         resource_owner_secret=env.access_token_secret,
+#     )
+#     # Making the request
+#     response = oauth.post("https://api.twitter.com/2/tweets",json=payload)
+#     if response.status_code != 201:
+#         raise Exception("Request returned an error: {} {}".format \
+#             (response.status_code,response.text))
+#     print("Response code: {}".format(response.status_code))
+#     # Saving the response as JSON
+#     json_response = response.json()
+#     print(json.dumps(json_response, indent=4, sort_keys=True))
+     return
 
-##################################################################################################
+# ################################################################################################
 
 def post_to_wp(title, content,  headers,date, rating,address, picslist):
     # post
     NewPost = False
-    countreview = False
+    #countreview = False
     addresshtml = re.sub(" ", ".",address)
-    googleadress = r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml + r">"+address+r"</a>" # https://www.google.com/maps/dir/?api=1&destination=760+West+Genesee+Street+Syracuse+NY+13204
+    googleadress = r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
+        addresshtml + r">"+address+r"</a>"
     contentpics = ''
-    picl = picslist[1:-1] 
+    picl = picslist[1:-1]
     pic2 = picl.replace(",","")#re.sub(r',','',picl) #re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
     pic3= pic2.replace("'","")
     pidchop = pic3.split(" ")
@@ -684,14 +703,14 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
             newdate = datetime.today() - relativedelta(days=tempdate)
         else:
             if "a week" in date:
- #               date = dt.timedelta(weeks= -1)  
+ #               date = dt.timedelta(weeks= -1)
 #                newdate = dt.datetime.strptime(date_string, format).date()
-                newdate = datetime.today() - relativedelta(weeks= -1) 
+                newdate = datetime.today() - relativedelta(weeks= -1)
             else:
                 if "week" in date:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
                     print ('Stuff - > ',tempdate)
- #                   date = dt.timedelta(weeks= tempdate)  
+ #                   date = dt.timedelta(weeks= tempdate)
 #                    newdate = dt.datetime.strptime(date_string, format).date()
                     newdate = datetime.today() - relativedelta(weeks= tempdate)
                 else:
@@ -713,28 +732,28 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                                 newdate = datetime.today() - relativedelta(years= -1)
                             else:
                                 if "year" in date:
-                                    try: 
+                                    try:
                                         tempdate = -int(re.sub( r'[^0-9]','',date_string))
                                         print ('Stuff - > ',tempdate)
  #                                       date = dt.timedelta( years= tempdate)
 #                                    newdate = dt.datetime.strptime(date_string).date()
                                         newdate = datetime.today() - relativedelta(years= tempdate)
                                     except Exception as error:
-                                        print("    An error getting date occurred:", type(error).c) # An error occurred:
+                                        print("    An error getting date occurred:", type(error).c) 
                                 else:
                                     format = '%Y-%b-%d' #specifify the format of the date_string.
                                     month = date[:3]
                                     year = date[3:]
                                     day = '01'
                                     date_string = year+'-'+ month+'-'+day
-                                    try: 
+                                    try:
                                         newdate = dt.datetime.strptime(date_string, format).date()
                                     except Exception as error:
-                                        print("    An error getting date occurred:", type(error).c) # An error occurred:
+                                        print("    An error getting date occurred:", type(error).c)
 #                                    try:
 #                                        newdate = dt.datetime.strptime(date_string, format).date()
 #                                    except Exception as error:
-#                                        print("    An error getting date occurred:", type(error).c) # An error occurred:
+#                                        print("    An error getting date occurred:", type(error).c)
                                     newdate = str(newdate)
     #format = '%b/%Y/%d' #specifify the format of the date_string.
     #newdate2 = dt.datetime.strptime(str(newdate), format).date()
@@ -749,8 +768,9 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         post_id = check_post(title,newdate2,headers)
     except  Exception as error :
         print ('Could not check to see post already exists', type(error).c)
-    if post_id == False:        
-        googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml + r">"+address+r"</a>"
+    if not post_id:
+        googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml\
+            + r">"+address+r"</a>"
         post_data = {
             "title": title,
     #        "content": address+'\n\n'+content+'\n'+rating+'\n\n' ,
@@ -758,12 +778,12 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
             "status": "publish",  # Set to 'draft' if you want to save as a draft
             "date": newdate2,
      #       "date": str(newdate)+'T22:00:00',
-        # "author":"joesteele" 
+        # "author":"joesteele"
         }
-        try: 
+        try:
             headers2 = headers
-            response = requests.post(wpAPOurl, json = post_data, headers=headers2)
-            if ( response.status_code != 201 ):
+            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2)
+            if response.status_code != 201:
                 print ('Error: ',response, response.text)
             else:
                 NewPost = True
@@ -772,13 +792,13 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 print ('    New post is has post_id = ',post_id)
         except Exception as error:
             print("An error occurred:", type(error).__name__) # An error occurred:
-        postneedsupdate = True
+        #postneedsupdate = True
     else:
         print ('    Post already existed: Post ID : ',post_id)
     for pic in pidchop:
         picslice2 = pic.split("/")[-1]
         picslice = picslice2.split(".")
-        picname = picslice[0] 
+        picname = picslice[0]
         caption =title
         description = title+"\n"+address
         print ('  Found Picture: ',picname)
@@ -786,7 +806,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
 #        link = linknew['rendered']
         if file_id is False:
             print ('    '+picname+' was not already found in library, adding it')
-            countreview = True
+#            countreview = True
             image = {
                 "file": open(pic, "rb"),
                 "post": post_id,
@@ -794,7 +814,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 "description": description
             }
             try:
-                image_response = requests.post(wpAPI + "/media", headers=headers, files=image)
+                image_response = requests.post(env.wpAPI + "/media", headers=headers, files=image)
             except Exception as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", type(error).__name__) # An error occurred:
             if image_response.status_code != 201 :
@@ -812,31 +832,31 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         else:
             print ('    Photo ',picname,' was already in library and added to post with ID: ',file_id,' : ',link)
             try:
-                image_response = requests.post(wpAPI + "/media/" + str(file_id), headers=headers, data={"post" : post_id})
+                image_response = requests.post(env.wpAPI + "/media/" + str(file_id), headers=headers, data={"post" : post_id})
             except Exception as error:
-                print ('    Error- Image ',picname,' was not attached to post.  response: ',image_response)
+                print ('    Error- Image ',picname,' was not attached to post.  response: ',image_response+' '+error)
             try:
-                post_response = requests.post(wpAPI + "/posts/" + str(post_id), headers=headers)
+                post_response = requests.post(env.wpAPI + "/posts/" + str(post_id), headers=headers)
                 if link in str(post_response.text):
                     print ('    Image link for ', picname, 'already in content of post: ',post_id, post_response.text, link)
                 else:
                     linkslist.append({'file_id' : file_id , 'link' : link})
-                    countreview = True
+ #                   countreview = True
             except Exception as error:
-                print("    An error loading the metadata from the post " + post_response.title + ' occurred:", type(error).__name__) # An error occurred')
+                print("    An error loading the metadata from the post " + post_response.title + ' occurred: '+type(error).__name__)
     #ratinghtml = post_response.text
     firstMP4 = True
     for piclink in linkslist:
         #for loop in linkslist:
         print ('    Adding ', piclink['link'], ' to posting')
         try:
-            ext = piclink['link'].split( '.')[-1] 
+            ext = piclink['link'].split( '.')[-1]
             if ext == 'mp4':
                 if firstMP4:
                     contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'" autoplay="true"]'
                     firstMP4 = False
                 else:
-                    contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'           
+                    contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
                 #[evp_embed_video url="http://example.com/wp-content/uploads/videos/vid1.mp4" autoplay="true"]
             else:
                 contentpics += '\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"' + r'src="' + piclink['link'] + r'"></div>'
@@ -845,13 +865,14 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         except Exception as error:
             print("An error occurred:", type(error).__name__) # An error occurred:
     try:
-        response_piclinks = requests.post(wpAPI+"/posts/"+ str(post_id), data={"content" : googleadress+'\n\n'+content+'\n'+rating  + contentpics, "featured_media" : file_id}, headers=headers)
+        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : googleadress+'\n\n'+content+'\n'+rating  + contentpics, "featured_media" : file_id}, headers=headers)
+        print (response_piclinks)
     except Exception as error:
-        print("    An error writing images to the post " + post_response.title + ' occurred:", type(error).__name__) # An error occurred')
+        print("    An error writing images to the post " + post_response.title + ' occurred:', type(error).__name__) # An error occurred')
     return NewPost
 
 ##################################################################################################
-    
+
 def make_video(inphotos):
 # Load the photos from the folder
 # Set the duration of each photo to 2 seconds
@@ -859,7 +880,7 @@ def make_video(inphotos):
         dir = inphotos[0].rsplit(r'/', 1)
         folder = dir[0]
         output = folder+"/montage.mp4"
-        if (not os.path.exists(output) and (len(inphotos) >1)):
+        if not os.path.exists(output) and len(inphotos) >1:
             video = VideoFileClip(inphotos[0])
             for photo in inphotos :
                 #clip = VideoFileClip("myHolidays.mp4").subclip(50,60)
@@ -887,7 +908,7 @@ def make_video(inphotos):
 def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
     #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
     #montageexists = "montage.mp4" in picslist
-    if ((picslist != '[]' ) and ("montage.mp4" in picslist)):
+    if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
         addresshtml = re.sub(" ", ".",address)
         #content = content + hastags(address, title)
@@ -895,7 +916,8 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
         video, outputmontage = make_video(pics)
         try:
             data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
-            video2 = instasession.video_upload(outputmontage, data)
+            instasession.video_upload(outputmontage, data)
+ #           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
             return False
@@ -906,7 +928,7 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
         # except Exception as error:
         #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
         # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
-#         try:   
+#         try:
 #             instasession.video_upload_to_story(
 #             outputmontage,
 #             "Credits @joeeatswhat",
@@ -929,17 +951,17 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
 #             return False
         return True
     else:
-        return False 
+        return False
 
 ##################################################################################################
-    
+
 def clearlist (list):
     for listelement in list:
         listelement.clear
     return list
- 
+
 ##################################################################################################
-       
+
 def hastags (address, name):
     nameNoSpaces = re.sub( r'[^a-zA-Z]','',name)
     addressdict = address.rsplit(r' ',3)
@@ -950,41 +972,45 @@ def hastags (address, name):
     citytag = "#"+city
     statetag = "#"+state
     ziptag = "#"+zip
-    if statetag == 'FL':  statetag += ' #Florida'
+    if statetag == 'FL':
+        statetag += ' #Florida'
     fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag
     # 153 Sugar Belle Dr, Winter Garden, FL 34787
     # inphotos[0].rsplit(r'/', 1)
     return (fulltag)
 
 ##################################################################################################
-    
+
 def process_reviews(outputs):
     # Process
-    webcount = xtwittercount = instagramcount = yelpcount = threadscount = facebookcount= tiktokcount = 0
+    webcount = xtwittercount = instagramcount = facebookcount = 0
+#    webcount = xtwittercount = instagramcount = yelpcount = threadscount = facebookcount= tiktokcount = 0
     rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
-    if google:
+    if env.google:
         print('Configuration says to update google Reviews prior to processing them')
         options = webdriver.ChromeOptions()
         options.add_argument("--log-level=3")
         options.add_argument("--ignore-certificate-error")
         options.add_argument("--ignore-ssl-errors")
-        if not showchrome: options.add_argument("--headless")  # show browser or not ||| HEAD =>  43.03 ||| No Head => 39 seg
+        if not env.showchrome:
+            options.add_argument("--headless")
+            # show browser or not ||| HEAD =>  43.03 ||| No Head => 39 seg
         options.add_argument("--lang=en-US")
-        options.add_argument("--disable-blink-features=AutomationControlled") 
-        # Exclude the collection of enable-automation switches 
-        options.add_experimental_option("excludeSwitches", ["enable-automation"]) 
-        # Turn-off userAutomationExtension 
-        options.add_experimental_option("useAutomationExtension", False) 
-        # Setting the driver path and requesting a page 
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        # Exclude the collection of enable-automation switches
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        # Turn-off userAutomationExtension
+        options.add_experimental_option("useAutomationExtension", False)
+        # Setting the driver path and requesting a page
         caps = webdriver.DesiredCapabilities.CHROME.copy()
         caps['acceptInsecureCerts'] = True
         caps['acceptSslCerts'] = True
         options.set_capability('cloud:options', caps)
         #driver = webdriver.Chrome(desired_capabilities=caps)
-        driver = webdriver.Chrome(options=options) # Firefox(options=options)  
-        # Changing the property of the navigator value for webdriver to undefined 
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
-        driver.get(URL)
+        driver = webdriver.Chrome(options=options) # Firefox(options=options)
+        # Changing the property of the navigator value for webdriver to undefined
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        driver.get(env.URL)
         time.sleep(5)
         scrolling(counter(driver), driver)
         webdata = get_data(driver,outputs)
@@ -994,7 +1020,7 @@ def process_reviews(outputs):
         print('Done getting google reviews and writing them to xls file !')
     else:
         print ('Configuration says to skip creation of new reviews from google for this run')
-    if needreversed:
+    if env.needreversed:
         rows = reversed(rows)
     print('Processing Reviews')
     for processrow in rows:
@@ -1002,11 +1028,11 @@ def process_reviews(outputs):
             print ("Processing : ",processrow[1].value)
             writtento = (ast.literal_eval(processrow[9].value))
             # Check to see if the website has already been written to according to the xls sheet, if it has not... then process
-            if ((writtento["web"]) == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or writtento["threads"]==0 ) and (is_port_open(wpAPI, 443)) and (web or instagram or yelp or xtwitter or tiktok or facebook or threads or google)and (processrow[2].value != None) :
-                if web :
+            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or writtento["threads"]==0 ) and (is_port_open(env.wpAPI, 443)) and (env.web or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or env.threads or env.google)and (processrow[2].value is not None) :
+                if env.web :
                     if writtento["web"] == 0 :
-                        if webcount <= postsperrun:
-                            try: 
+                        if webcount <= env.postsperrun:
+                            try:
                                 #NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
                                 NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, outputs['web'] ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
                                 try:
@@ -1015,24 +1041,24 @@ def process_reviews(outputs):
                                 except Exception as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
                                 print ('  Success Posting to Wordpress: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
-                                if NewWebPost == True:
+                                if NewWebPost:
                                     webcount +=1
-                                try: 
+                                try:
                                     print('  write to xls for web')
-                                    outputs['datawb'].save(xls)
+                                    outputs['datawb'].save(env.xls)
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                            except Exception as error: 
-                                print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )   
+                            except Exception as error:
+                                print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"]+' '+error)
                                 #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
                         else:
                             print ('  Exceeded the number of web posts per run, skipping', processrow[1].value)
                     else:
                         print ('  Website: Skipping posting for ',processrow[1].value,' previously written')
-                if instagram:
+                if env.instagram:
                     if writtento["instagram"] == 0:
-                        if instagramcount <= postsperrun:
-                            try: 
+                        if instagramcount <= env.postsperrun:
+                            try:
                                 print('  Starting to generate Instagram post')
                                 NewInstagramPost = post_to_instagram2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'] )
                                 try:
@@ -1042,26 +1068,26 @@ def process_reviews(outputs):
                                 except Exception as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
                                 print ('  Success Posting to Instagram: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
-                                if NewInstagramPost == True:
+                                if NewInstagramPost:
                                     instagramcount +=1
-                                try: 
+                                try:
                                     print('  write to xls for instagram')
-                                    outputs['datawb'].save(xls)
+                                    outputs['datawb'].save(env.xls)
                                     print('  write to mariadb for instagram')
                                     # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
                                     # outputs['postssession'].commit()
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                            except Exception as error: 
+                            except Exception as error:
                                 print ('  Error writing Instagram post : ',processrow[1].value, processrow[2].value, outputs['instagram'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["instagram"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of Instagram posts per run, skipping', processrow[1].value)
                     else:
                         print ('  Instagram: Skipping posting for ',processrow[1].value,' previously written')
-                if facebook:
+                if env.facebook:
                     if writtento["facebook"] == 0:
-                        if facebookcount <= postsperrun:
-                            try: 
+                        if facebookcount <= env.postsperrun:
+                            try:
                                 print('  Starting to generate Facebook post')
                                 NewFacebookPost = post_facebook3(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['facebook'] )
                                 try:
@@ -1071,17 +1097,17 @@ def process_reviews(outputs):
                                 except Exception as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
                                 print ('  Success Posting to facebook: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
-                                if NewFacebookPost == True:
+                                if NewFacebookPost:
                                     facebookcount +=1
-                                try: 
+                                try:
                                     print('  write to xls for facebook')
-                                    outputs['datawb'].save(xls)
+                                    outputs['datawb'].save(env.xls)
                                     print('  write to mariadb for facebook')
                                     # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
                                     # outputs['postssession'].commit()
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                            except Exception as error: 
+                            except Exception as error:
                                 print ('  Error writing facebook post : ',processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["facebook"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of facebook posts per run, skipping', processrow[1].value)
@@ -1089,8 +1115,8 @@ def process_reviews(outputs):
                         print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
                 if False:
                     if writtento["xtwitter"] == 0:
-                        if xtwittercount <= postsperrun:
-                            try: 
+                        if xtwittercount <= env.postsperrun:
+                            try:
                                 print('  Starting to generate xtwitter post')
                                 NewxtwitterPost = post_x(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['xtwitter'] )
                                 try:
@@ -1100,18 +1126,18 @@ def process_reviews(outputs):
                                 except Exception as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
                                 print ('  Success Posting to xtwitter: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
-                                if NewxtwitterPost == True:
+                                if NewxtwitterPost:
                                     xtwittercount +=1
-                                try: 
+                                try:
                                     print('  write to xls for xtwitter')
-                                    outputs['datawb'].save(xls)
+                                    outputs['datawb'].save(env.xls)
                                     print('  write to mariadb for xtwitter')
                                     # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
                                     # outputs['postssession'].commit()
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                            except Exception as error: 
-                                print ('  Error writing xtwitter post : ',processrow[1].value, processrow[2].value, outputsmo,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
+                            except Exception as error:
+                                print ('  Error writing xtwitter post : ',processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of xtwitter posts per run, skipping', processrow[1].value)
                     else:
@@ -1133,7 +1159,7 @@ def process_reviews(outputs):
 # def junction(name,namedict, outputs, writtento, processrow ):
 #     if name == "xtwitter":
 #         twitteroptions = {'name':'xtwitter', 'namecount':namedict['namecount'], 'namepost':'NewxtwitterPost', 'subroutine':'post_x'}
-#         namedict.update({'xtwitter':twitteroptions}) 
+#         namedict.update({'xtwitter':twitteroptions})
 #         stationout = socials(name, namedict, outputs, writtento, processrow)
 #     return namedict
 
@@ -1142,13 +1168,14 @@ def process_reviews(outputs):
 def socials(name, namedict,outputs, writtento, processrow,funct):# namecount, namepost, subroutine, outputs, writtento, processrow):
     #namedict{'name':name, 'namecount':namecount, 'namepost':namepost, 'subroutine':subroutine}
     #namedict{'name':xtwitter, 'namecount':xtwiteercount, 'namepost':NewxtwitterPost, 'subroutine':postx}
+    namecount =0
     if name:
         if writtento[name] == 0 :
             print (namedict['namecount'])
-            if int(namedict['namecount']) <= postsperrun:
-                try: 
+            if int(namedict['namecount']) <= env.postsperrun:
+                try:
                     print('  Starting to generate xtwitter post : ',namedict['subroutine'])
-                    postoutput = funct(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[4].value,outputs )
+                    funct(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[4].value,outputs )
                     try:
                         print ('  Start generating content to post to xtwitter : ') #,namedict['subroutine'])
                         writtento[name] = 1
@@ -1156,17 +1183,17 @@ def socials(name, namedict,outputs, writtento, processrow,funct):# namecount, na
                     except Exception as error:
                         print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
                     print ('  Success Posting to '+name+': '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
-                    if namedict['namepost'].value == True:
+                    if namedict['namepost'].value:
                         namecount +=1
-                    try: 
+                    try:
                         print('  write to xls for '+name)
-                        outputs['datawb'].save(xls)
+                        outputs['datawb'].save(env.xls)
                         print('  write to mariadb for '+name)
                         # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
                         # outputs['postssession'].commit()
                     except Exception as error:
                         print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                except Exception as error: 
+                except Exception as error:
                     print ('  Error writing '+name+' post : ',processrow[1].value, processrow[2].value, outputs[name],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento[name], type(error).__name__ )
             else:
                 print ('  Exceeded the number of '+name+' posts per run, skipping', processrow[1].value)
@@ -1175,14 +1202,13 @@ def socials(name, namedict,outputs, writtento, processrow,funct):# namecount, na
     return namedict
 
 ##################################################################################################
-    
+
 if __name__ == "__main__":
     print('starting ...')
     driver = preload()
     print('making connections ...')
     outputs = authconnect()
-    process_reviews(outputs)  
+    process_reviews(outputs)
     print('Done!')
 
 ##################################################################################################
-    
