@@ -52,7 +52,7 @@ def preload():
     today = datetime.today().strftime('%Y-%m-%d')
     return
 
-##################################################################################################    
+##################################################################################################
 
 class Users(Base):
     __tablename__ = 'userConfig'
@@ -79,7 +79,7 @@ class Users(Base):
     instagrampass = sqlalchemy.Column(sqlalchemy.String(length=32, collation="utf8"))
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
 
-##################################################################################################    
+##################################################################################################
 
 class Posts(Base):
     __tablename__ = 'posts'
@@ -102,7 +102,8 @@ def authconnect():
     if mariadb:
         print('Connecting to MariaDB for configuration and storage')
         from sqlalchemy import create_engine
-        engine = sqlalchemy.create_engine("mysql+mysqldb://"+mariadbuser+":"+mariadbpass+"@"+mariadbserver+"/"+mariadbdb+"?charset=utf8mb4", echo=False)        
+        engine = sqlalchemy.create_engine("mysql+mysqldb://"+mariadbuser+":"+mariadbpass+
+            "@"+mariadbserver+"/"+mariadbdb+"?charset=utf8mb4", echo=False)
         Session = sqlalchemy.orm.sessionmaker()
         Session.configure(bind=engine)
         session = Session()
@@ -116,15 +117,15 @@ def authconnect():
         connections.update({'postssession':session})
     if data:
         print('  loading XLS content data source ...')
-        if (os.path.exists(xls)):
+        if os.path.exists(xls):
             wb = load_workbook(filename = xls)
             xlswbDF = pd.read_excel(xls)
         else:
-            if (os.path.exists('./GoogleScrape/'+ xls)):
+            if os.path.exists('./GoogleScrape/'+ xls):
                 wb = load_workbook(filename = './GoogleScrape/'+ xls)
                 xlswbDF = pd.read_excel('./GoogleScrape/'+ xls)
             else:
-                input("Not able to find xls file Press any key to continue...")   
+                input("Not able to find xls file Press any key to continue...")
         ws = wb['Sheet1']
         #xlswbDF = pd.read_excel(xls)
         connections.update({'xlsdf':xlswbDF})
@@ -137,7 +138,6 @@ def authconnect():
         connections.update({'instagram':instasessionclient})
     if facebook :
         print('  Connecting to facebook ...')
-        # msg = 'Purple Ombre Bob Lace Wig Natural Human Hair now available on https://lace-wigs.co.za/'
         # page_id_1 = facebookpageID
         # facebook_access_token = 'paste-your-page-access-token-here'
         # image_url = 'https://graph.facebook.com/{}/photos'.format(page_id_1)
@@ -165,7 +165,7 @@ def authconnect():
         connections.update({'web' : headers})
     if tiktok :
         print('  Connecting to Instagram ...')
-    return connections
+    return (connections)
 
 ##################################################################################################
 
@@ -208,13 +208,13 @@ def postImage(group_id, img,auth_token):
     data = {
         "published" : False
     }
-    try: 
+    try:
         r = requests.post(url, files=files, data=data).json()
     except Exception as error:
         print("    An error getting date occurred:", type(error).c) # An error occurred:
         r = False
     time.sleep(facebooksleep)
-    return r
+    return (r)
 
 ##################################################################################################
 
@@ -228,16 +228,15 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
        # my_dict['key'].append(1)
         files.update({eachfile: open(eachfile, 'rb')})
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
-             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+"\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True
+             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
+             "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+
+             "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True
     }
-    #try: r = requests.post(url, files=files, data=data)
     try: r = requests.post(url, files=files, data=data).json()
     except Exception as error:
         print("    An error getting date occurred:", type(error).c) # An error occurred:
         r = False
     time.sleep(facebooksleep)
-    print (r)
-    print ('r id  = ',r['id'])
     return r
 
 ##################################################################################################
@@ -260,19 +259,18 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
             imgs_pic.append(img)
     # if (imgs_vid ):
     #     print ("loop")
-    #     try: 
+    #     try:
     #         post_id = postVideo(group_id, imgs_vid,auth_token)
     #         imgs_id.append(post_id['id'])
     #     except Exception as error:
     #         print("    An error occurred:", type(error).c) # An error occurred:
     if (imgs_pic):
-        try: 
+        try:
             post_id = postImage(group_id ,imgs_pic,auth_token)
             imgs_id.append(post_id['id'])
         except Exception as error:
             print("    An error occurred:", type(error)) # An error occurred:
-
-    # try: 
+    # try:
     #     imgs_id.append(post_id['id'])
     # except Exception as error:
     #     print("    An error occurred:", type(error).c) # An error occurred:
@@ -307,14 +305,15 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
     imgs_pic = []
     img_list = pics
     for img in img_list:
-        if ('montage.mp4' in img ):
+        if 'montage.mp4' in img:
             imgs_vid.append(img.strip())
         else:
             imgs_pic.append(img.strip())
-    if (imgs_vid ):
+    if imgs_vid:
        # print ("loop")
-        try: 
-            post_id = postVideo(group_id, imgs_vid,auth_token,title, content, date, rating, address)
+        try:
+            post_id = postVideo(group_id, imgs_vid,auth_token,title, content,
+                date, rating, address)
             imgs_id.append(post_id['id'])
         except Exception as error:
             print("    An error occurred:", type(error).c) # An error occurred:
@@ -323,11 +322,13 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
     return  (True)
 
 ##################################################################################################
-   
+
 
 def get_data(driver,outputs ):
 
-#     curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H "X-Goog-FieldMask: id,displayName,formattedAddress,plusCode" https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri  AIzaSyB_hglzM7N8HzjXwi1dF1E8WYTql3akS7Q
+# curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H 
+#   "X-Goog-FieldMask: id,displayName,formattedAddress,plusCode" 
+#   https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri
     """
     this function get main text, score, name
     """
@@ -336,8 +337,9 @@ def get_data(driver,outputs ):
     more_elemets = driver.find_elements(By.CSS_SELECTOR, '.w8nwRe.kyuRq')
     for list_more_element in more_elemets:
         list_more_element.click()
-    # Find Pictures that have the expansion indicator to see the rest of the pictures under them and click it to expose them all
-    more_pics = driver.find_elements(By.CLASS_NAME, 'Tya61d') 
+    # Find Pictures that have the expansion indicator to see the rest of the pictures under
+    #    them and click it to expose them all
+    more_pics = driver.find_elements(By.CLASS_NAME, 'Tya61d')
     for list_more_pics in more_pics:
         if 'showMorePhotos' in  list_more_pics.get_attribute("jsaction") :
             print('Found extra pics')
@@ -345,33 +347,38 @@ def get_data(driver,outputs ):
     elements = driver.find_elements(By.CLASS_NAME, 'jftiEf')
     lst_data = []
     for data in elements:
-        name = data.find_element(By.CSS_SELECTOR, 'div.d4r55.YJxk2d').text 
+        name = data.find_element(By.CSS_SELECTOR, 'div.d4r55.YJxk2d').text
         try: address = data.find_element(By.CSS_SELECTOR, 'div.RfnDt.xJVozb').text
         except: address = 'Unknonwn'
         print ('Name of location: ',name, '   Address:',address)
         try: visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
         except: visitdate = "Unknown"
-        print('Visited: ',visitdate)  
-        try: text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text 
-        except: text = '' 
-        try: score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")  #find_element(By.CSS_SELECTOR,'aria-label').text #)  ##QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf > div.m6QErb > div:nth-child(3) > div:nth-child(2) > div > div:nth-child(4) > div.DU9Pgb > span.kvMYJc
+        print('Visited: ',visitdate)
+        try: text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
+        except: text = ''
+        try: score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")
+        #find_element(By.CSS_SELECTOR,'aria-label').text #)  ##QA0Szd > div > div > div.w6VYqd >
+        #  div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf
+        #  > div.m6QErb > div:nth-child(3) > div:nth-child(2) > div > div:nth-child(4) > div.DU9Pgb
+        #  > span.kvMYJc
         except: score = "Unknown"
-        more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d') 
-        pics= [] 
+        more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
+        pics= []
         pics2 = []
         # check to see if folder for pictures and videos already exists, if not, create it
         cleanname = re.sub( r'[^a-zA-Z0-9]','', name)
         if not os.path.exists('./Output/Pics/'+cleanname):
             os.makedirs('./Output/Pics/'+cleanname)
         # Walk through all the pictures and videos for a given review
-        for lmpics in more_specific_pics:  
-            # if pics2 and not pics:
-            #     pics2 = []
-            # Grab URL from style definiton (long multivalue string), and remove the -p-k so that it is full size 
-            urlmedia = re.sub('=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]", lmpics.get_attribute("style")))[0])
+        for lmpics in more_specific_pics:
+            # Grab URL from style definiton (long multivalue string), and remove the -p-k so that
+            #   it is full size
+            urlmedia = re.sub('=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
+                lmpics.get_attribute("style")))[0])
             print ('URL : ',urlmedia)
             pics.append(urlmedia)
-            # Grab the name of the file and remove all spaces and special charecters to name the folder
+            # Grab the name of the file and remove all spaces and special charecters to name the
+            #    folder
             filename = re.sub( r'[^a-zA-Z0-9]','', str(lmpics.get_attribute("aria-label")))
             if lmpics == more_specific_pics[0]:
                 lmpics.click()
@@ -380,8 +387,10 @@ def get_data(driver,outputs ):
                 tempdate = str((driver.find_element(By.CLASS_NAME,'mqX5ad')).text).rsplit("-",1)
                 visitdate = re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
                 print ('Visited: ',visitdate)
-            # Check to see if it has a sub div, which represents the label with the video length displayed, this will be done 
-            # because videos are represented by pictures in the main dialogue, so we need to click through and grab the video URL
+            # Check to see if it has a sub div, which represents the label with the video length
+            # displayed, this will be done
+            # because videos are represented by pictures in the main dialogue, so we need to click
+            # through and grab the video URL
             if (lmpics.find_elements(By.CSS_SELECTOR,'div.fontLabelMedium.e5A3N')) :
                 ext='.mp4'
                 lmpics.click()
@@ -397,10 +406,11 @@ def get_data(driver,outputs ):
                 driver.switch_to.default_content()
             else:
                 # The default path if it is not a video link
-                ext='.jpg' 
+                ext='.jpg'
             # Add the correct extension to the file name
             filename = filename+ext
-            # Test to see if file already exists, and if it does not grab the media and store it in location folder
+            # Test to see if file already exists, and if it does not grab the media and store it
+            #   in location folder
             if not os.path.exists('./Output/Pics/'+cleanname+'/'+visitdate):
                 os.makedirs('./Output/Pics/'+cleanname+'/'+visitdate)
             if not os.path.isfile('./Output/Pics/'+cleanname+'/'+visitdate+'/'+filename):
@@ -410,10 +420,11 @@ def get_data(driver,outputs ):
             pics2.append(picsLocalpath)
         if pics2:
             make_video(pics2)
-            pics2.append("./Output/Pics/"+cleanname+"/"+visitdate+'/'+'montage.mp4') 
-        dictPostComplete= {'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,'instagram':0,'tiktok':0}
-        lst_data.append([name , text, score,pics,pics2,"GoogleMaps",visitdate,address,dictPostComplete])
-  
+            pics2.append("./Output/Pics/"+cleanname+"/"+visitdate+'/'+'montage.mp4')
+        dictPostComplete= {'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,
+            'instagram':0,'tiktok':0}
+        lst_data.append([name , text, score,pics,pics2,"GoogleMaps",visitdate,address,
+            dictPostComplete])
     return lst_data
 
 ##################################################################################################
@@ -428,7 +439,8 @@ def scrolling(counter,driver):
     for _i in range(counter):
         try:
             scrolling = driver.execute_script(
-                'document.getElementsByClassName("dS8AEf")[0].scrollTop = document.getElementsByClassName("dS8AEf")[0].scrollHeight',
+                'document.getElementsByClassName("dS8AEf")[0].scrollTop = /
+                document.getElementsByClassName("dS8AEf")[0].scrollHeight',
                 scrollable_div
             )
             time.sleep(3)
@@ -440,7 +452,8 @@ def scrolling(counter,driver):
 
 def write_to_xlsx(webdata, outputs):
     print('Start to write to excel...')
-    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
+    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
+        'dictPostComplete']
     # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
     rows = list(webdata)
     if needreversed:
@@ -452,10 +465,13 @@ def write_to_xlsx(webdata, outputs):
         else:
             if (processrow[0] != None):
 #                processrow.append({'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,'Instagram':0,'tiktok':0})
-                outputs['data'].append([processrow[0],processrow[1],processrow[2],str(processrow[3]),str(processrow[4]),str(processrow[5]),str(processrow[6]),str(processrow[7]),str(processrow[8])]) # sheet_obj.append([col1, col2])
+                outputs['data'].append([processrow[0],processrow[1],processrow[2],str(
+                    processrow[3]),str(processrow[4]),str(processrow[5]),str(processrow[6]),
+                    str(processrow[7]),str(processrow[8])]) # sheet_obj.append([col1, col2])
                 #outputs['data'].parent.save(xls)
     #outputs['datawb'].save(xls)
-    cols = ['num',"name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete', 'test']
+    cols = ['num',"name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+        'address','dictPostComplete', 'test']
     df = pd.DataFrame(outputs['data'], columns=cols)
     df.to_excel(xls)
     return True
@@ -483,9 +499,6 @@ def write_to_xlsx2(data, outputs):
         if  (processrow[1] in df.values):
             print ('  Row ',processrow[0],' ', processrow[1],'  already in XLS sheet')
             d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-            # if not (processrow[1] in outputs['posts']) : 
-            #     outputs['postssession'].add(d2_row)
-            #     outputs['postssession'].commit()
         else:
             if (processrow[1] != None):
                 # Create a Python dictionary object with all the column values
@@ -516,7 +529,7 @@ def database_read(data):
     db_connection_str = 'mysql+pymysql://mysql_user:mysql_password@mysql_host/mysql_db'
     db_connection = create_engine(db_connection_str)
     df = pd.read_sql('SELECT * FROM table_name', con=db_connection)
-    return df
+    return (df)
 
 ##################################################################################################
 
@@ -531,7 +544,7 @@ def check_web_media(filename,headers):
         return file_id, link
     except Exception as error:
         print('    No existing media with same name in Wordpress media folder: ' + filename)
-        return False, False
+        return (False, False)
  
 ##################################################################################################
        
@@ -543,7 +556,7 @@ def check_web_post(postname,postdate,headers):
         post_date = result[0]['date']
         if postdate == post_date:
             return post_id
-    except: 
+    except:
         print('No existing post with same name: ' + postname)
     return False
 
@@ -644,7 +657,6 @@ def post_x(title, content, date, rating, address, picslist, instasession):
 
 ##################################################################################################
 
-
 def post_to_wp(title, content,  headers,date, rating,address, picslist):
     # post
     NewPost = False
@@ -655,10 +667,8 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
     picl = picslist[1:-1] 
     pic2 = picl.replace(",","")#re.sub(r',','',picl) #re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
     pic3= pic2.replace("'","")
-#    print (pic3)
     pidchop = pic3.split(" ")
     linkslist=[]
-    # linkslist.clear
     print ('    Figuring out date of Post : ',title)
     format = '%b/%Y/%d' #specifify the format of the date_string.
     date_string = date
@@ -740,7 +750,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         post_id = check_post(title,newdate2,headers)
     except  Exception as error :
         print ('Could not check to see post already exists', type(error).c)
-    if ( post_id == False):        
+    if post_id == False:        
         googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml + r">"+address+r"</a>"
         post_data = {
             "title": title,
@@ -775,7 +785,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         print ('  Found Picture: ',picname)
         file_id, link = check_media(picname, headers)
 #        link = linknew['rendered']
-        if (file_id) is False:
+        if file_id is False:
             print ('    '+picname+' was not already found in library, adding it')
             countreview = True
             image = {
@@ -788,7 +798,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 image_response = requests.post(wpAPI + "/media", headers=headers, files=image)
             except Exception as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", type(error).__name__) # An error occurred:
-            if ( image_response.status_code != 201 ):
+            if image_response.status_code != 201 :
                 print ('    Error- Image ',picname,' was not successfully uploaded.  response: ',image_response)
             else:
                 PicDict=image_response.json()
@@ -808,7 +818,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 print ('    Error- Image ',picname,' was not attached to post.  response: ',image_response)
             try:
                 post_response = requests.post(wpAPI + "/posts/" + str(post_id), headers=headers)
-                if (link in str(post_response.text)):
+                if link in str(post_response.text):
                     print ('    Image link for ', picname, 'already in content of post: ',post_id, post_response.text, link)
                 else:
                     linkslist.append({'file_id' : file_id , 'link' : link})
@@ -821,9 +831,9 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         #for loop in linkslist:
         print ('    Adding ', piclink['link'], ' to posting')
         try:
-            ext = (piclink['link'].split( '.')[-1] )
-            if (ext == 'mp4'):
-                if (firstMP4):
+            ext = piclink['link'].split( '.')[-1] 
+            if ext == 'mp4':
+                if firstMP4:
                     contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'" autoplay="true"]'
                     firstMP4 = False
                 else:
@@ -850,13 +860,13 @@ def make_video(inphotos):
         dir = inphotos[0].rsplit(r'/', 1)
         folder = dir[0]
         output = folder+"/montage.mp4"
-        if ((not os.path.exists(output)) and (len(inphotos) >1)):
+        if (not os.path.exists(output) and (len(inphotos) >1)):
             video = VideoFileClip(inphotos[0])
             for photo in inphotos :
                 #clip = VideoFileClip("myHolidays.mp4").subclip(50,60)
                 clip = VideoFileClip(photo)
                 # Concatenate the photos into a clip
-                if (".jpg" in photo):
+                if ".jpg" in photo:
                     clip.duration = 2
                 try:
                     video = concatenate_videoclips([video, clip], method="compose")
@@ -874,10 +884,7 @@ def make_video(inphotos):
     return False, False
 
 ##################################################################################################
-    
 
-##################################################################################################
-    
 def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
     #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
     #montageexists = "montage.mp4" in picslist
@@ -948,7 +955,7 @@ def hastags (address, name):
     fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag
     # 153 Sugar Belle Dr, Winter Garden, FL 34787
     # inphotos[0].rsplit(r'/', 1)
-    return fulltag
+    return (fulltag)
 
 ##################################################################################################
     
@@ -956,7 +963,7 @@ def process_reviews(outputs):
     # Process
     webcount = xtwittercount = instagramcount = yelpcount = threadscount = facebookcount= tiktokcount = 0
     rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
-    if (google):
+    if google:
         print('Configuration says to update google Reviews prior to processing them')
         options = webdriver.ChromeOptions()
         options.add_argument("--log-level=3")
@@ -980,7 +987,6 @@ def process_reviews(outputs):
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
         driver.get(URL)
         time.sleep(5)
-    #                    counter = counter()
         scrolling(counter(driver), driver)
         webdata = get_data(driver,outputs)
         write_to_xlsx2(webdata, outputs)
@@ -999,8 +1005,8 @@ def process_reviews(outputs):
             # Check to see if the website has already been written to according to the xls sheet, if it has not... then process
             if ((writtento["web"]) == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or writtento["threads"]==0 ) and (is_port_open(wpAPI, 443)) and (web or instagram or yelp or xtwitter or tiktok or facebook or threads or google)and (processrow[2].value != None) :
                 if web :
-                    if (writtento["web"] == 0) :
-                        if (webcount <= postsperrun):
+                    if writtento["web"] == 0 :
+                        if webcount <= postsperrun:
                             try: 
                                 #NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
                                 NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, outputs['web'] ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
@@ -1025,8 +1031,8 @@ def process_reviews(outputs):
                     else:
                         print ('  Website: Skipping posting for ',processrow[1].value,' previously written')
                 if instagram:
-                    if (writtento["instagram"] == 0 ):
-                        if (instagramcount <= postsperrun):
+                    if writtento["instagram"] == 0:
+                        if instagramcount <= postsperrun:
                             try: 
                                 print('  Starting to generate Instagram post')
                                 NewInstagramPost = post_to_instagram2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'] )
@@ -1054,8 +1060,8 @@ def process_reviews(outputs):
                     else:
                         print ('  Instagram: Skipping posting for ',processrow[1].value,' previously written')
                 if facebook:
-                    if (writtento["facebook"] == 0 ):
-                        if (facebookcount <= postsperrun):
+                    if writtento["facebook"] == 0:
+                        if facebookcount <= postsperrun:
                             try: 
                                 print('  Starting to generate Facebook post')
                                 NewFacebookPost = post_facebook3(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['facebook'] )
@@ -1083,8 +1089,8 @@ def process_reviews(outputs):
                     else:
                         print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
                 if False:
-                    if (writtento["xtwitter"] == 0 ):
-                        if (xtwittercount <= postsperrun):
+                    if writtento["xtwitter"] == 0:
+                        if xtwittercount <= postsperrun:
                             try: 
                                 print('  Starting to generate xtwitter post')
                                 NewxtwitterPost = post_x(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['xtwitter'] )
@@ -1138,9 +1144,9 @@ def socials(name, namedict,outputs, writtento, processrow,funct):# namecount, na
     #namedict{'name':name, 'namecount':namecount, 'namepost':namepost, 'subroutine':subroutine}
     #namedict{'name':xtwitter, 'namecount':xtwiteercount, 'namepost':NewxtwitterPost, 'subroutine':postx}
     if name:
-        if (writtento[name] == 0 ):
+        if writtento[name] == 0 :
             print (namedict['namecount'])
-            if (int(namedict['namecount']) <= postsperrun):
+            if int(namedict['namecount']) <= postsperrun:
                 try: 
                     print('  Starting to generate xtwitter post : ',namedict['subroutine'])
                     postoutput = funct(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[4].value,outputs )
