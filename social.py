@@ -14,7 +14,7 @@ from urllib.request import urlretrieve
 from openpyxl import Workbook
 import pandas as pd
 from datetime import datetime, date, timedelta
-from dateutil.relativedelta import relativedelta   
+from dateutil.relativedelta import relativedelta
 
 #instagram
 import ast
@@ -30,7 +30,7 @@ import jsonpickle
 #import instapy
 #from instabot import Bot
 import pathlib
-import instagrapi 
+import instagrapi
 from instagrapi.types import StoryMention, StoryMedia, StoryLink, StoryHashtag
 from instagrapi.story import StoryBuilder
 from moviepy.editor import *
@@ -42,18 +42,17 @@ from sqlalchemy.ext.declarative import declarative_base
 #import mysql-connector-python
 Base = declarative_base()
 
-#########################################################################################################################################################
-    
+##################################################################################################
+
 def preload():
     file=pathlib.Path("./config/joeteststeele_uuid_and_cookie.json")
     if pathlib.Path.exists(file):
         pathlib.Path.unlink(file)
     global today
     today = datetime.today().strftime('%Y-%m-%d')
-    
-    return 
+    return
 
-#########################################################################################################################################################    
+##################################################################################################    
 
 class Users(Base):
     __tablename__ = 'userConfig'
@@ -80,7 +79,7 @@ class Users(Base):
     instagrampass = sqlalchemy.Column(sqlalchemy.String(length=32, collation="utf8"))
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
 
-#########################################################################################################################################################    
+##################################################################################################    
 
 class Posts(Base):
     __tablename__ = 'posts'
@@ -96,8 +95,8 @@ class Posts(Base):
     dictPostComplete = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
 
-#########################################################################################################################################################
-    
+##################################################################################################
+
 def authconnect():
     connections = {}
     if mariadb:
@@ -120,9 +119,12 @@ def authconnect():
         if (os.path.exists(xls)):
             wb = load_workbook(filename = xls)
             xlswbDF = pd.read_excel(xls)
-        if (os.path.exists('./GoogleScrape/'+ xls)):
-            wb = load_workbook(filename = './GoogleScrape/'+ xls)
-            xlswbDF = pd.read_excel('./GoogleScrape/'+ xls)
+        else:
+            if (os.path.exists('./GoogleScrape/'+ xls)):
+                wb = load_workbook(filename = './GoogleScrape/'+ xls)
+                xlswbDF = pd.read_excel('./GoogleScrape/'+ xls)
+            else:
+                input("Not able to find xls file Press any key to continue...")   
         ws = wb['Sheet1']
         #xlswbDF = pd.read_excel(xls)
         connections.update({'xlsdf':xlswbDF})
@@ -165,8 +167,8 @@ def authconnect():
         print('  Connecting to Instagram ...')
     return connections
 
-#########################################################################################################################################################
-    
+##################################################################################################
+
 # Grab a count of how far we need to scroll
 def counter(driver):
     result = driver.find_element(By.CLASS_NAME,'Qha3nb').text
@@ -175,7 +177,7 @@ def counter(driver):
     result = result[0].split('\n')
     return int(int(result[0])/10)+1
 
-#########################################################################################################################################################
+##################################################################################################
 
 def post_facebook(title, content, date, rating, address, picslist, instasession):
     #msg = 'Purple Ombre Bob Lace Wig Natural Human Hair now available on https://lace-wigs.co.za/'
@@ -196,7 +198,8 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
     print('    Facebook response: ',r.text, img_payload)
     return  (r)
 
-#########################################################################################################################################################
+##################################################################################################
+
 def postImage(group_id, img,auth_token):
     files={}
     url = f"https://graph.facebook.com/{group_id}/photos?access_token=" + auth_token
@@ -205,15 +208,15 @@ def postImage(group_id, img,auth_token):
     data = {
         "published" : False
     }
-    try: r = requests.post(url, files=files, data=data).json()
-    #r = requests.post(url, files=files, data=data).json()
+    try: 
+        r = requests.post(url, files=files, data=data).json()
     except Exception as error:
         print("    An error getting date occurred:", type(error).c) # An error occurred:
         r = False
-#    print (r)
-#    print ('r id  = ',r['id'])
     time.sleep(facebooksleep)
     return r
+
+##################################################################################################
 
 def postVideo(group_id, video_path,auth_token,title, content, date, rating, address):
     url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
@@ -237,7 +240,7 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
     print ('r id  = ',r['id'])
     return r
 
-
+##################################################################################################
 
 def post_facebook2(title, content, date, rating, address, picslist, instasession):
     #msg = 'Purple Ombre Bob Lace Wig Natural Human Hair now available on https://lace-wigs.co.za/'
@@ -291,6 +294,7 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
     print('    Facebook response: ',r)
     return  (r)
 
+##################################################################################################
 
 def post_facebook3(title, content, date, rating, address, picslist, instasession):
     pics = ((picslist[1:-1]).replace("'","")).split(",")
@@ -314,42 +318,16 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
             imgs_id.append(post_id['id'])
         except Exception as error:
             print("    An error occurred:", type(error).c) # An error occurred:
-    # if (imgs_pic):
-    #     try: 
-    #         post_id = postImage(group_id ,imgs_pic,auth_token)
-    #         imgs_id.append(post_id['id'])
-    #     except Exception as error:
-    #         print("    An error occurred:", type(error)) # An error occurred:
-    # try: 
-    #     imgs_id.append(post_id['id'])
-    # except Exception as error:
-    #     print("    An error occurred:", type(error).c) # An error occurred:
-#     args=dict()
-#  #   args['title']= title
-#     args["message"]=title + "  "+ content
-#     for img_id in imgs_id:
-#         key="attached_media["+str(imgs_id.index(img_id))+"]"
-#         args[key]="{'media_fbid': '"+img_id+"'}"
-#     #url = f"https://graph.facebook.com/me/feed?access_token=" + auth_token
-#     url = f"https://graph.facebook.com/{group_id}/feed?access_token=" + auth_token
-#     #print ("r = request.post(" +url+", data="+args+")")
-#     try: r = requests.post(url, data=args)
-#     #try: r = requests.post(url, data=args).json()
-#     except Exception as error:
-#         print("    An error getting date occurred:", type(error).c) # An error occurred:
-#         r = False
     time.sleep(facebooksleep)
     print('    Facebook response: ',post_id)
     return  (True)
 
-#########################################################################################################################################################
+##################################################################################################
    
 
 def get_data(driver,outputs ):
-    
-#     curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H "X-Goog-FieldMask: id,displayName,formattedAddress,plusCode" https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri  AIzaSyB_hglzM7N8HzjXwi1dF1E8WYTql3akS7Q
 
-    
+#     curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H "X-Goog-FieldMask: id,displayName,formattedAddress,plusCode" https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri  AIzaSyB_hglzM7N8HzjXwi1dF1E8WYTql3akS7Q
     """
     this function get main text, score, name
     """
@@ -438,8 +416,8 @@ def get_data(driver,outputs ):
   
     return lst_data
 
-#########################################################################################################################################################
-    
+##################################################################################################
+
 # Do the scrolling
 def scrolling(counter,driver):
     print('scrolling...')
@@ -458,8 +436,8 @@ def scrolling(counter,driver):
             print(f"Error while scrolling: {e}")
             break
 
-#########################################################################################################################################################
-    
+##################################################################################################
+
 def write_to_xlsx(webdata, outputs):
     print('Start to write to excel...')
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
@@ -530,7 +508,7 @@ def write_to_xlsx2(data, outputs):
     df.to_excel(xls)
     return data
 
-#########################################################################################################################################################
+##################################################################################################
 
 def database_read(data):
     from sqlalchemy import create_engine
@@ -540,7 +518,7 @@ def database_read(data):
     df = pd.read_sql('SELECT * FROM table_name', con=db_connection)
     return df
 
-#########################################################################################################################################################
+##################################################################################################
 
 
 def check_web_media(filename,headers):
@@ -555,7 +533,7 @@ def check_web_media(filename,headers):
         print('    No existing media with same name in Wordpress media folder: ' + filename)
         return False, False
  
-#########################################################################################################################################################
+##################################################################################################
        
 def check_web_post(postname,postdate,headers):
     response = requests.get(wpAPI+"/posts?search="+postname, headers=headers)
@@ -569,7 +547,7 @@ def check_web_post(postname,postdate,headers):
         print('No existing post with same name: ' + postname)
     return False
 
-#########################################################################################################################################################
+##################################################################################################
     
 def is_port_open(host, port):
     try:
@@ -580,7 +558,7 @@ def is_port_open(host, port):
         print ('Could not open port to website: ', host,  type(error))
         return False     
 
-#########################################################################################################################################################
+##################################################################################################
     
 def check_media(filename, headers):
     # Regex gilename to format like in WordPress media name
@@ -596,7 +574,7 @@ def check_media(filename, headers):
         print('    No existing media with same name in Wordpress media folder: ' + filename)
         return False, False
     
-#########################################################################################################################################################
+##################################################################################################
     
 def check_post(postname,postdate,headers2):
     response = requests.get(wpAPI+"/posts?search="+postname, headers=headers2)
@@ -613,7 +591,7 @@ def check_post(postname,postdate,headers2):
         print('No existing post with same name: ' + postname)
         return False
 
-#########################################################################################################################################################
+##################################################################################################
 
 def post_x(title, content, date, rating, address, picslist, instasession):
     pics = ((picslist[1:-1]).replace("'","")).split(",")
@@ -664,7 +642,7 @@ def post_x(title, content, date, rating, address, picslist, instasession):
     print(json.dumps(json_response, indent=4, sort_keys=True))
     return
 
-#########################################################################################################################################################
+##################################################################################################
 
 
 def post_to_wp(title, content,  headers,date, rating,address, picslist):
@@ -863,7 +841,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         print("    An error writing images to the post " + post_response.title + ' occurred:", type(error).__name__) # An error occurred')
     return NewPost
 
-#########################################################################################################################################################
+##################################################################################################
     
 def make_video(inphotos):
 # Load the photos from the folder
@@ -895,10 +873,10 @@ def make_video(inphotos):
         return outputvideo, output
     return False, False
 
-#########################################################################################################################################################
+##################################################################################################
     
 
-#########################################################################################################################################################
+##################################################################################################
     
 def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
     #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
@@ -947,14 +925,14 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
     else:
         return False 
 
-#########################################################################################################################################################
+##################################################################################################
     
 def clearlist (list):
     for listelement in list:
         listelement.clear
     return list
  
-#########################################################################################################################################################
+##################################################################################################
        
 def hastags (address, name):
     nameNoSpaces = re.sub( r'[^a-zA-Z]','',name)
@@ -972,7 +950,7 @@ def hastags (address, name):
     # inphotos[0].rsplit(r'/', 1)
     return fulltag
 
-#########################################################################################################################################################
+##################################################################################################
     
 def process_reviews(outputs):
     # Process
@@ -1145,7 +1123,7 @@ def process_reviews(outputs):
 
 
 
-#########################################################################################################################################################
+##################################################################################################
 
 # def junction(name,namedict, outputs, writtento, processrow ):
 #     if name == "xtwitter":
@@ -1191,7 +1169,7 @@ def socials(name, namedict,outputs, writtento, processrow,funct):# namecount, na
             print ('  '+name+': Skipping posting for ',processrow[1].value,' previously written')
     return namedict
 
-#########################################################################################################################################################
+##################################################################################################
     
 if __name__ == "__main__":
     print('starting ...')
@@ -1201,5 +1179,5 @@ if __name__ == "__main__":
     process_reviews(outputs)  
     print('Done!')
 
-#########################################################################################################################################################
+##################################################################################################
     
