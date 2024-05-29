@@ -195,7 +195,7 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
     #Send the POST request
     r = requests.post(image_url, data=img_payload)
     print('    Facebook response: ',r.text, img_payload)
-    return  (r)
+    return r
 
 ##################################################################################################
 
@@ -210,10 +210,10 @@ def postImage(group_id, img,auth_token):
     try:
         r = requests.post(url, files=files, data=data).json()
     except Exception as error:
-        print("    An error getting date occurred:", type(error).c) # An error occurred:
+        print("    An error getting date occurred:", error) # An error occurred:
         r = False
     time.sleep(env.facebooksleep)
-    return (r)
+    return r
 
 ##################################################################################################
 
@@ -234,7 +234,7 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
     try:
         r = requests.post(url, files=files, data=data).json()
     except Exception as error:
-        print("    An error getting date occurred:", type(error).c) # An error occurred:
+        print("    An error getting date occurred:", error) # An error occurred:
         r = False
     time.sleep(env.facebooksleep)
     return r
@@ -286,7 +286,7 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
         r = requests.post(url, data=args)
     #try: r = requests.post(url, data=args).json()
     except Exception as error:
-        print("    An error getting date occurred:", type(error).c) # An error occurred:
+        print("    An error getting date occurred:",error) # An error occurred:
         r = False
     time.sleep(env.facebooksleep)
     print('    Facebook response: ',r)
@@ -314,7 +314,7 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
                 date, rating, address)
             imgs_id.append(post_id['id'])
         except Exception as error:
-            print("    An error occurred:", type(error).c) # An error occurred:
+            print("    An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
     print('    Facebook response: ',post_id)
     return  (True)
@@ -546,7 +546,6 @@ def database_read(data):
 
 ##################################################################################################
 
-
 def check_web_media(filename,headers):
     file_name_minus_extension = filename
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
@@ -739,7 +738,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
 #                                    newdate = dt.datetime.strptime(date_string).date()
                                         newdate = datetime.today() - relativedelta(years= tempdate)
                                     except Exception as error:
-                                        print("    An error getting date occurred:", type(error).c) 
+                                        print("    An error getting date occurred:",error) 
                                 else:
                                     format = '%Y-%b-%d' #specifify the format of the date_string.
                                     month = date[:3]
@@ -749,7 +748,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                                     try:
                                         newdate = dt.datetime.strptime(date_string, format).date()
                                     except Exception as error:
-                                        print("    An error getting date occurred:", type(error).c)
+                                        print("    An error getting date occurred:",error)
 #                                    try:
 #                                        newdate = dt.datetime.strptime(date_string, format).date()
 #                                    except Exception as error:
@@ -767,7 +766,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
     try:
         post_id = check_post(title,newdate2,headers)
     except  Exception as error :
-        print ('Could not check to see post already exists', type(error).c)
+        print ('Could not check to see post already exists',error)
     if not post_id:
         googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml\
             + r">"+address+r"</a>"
@@ -865,7 +864,8 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         except Exception as error:
             print("An error occurred:", type(error).__name__) # An error occurred:
     try:
-        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : googleadress+'\n\n'+content+'\n'+rating  + contentpics, "featured_media" : file_id}, headers=headers)
+        print ('featured_media = ',file_id)
+        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics, "featured_media" : file_id}, headers=headers)
         print (response_piclinks)
     except Exception as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', type(error).__name__) # An error occurred')
@@ -1205,7 +1205,7 @@ def socials(name, namedict,outputs, writtento, processrow,funct):# namecount, na
 
 if __name__ == "__main__":
     print('starting ...')
-    driver = preload()
+    preload()
     print('making connections ...')
     outputs = authconnect()
     process_reviews(outputs)
