@@ -699,7 +699,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
             print ('Stuff - > ',tempdate)
  #           date = dt.timedelta(days=tempdate)
 #            newdate = dt.datetime.strptime(date_string, format).date()
-            newdate = datetime.today() - relativedelta(days=tempdate)
+            newdate = datetime.today() + relativedelta(days=tempdate)
         else:
             if "a week" in date:
  #               date = dt.timedelta(weeks= -1)
@@ -711,7 +711,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                     print ('Stuff - > ',tempdate)
  #                   date = dt.timedelta(weeks= tempdate)
 #                    newdate = dt.datetime.strptime(date_string, format).date()
-                    newdate = datetime.today() - relativedelta(weeks= tempdate)
+                    newdate = datetime.today() + relativedelta(weeks= tempdate)
                 else:
                     if "a month" in date:
  #                       date = dt.timedelta(months= -1)
@@ -723,7 +723,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                             print ('Stuff - > ',tempdate)
  #                           date = dt.timedelta(months= tempdate)
 #                            newdate = dt.datetime.strptime(date_string, format).date()
-                            newdate = datetime.today() - relativedelta(months =  tempdate)
+                            newdate = datetime.today() + relativedelta(months =  tempdate)
                         else:
                             if "a year" in date:
  #                               date = dt.timedelta(years= -1)
@@ -736,7 +736,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                                         print ('Stuff - > ',tempdate)
  #                                       date = dt.timedelta( years= tempdate)
 #                                    newdate = dt.datetime.strptime(date_string).date()
-                                        newdate = datetime.today() - relativedelta(years= tempdate)
+                                        newdate = datetime.today() + relativedelta(years= tempdate)
                                     except Exception as error:
                                         print("    An error getting date occurred:",error) 
                                 else:
