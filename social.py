@@ -207,13 +207,15 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
 
 ##################################################################################################
 
-def postImage(group_id, img,auth_token):
+def postImage(group_id, img,auth_token, title):
     files={}
     url = f"https://graph.facebook.com/{group_id}/photos?access_token=" + auth_token
     for eachfile in img:
         files.update({eachfile: open(eachfile, 'rb')})
     data = {
-        "published" : False
+        "published" : False,
+        "alt_text" : title,
+        "description" : title
     }
     try:
         r = requests.post(url, files=files, data=data).json()
@@ -237,7 +239,9 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
              r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
              "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+
-             "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True
+             "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
+            "alt_text" : title,
+            "description" : title
     }
     try:
         r = requests.post(url, files=files, data=data).json()
@@ -273,7 +277,7 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
     #         print("    An error occurred:", type(error).c) # An error occurred:
     if imgs_pic:
         try:
-            post_id = postImage(group_id ,imgs_pic,auth_token)
+            post_id = postImage(group_id ,imgs_pic,auth_token,title)
             imgs_id.append(post_id['id'])
         except Exception as error:
             print("    An error occurred:", type(error)) # An error occurred:
@@ -338,7 +342,7 @@ def get_data(driver,outputs ):
     """
     print('get data...')
     # Click on more botton on each text reviews
-    more_elemets = driver.find_elements(By.CSS_SELECTOR, '.w8nwRe.kyuRq')
+    # more_elemets = driver.find_elements(By.CSS_SELECTOR, '.w8nwRe.kyuRq')
     for list_more_element in more_elemets:
         list_more_element.click()
     # Find Pictures that have the expansion indicator to see the rest of the pictures under
@@ -451,8 +455,9 @@ def scrolling(counter,driver):
     for _i in range(counter):
         try:
             scrolling = driver.execute_script(
-                'document.getElementsByClassName("dS8AEf")[0].scrollTop=document.getElementsByClassName("dS8AEf")[0].scrollHeight',
-                scrollable_div
+                'document.getElementsByClassName("dS8AEf")[0].\
+                    scrollTop=document.getElementsByClassName("dS8AEf")[0].scrollHeight',
+                    scrollable_div
             )
             time.sleep(3)
         except Exception as e:
@@ -545,8 +550,8 @@ def write_to_xlsx2(data, outputs):
 ##################################################################################################
 
 def database_read(data):
-    from sqlalchemy import create_engine
-    import pandas as pd
+    # from sqlalchemy import create_engine
+    # import pandas as pd
     db_connection_str = 'mysql+pymysql://mysql_user:mysql_password@mysql_host/mysql_db'
     db_connection = create_engine(db_connection_str)
     df = pd.read_sql('SELECT * FROM table_name', con=db_connection)
@@ -873,7 +878,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
             print("An error occurred:", type(error).__name__) # An error occurred:
     try:
         print ('featured_media = ',file_id)
-        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics, "featured_media" : file_id}, headers=headers)
+        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics, "featured_media" : file_id,"rank_math_focus_keyword" : title }, headers=headers)
         print (response_piclinks)
     except Exception as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', type(error).__name__) # An error occurred')
@@ -1017,7 +1022,8 @@ def process_reviews(outputs):
         options.set_capability('cloud:options', caps)
         #driver = webdriver.Chrome(desired_capabilities=caps)
         if is_docker :
-            driver = webdriver.Remote("http://192.168.10.6:4444/wd/hub", options=options)
+            driver = webdriver.Remote("http://192.168.10.9:4444/wd/hub", options=options)
+            print ("IN A DOCKER CONTAINER, USING REMOTE CHROME")
         else:
             driver = webdriver.Chrome(options=options) # Firefox(options=options)
         # Changing the property of the navigator value for webdriver to undefined
