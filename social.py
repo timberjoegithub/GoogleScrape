@@ -997,6 +997,7 @@ def process_reviews(outputs):
             # show browser or not ||| HEAD =>  43.03 ||| No Head => 39 seg
         options.add_argument("--lang=en-US")
         options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--remote-debugging-pipe")
         # Exclude the collection of enable-automation switches
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         # Turn-off userAutomationExtension
