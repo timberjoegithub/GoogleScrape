@@ -1,5 +1,4 @@
 import sqlalchemy
-import env
 
 #data
 import time
@@ -36,9 +35,12 @@ import instagrapi
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 #import moviepy
 
+from pathlib import Path
+
 from sqlalchemy.ext.declarative import declarative_base
 #import mysqlclient
 #import mysql-connector-python
+import env
 Base = declarative_base()
 
 ##################################################################################################
@@ -175,6 +177,12 @@ def counter(driver):
     result = result.split(' ')
     result = result[0].split('\n')
     return int(int(result[0])/10)+1
+
+##################################################################################################
+
+def is_docker():
+    cgroup = Path('/proc/self/cgroup')
+    return Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in cgroup.read_text()
 
 ##################################################################################################
 
@@ -1008,7 +1016,10 @@ def process_reviews(outputs):
         caps['acceptSslCerts'] = True
         options.set_capability('cloud:options', caps)
         #driver = webdriver.Chrome(desired_capabilities=caps)
-        driver = webdriver.Chrome(options=options) # Firefox(options=options)
+        if is_docker :
+            driver = webdriver.Remote("http://192.168.10.6:4444/wd/hub", options=options)
+        else:
+            driver = webdriver.Chrome(options=options) # Firefox(options=options)
         # Changing the property of the navigator value for webdriver to undefined
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         driver.get(env.URL)
