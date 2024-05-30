@@ -679,7 +679,7 @@ def post_x(title, content, date, rating, address, picslist, instasession):
 #     # Saving the response as JSON
 #     json_response = response.json()
 #     print(json.dumps(json_response, indent=4, sort_keys=True))
-     return
+    return
 
 # ################################################################################################
 
