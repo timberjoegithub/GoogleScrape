@@ -36,7 +36,7 @@ from moviepy.editor import VideoFileClip, concatenate_videoclips
 #import moviepy
 
 from pathlib import Path
-
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 #import mysqlclient
 #import mysql-connector-python
@@ -240,8 +240,7 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
              r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
              "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+
              "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
-            "alt_text" : title,
-            "description" : title
+            "alt_text" : title
     }
     try:
         r = requests.post(url, files=files, data=data).json()
@@ -342,7 +341,7 @@ def get_data(driver,outputs ):
     """
     print('get data...')
     # Click on more botton on each text reviews
-    # more_elemets = driver.find_elements(By.CSS_SELECTOR, '.w8nwRe.kyuRq')
+    more_elemets = driver.find_elements(By.CSS_SELECTOR, '.w8nwRe.kyuRq')
     for list_more_element in more_elemets:
         list_more_element.click()
     # Find Pictures that have the expansion indicator to see the rest of the pictures under
@@ -550,8 +549,6 @@ def write_to_xlsx2(data, outputs):
 ##################################################################################################
 
 def database_read(data):
-    # from sqlalchemy import create_engine
-    # import pandas as pd
     db_connection_str = 'mysql+pymysql://mysql_user:mysql_password@mysql_host/mysql_db'
     db_connection = create_engine(db_connection_str)
     df = pd.read_sql('SELECT * FROM table_name', con=db_connection)
