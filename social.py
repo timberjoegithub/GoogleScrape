@@ -35,6 +35,9 @@ import instagrapi
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 #import moviepy
 
+#twitter
+import tweepy
+
 from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -628,6 +631,196 @@ def check_post(postname,postdate,headers2):
 
 ##################################################################################################
 
+def threads():
+    import asyncio
+    import aiohttp
+
+    # Replace 'your_access_token' with your actual access token for Meta's Threads
+    ACCESS_TOKEN = 'your_access_token'
+
+    # The URL for the Meta's Threads API endpoint to post a video
+    THREADS_API_ENDPOINT = 'https://api.threads.meta.com/v1/videos'
+
+    # The path to the video file you want to upload
+    VIDEO_FILE_PATH = 'path_to_your_video.mp4'
+
+    # The caption for your video
+    VIDEO_CAPTION = 'Your video caption'
+
+    async def post_video_to_threads():
+        # Open the video file in binary read mode
+        with open(VIDEO_FILE_PATH, 'rb') as video_file:
+            video_data = video_file.read()
+
+        # Prepare the headers for the HTTP request
+        headers = {
+            'Authorization': f'Bearer {ACCESS_TOKEN}',
+            'Content-Type': 'video/mp4'
+        }
+
+        # Use aiohttp to make an asynchronous HTTP POST request
+        async with aiohttp.ClientSession() as session:
+            async with session.post(THREADS_API_ENDPOINT, data=video_data, headers=headers) as response:
+                # Check if the request was successful
+                if response.status == 200:
+                    print('Video successfully posted to Threads.')
+                else:
+                    print('Failed to post video. Response:', await response.text())
+
+    # Run the asynchronous function using asyncio
+    if __name__ == '__main__':
+        asyncio.run(post_video_to_threads())
+    return
+
+#######################################################################################################
+
+# from googleapiclient.discovery import build
+# from oauth2client.service_account import ServiceAccountCredentials
+
+# # Replace 'YOUR_SERVICE_ACCOUNT_FILE.json' with the path to your service account JSON file
+# SERVICE_ACCOUNT_FILE = 'YOUR_SERVICE_ACCOUNT_FILE.json'
+
+# # Replace 'your_google_business_id' with your actual Google Business ID
+# GOOGLE_BUSINESS_ID = 'your_google_business_id'
+
+# # Scopes for Google My Business API
+# SCOPES = ['https://www.googleapis.com/auth/business.manage']
+
+# # Authenticate and build the Google My Business service
+# credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPES)
+# service = build('mybusiness', 'v4', credentials=credentials)
+
+# # Function to get the business website
+# def get_business_website(business_id):
+#     # Make a request to the Google My Business API to get business details
+#     response = service.accounts().locations().get(name=business_id).execute()
+
+#     # Extract the website from the response
+#     website = response.get('websiteUri', 'No website found for this business')
+#     return website
+
+# # Get the website for the given Google Business ID
+# business_website = get_business_website(GOOGLE_BUSINESS_ID)
+# print(f'The website for business ID {GOOGLE_BUSINESS_ID} is: {business_website}')
+
+##################################################################################################
+
+# The URL to your WordPress website's REST API endpoint for media
+WP_API_MEDIA_URL = 'https://yourwebsite.com/wp-json/wp/v2/media'
+
+# The ID of the post for which you want to retrieve the featured photo ID
+POST_ID = 'your_post_id'
+
+# Function to get the featured photo ID of a WordPress post
+def get_featured_photo_id(post_id):
+    # Make a GET request to the WordPress REST API to retrieve media details
+    response = requests.get(f"{WP_API_MEDIA_URL}?parent={post_id}")
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the JSON response
+        media_items = response.json()
+
+        # Loop through the media items associated with the post
+        for item in media_items:
+            # Check if the media item is the featured image
+            if item.get('post', None) == int(post_id):
+                # Return the ID of the featured image
+                return item['id']
+
+    # If the request failed or the featured image was not found, return None
+    return None
+
+# # Example usage
+# featured_photo_id = get_featured_photo_id(POST_ID)
+# print(f"The featured photo ID for post {POST_ID} is: {featured_photo_id}")
+
+##################################################################################################
+
+def post_x2(title, content, date, rating, address, picslist, instasession): 
+    pics = ((picslist[1:-1]).replace("'","")).split(",")
+    # Replace the following strings with your own keys and secrets
+    CONSUMER_KEY = env.consumer_key
+    CONSUMER_SECRET = env.consumer_secret
+    ACCESS_TOKEN = access_token
+    ACCESS_TOKEN_SECRET = access_token_secret
+    # Authenticate to Twitter
+    auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    # Create an API object to use the Twitter API
+    api = tweepy.API(auth)
+    img_list = pics
+    for img in img_list:
+        if 'montage.mp4' in img:
+            imgs_vid.append(img.strip())
+        else:
+            imgs_pic.append(img.strip())
+    if imgs_vid:
+       # print ("loop")
+        try:
+            post_id = postVideo(group_id, imgs_vid,auth_token,title, content,
+                date, rating, address)
+            imgs_id.append(post_id['id'])
+            video_path = imgs+vid[0]
+            # Path to the video you want to upload
+            #video_path = 'path_to_video.mp4'
+            # Message to post along with the video
+            status_message = title + '/n/n'+ content +  '/n/n'+ rating +  '/n/n'+ address '/n/n'
+            # Upload video
+            media = api.media_upload(video_path, media_category='tweet_video')
+            # Post tweet with video
+            api.update_status(status=status_message, media_ids=[media.media_id_string])
+        except Exception as error:
+            print("    An error occurred:",error) # An error occurred:
+    time.sleep(env.facebooksleep)
+    return
+
+##################################################################################################
+
+def post_tiktok():
+
+    # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
+    session_id = 'your_sessionid_cookie'
+
+    # Replace 'path_to_video.mp4' with the path to your video file.
+    file_path = 'path_to_video.mp4'
+
+    # Replace 'Your video title' with the title of your video.
+    title = 'Your video title'
+
+    # Replace the following list with the hashtags you want to add to your post.
+    tags = ['hashtag1', 'hashtag2', 'hashtag3']
+
+    # If you want to schedule your video, replace 'schedule_timestamp' with the Unix timestamp.
+    # Leave it as None if you want to upload immediately.
+    schedule_time = None  # or Unix timestamp (e.g., 1672592400)
+
+    return
+
+# def upload_video(session_id, file_path, title, tags, schedule_time=None):
+#     url = 'https://www.tiktok.com/api/upload/video/'
+#     headers = {
+#         'Cookie': f'sessionid={session_id}'
+#     }
+#     data = {
+#         'title': title,
+#         'tags': ','.join(tags),
+#         'schedule_time': schedule_time
+#     }
+#     files = {
+#         'video': open(file_path, 'rb')
+#     }
+    
+#     response = requests.post(url, headers=headers, data=data, files=files)
+#     return response.json()
+
+# # Call the function to upload the video
+# response = upload_video(session_id, file_path, title, tags, schedule_time)
+# print(response)
+
+##################################################################################################
+
+
 def post_x(title, content, date, rating, address, picslist, instasession):
 #     pics = ((picslist[1:-1]).replace("'","")).split(",")
 #     from requests_oauthlib import OAuth1Session
@@ -855,6 +1048,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 print("    An error loading the metadata from the post " + post_response.title + ' occurred: '+type(error).__name__)
     #ratinghtml = post_response.text
     firstMP4 = True
+    fmedia = {}
     for piclink in linkslist:
         #for loop in linkslist:
         print ('    Adding ', piclink['link'], ' to posting')
@@ -869,13 +1063,19 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 #[evp_embed_video url="http://example.com/wp-content/uploads/videos/vid1.mp4" autoplay="true"]
             else:
                 contentpics += '\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"' + r'src="' + piclink['link'] + r'"></div>'
+ #               fmedia.append = piclink{'file_id' }
 #            contentpics += '\n '+r'<img src="'+ piclink['link'] + '> \n'
             #contentpics += r'<img src="'+ piclink['link'] + r' alt="' + title +r'">' +'\n\n'
         except Exception as error:
             print("An error occurred:", type(error).__name__) # An error occurred:
     try:
-        print ('featured_media = ',file_id)
-        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics, "featured_media" : file_id,"rank_math_focus_keyword" : title }, headers=headers)
+        print ('featured_media = ',linkslist[0]['file_id'])
+        if linkslist[0]['file_id']:
+            print ('featuredmedia2 = ',linkslist[0]['file_id'])
+        else:
+            fmedia = file_id
+            print ('featured_media2 = ',file_id)
+        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics, "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers)
         print (response_piclinks)
     except Exception as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', type(error).__name__) # An error occurred')
@@ -1128,12 +1328,12 @@ def process_reviews(outputs):
                             print ('  Exceeded the number of facebook posts per run, skipping', processrow[1].value)
                     else:
                         print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
-                if False:
+                if xtwitter:
                     if writtento["xtwitter"] == 0:
                         if xtwittercount <= env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
-                                NewxtwitterPost = post_x(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['xtwitter'] )
+                                NewxtwitterPost = post_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['xtwitter'] )
                                 try:
                                     print ('  Start generating content to post to xtwitter')
                                     writtento["facebook"] = 1
