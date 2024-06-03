@@ -738,6 +738,25 @@ def get_featured_photo_id(post_id):
 
 ##################################################################################################
 
+def get_twitter_conn_v1(api_key, api_secret, access_token, access_token_secret) -> tweepy.API:
+    """Get twitter conn 1.1"""
+    auth = tweepy.OAuth1UserHandler(api_key, api_secret)
+    auth.set_access_token(
+        access_token,
+        access_token_secret,
+    )
+    return tweepy.API(auth)
+
+def get_twitter_conn_v2(api_key, api_secret, access_token, access_token_secret) -> tweepy.Client:
+    """Get twitter conn 2.0"""
+    client = tweepy.Client(
+        consumer_key=api_key,
+        consumer_secret=api_secret,
+        access_token=access_token,
+        access_token_secret=access_token_secret,
+    )
+    return client
+
 def post_x2(title, content, date, rating, address, picslist, instasession): 
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
@@ -754,6 +773,9 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
     imgs_vid = []
     imgs_pic = []
     #imgs_id = []
+    client_v1 = get_twitter_conn_v1(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    client_v2 = get_twitter_conn_v2(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+   # media_path = "C:\\YourPath"
     for img in img_list:
         if 'montage.mp4' in img:
             imgs_vid.append(img.strip())
@@ -769,11 +791,18 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
             # Path to the video you want to upload
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
-            status_message = title + '/n/n'+ content +  '/n/n'+ rating +  '/n/n'+ address +'/n/n'
+            status_message = title + '/n/n'+ content +  '/n/n'+ address
+            status_message_short = status_message[:279]
+            # if len(status_message) > 279:
+            #     print ('   Count of twitter message: ',len(status_message))
             # Upload video
-            media = api.media_upload(video_path, media_category='tweet_video')
+            media = client_v1.media_upload(filename=video_path)
+            media_id = media.media_id
+            #media = api.media_upload(video_path, media_category='tweet_video')
             # Post tweet with video
-            api.update_status(status=status_message, media_ids=[media.media_id_string])
+            client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id_string])
+            #client_v2.create_tweet(text=status_message_short, media_ids=[media_id])
+            #api.update_status(status=status_message, media_ids=[media.media_id_string])
         except Exception as error:
             print("    An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
