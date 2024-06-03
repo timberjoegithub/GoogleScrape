@@ -743,14 +743,17 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
     # Replace the following strings with your own keys and secrets
     CONSUMER_KEY = env.consumer_key
     CONSUMER_SECRET = env.consumer_secret
-    ACCESS_TOKEN = access_token
-    ACCESS_TOKEN_SECRET = access_token_secret
+    ACCESS_TOKEN = env.access_token
+    ACCESS_TOKEN_SECRET = env.access_token_secret
     # Authenticate to Twitter
     auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
     # Create an API object to use the Twitter API
     api = tweepy.API(auth)
     img_list = pics
+    imgs_vid = []
+    imgs_pic = []
+    #imgs_id = []
     for img in img_list:
         if 'montage.mp4' in img:
             imgs_vid.append(img.strip())
@@ -759,10 +762,10 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
     if imgs_vid:
        # print ("loop")
         try:
-            post_id = postVideo(group_id, imgs_vid,auth_token,title, content,
-                date, rating, address)
-            imgs_id.append(post_id['id'])
-            video_path = imgs+vid[0]
+            # post_id = postVideo(group_id, imgs_vid,auth_token,title, content,
+            #     date, rating, address)
+            # imgs_id.append(post_id['id'])
+            video_path = imgs_vid[0]
             # Path to the video you want to upload
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
@@ -1334,10 +1337,10 @@ def process_reviews(outputs):
                         if xtwittercount <= env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
-                                NewxtwitterPost = post_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['xtwitter'] )
+                                NewxtwitterPost = post_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'] )
                                 try:
                                     print ('  Start generating content to post to xtwitter')
-                                    writtento["facebook"] = 1
+                                    writtento["xtwitter"] = 1
                                     processrow[9].value = str(writtento)
                                 except Exception as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
@@ -1353,7 +1356,7 @@ def process_reviews(outputs):
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
                             except Exception as error:
-                                print ('  Error writing xtwitter post : ',processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
+                                print ('  Error writing xtwitter post : ',error,processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of xtwitter posts per run, skipping', processrow[1].value)
                     else:
