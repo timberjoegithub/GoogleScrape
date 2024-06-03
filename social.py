@@ -185,6 +185,7 @@ def counter(driver):
 
 def is_docker():
     cgroup = Path('/proc/self/cgroup')
+    #print (cgroup.read_text())
     return Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in cgroup.read_text()
 
 ##################################################################################################
@@ -765,7 +766,7 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
             # Path to the video you want to upload
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
-            status_message = title + '/n/n'+ content +  '/n/n'+ rating +  '/n/n'+ address '/n/n'
+            status_message = title + '/n/n'+ content +  '/n/n'+ rating +  '/n/n'+ address +'/n/n'
             # Upload video
             media = api.media_upload(video_path, media_category='tweet_video')
             # Post tweet with video
@@ -1218,7 +1219,7 @@ def process_reviews(outputs):
         caps['acceptSslCerts'] = True
         options.set_capability('cloud:options', caps)
         #driver = webdriver.Chrome(desired_capabilities=caps)
-        if is_docker :
+        if is_docker() :
             driver = webdriver.Remote("http://192.168.10.9:4444/wd/hub", options=options)
             print ("IN A DOCKER CONTAINER, USING REMOTE CHROME")
         else:
@@ -1328,7 +1329,7 @@ def process_reviews(outputs):
                             print ('  Exceeded the number of facebook posts per run, skipping', processrow[1].value)
                     else:
                         print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
-                if xtwitter:
+                if env.xtwitter:
                     if writtento["xtwitter"] == 0:
                         if xtwittercount <= env.postsperrun:
                             try:
