@@ -242,7 +242,7 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
         files.update({eachfile: open(eachfile, 'rb')})
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
              r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
-             "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+
+             "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title, 'long')+
              "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
             "alt_text" : title
     }
@@ -760,10 +760,10 @@ def get_twitter_conn_v2(api_key, api_secret, access_token, access_token_secret) 
 def post_x2(title, content, date, rating, address, picslist, instasession): 
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
-    CONSUMER_KEY = env.consumer_key
-    CONSUMER_SECRET = env.consumer_secret
-    ACCESS_TOKEN = env.access_token
-    ACCESS_TOKEN_SECRET = env.access_token_secret
+    CONSUMER_KEY = env.x_consumer_key
+    CONSUMER_SECRET = env.x_consumer_secret
+    ACCESS_TOKEN = env.x_access_token
+    ACCESS_TOKEN_SECRET = env.x_access_token_secret
     # Authenticate to Twitter
     auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
@@ -773,8 +773,8 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
     imgs_vid = []
     imgs_pic = []
     #imgs_id = []
-    client_v1 = get_twitter_conn_v1(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    client_v2 = get_twitter_conn_v2(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    client_v1 = get_twitter_conn_v1(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
+    client_v2 = get_twitter_conn_v2(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
    # media_path = "C:\\YourPath"
     for img in img_list:
         if 'montage.mp4' in img:
@@ -791,16 +791,17 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
             # Path to the video you want to upload
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
-            status_message = title + '/n/n'+ content +  '/n/n'+ address
-            status_message_short = status_message[:279]
+            status_message = title + ': Review  https://www.joeeatswhat.com'
+            status_message2  = status_message +' '+hastags(address, title, 'short')
+            status_message_short = status_message2[:279]
             # if len(status_message) > 279:
             #     print ('   Count of twitter message: ',len(status_message))
             # Upload video
             media = client_v1.media_upload(filename=video_path)
-            media_id = media.media_id
+      #      media_id = media.media_id
             #media = api.media_upload(video_path, media_category='tweet_video')
             # Post tweet with video
-            client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id_string])
+            client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
             #client_v2.create_tweet(text=status_message_short, media_ids=[media_id])
             #api.update_status(status=status_message, media_ids=[media.media_id_string])
         except Exception as error:
@@ -810,7 +811,7 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
 
 ##################################################################################################
 
-def post_tiktok():
+def post_tiktok(title, content, date, rating, address, picslist, instasession):
 
     # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
     session_id = 'your_sessionid_cookie'
@@ -843,7 +844,6 @@ def post_tiktok():
 #     files = {
 #         'video': open(file_path, 'rb')
 #     }
-    
 #     response = requests.post(url, headers=headers, data=data, files=files)
 #     return response.json()
 
@@ -1158,7 +1158,7 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
         pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
         video, outputmontage = make_video(pics)
         try:
-            data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title)+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
+            data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
             instasession.video_upload(outputmontage, data)
  #           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
@@ -1205,13 +1205,16 @@ def clearlist (list):
 
 ##################################################################################################
 
-def hastags (address, name):
+def hastags (address, name, type):
     nameNoSpaces = re.sub( r'[^a-zA-Z]','',name)
     addressdict = address.rsplit(r' ',3)
     zip = addressdict[3]
     state = addressdict[2]
     city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
-    defaulttags = "\n\n\n#"+nameNoSpaces+" #foodie #music #food #travel #drinks #instagood #feedme #joeeatswhat @timberjoe"
+    if 'short' in type:
+        defaulttags = '#'+nameNoSpaces+' #foodie #food #joeeatswhat @timberjoe'
+    else:
+        defaulttags = "\n\n\n#"+nameNoSpaces+" #foodie #music #food #travel #drinks #instagood #feedme #joeeatswhat @timberjoe"
     citytag = "#"+city
     statetag = "#"+state
     ziptag = "#"+zip
