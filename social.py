@@ -161,6 +161,9 @@ def authconnect():
         print('  Connecting to xtwitter ...')
     if env.threads :
         print('  Connecting to threads ...')
+        threadssessionclient = instagrapi.Client()
+        threadssessionclient.login(env.instagramuser, env.instagrampass)
+        connections.update({'threads':threadssessionclient})
     if env.web :
         print('  Connecting to joeeatswhat.com ...')
         data_string = f"{env.user}:{env.password}"
@@ -323,13 +326,12 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
         else:
             imgs_pic.append(img.strip())
     if imgs_vid:
-       # print ("loop")
         try:
             post_id = postVideo(group_id, imgs_vid,auth_token,title, content,
                 date, rating, address)
             imgs_id.append(post_id['id'])
         except Exception as error:
-            print("    An error occurred:",error) # An error occurred:
+            print("    An error occurred:",error)
     time.sleep(env.facebooksleep)
     print('    Facebook response: ',post_id)
     return  (True)
@@ -638,13 +640,10 @@ def threads():
 
     # Replace 'your_access_token' with your actual access token for Meta's Threads
     ACCESS_TOKEN = 'your_access_token'
-
     # The URL for the Meta's Threads API endpoint to post a video
     THREADS_API_ENDPOINT = 'https://api.threads.meta.com/v1/videos'
-
     # The path to the video file you want to upload
     VIDEO_FILE_PATH = 'path_to_your_video.mp4'
-
     # The caption for your video
     VIDEO_CAPTION = 'Your video caption'
 
@@ -652,13 +651,11 @@ def threads():
         # Open the video file in binary read mode
         with open(VIDEO_FILE_PATH, 'rb') as video_file:
             video_data = video_file.read()
-
         # Prepare the headers for the HTTP request
         headers = {
             'Authorization': f'Bearer {ACCESS_TOKEN}',
             'Content-Type': 'video/mp4'
         }
-
         # Use aiohttp to make an asynchronous HTTP POST request
         async with aiohttp.ClientSession() as session:
             async with session.post(THREADS_API_ENDPOINT, data=video_data, headers=headers) as response:
@@ -672,6 +669,27 @@ def threads():
     if __name__ == '__main__':
         asyncio.run(post_video_to_threads())
     return
+
+def post_to_threads (title, content, date, rating, address, picslist, instasession):
+    if picslist != '[]' and "montage.mp4" in picslist:
+        outputmontage = ''
+        addresshtml = re.sub(" ", ".",address)
+        #content = content + hastags(address, title)
+        pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+        video, outputmontage = make_video(pics)
+        try:
+            data =  title + "\n"+ address+"\nGoogle map to destination: " \
+                r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n" \
+                + content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title,'long')+ \
+                "\n\nhttps://www.joeeatswhat.com "+"\n\n"
+            instasession.video_upload(outputmontage, data)
+ #           video2 = instasession.video_upload(outputmontage, data)
+        except Exception as error:
+            print("  An error occurred uploading video to Threads:", type(error).__name__) 
+            return False
+        return True
+    else:
+        return False
 
 #######################################################################################################
 
@@ -792,7 +810,7 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
             status_message = title + ': Review  https://www.joeeatswhat.com'
-            status_message2  = status_message +' '+hastags(address, title, 'short')
+            status_message2  = status_message +' '+hastags(address, title, 'short')+' '
             status_message_short = status_message2[:279]
             # if len(status_message) > 279:
             #     print ('   Count of twitter message: ',len(status_message))
