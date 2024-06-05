@@ -52,13 +52,13 @@ def preload():
     file=pathlib.Path("./config/joeteststeele_uuid_and_cookie.json")
     if pathlib.Path.exists(file):
         pathlib.Path.unlink(file)
-    global today
     today = datetime.today().strftime('%Y-%m-%d')
     return
 
 ##################################################################################################
 
 class Users(Base):
+    """Class representing a user config"""
     __tablename__ = 'userConfig'
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     user = sqlalchemy.Column(sqlalchemy.String(length=11, collation="utf8"))
@@ -86,6 +86,7 @@ class Users(Base):
 ##################################################################################################
 
 class Posts(Base):
+    """Class representing the attributes of a post"""
     __tablename__ = 'posts'
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     name = sqlalchemy.Column(sqlalchemy.String(length=256, collation="utf8"))
@@ -107,6 +108,7 @@ class Posts(Base):
 ##################################################################################################
 
 def authconnect():
+    """Make all connections to socials and DB, etec.."""
     connections = {}
     if env.mariadb:
         print('Connecting to MariaDB for configuration and storage')
@@ -201,8 +203,8 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
     page_id_1 = env.facebookpageID
     facebook_access_token = env.facebookpass
     #facebook_access_token = 'paste-your-page-access-token-here'
-#    image_url = 'https://graph.facebook.com/{}/feed'.formatting(page_id_1)
-    image_url = 'https://graph.facebook.com/{}/photos'.formatting(page_id_1)
+#    image_url = 'https://graph.facebook.com/{}/feed'.format(page_id_1)
+    image_url = 'https://graph.facebook.com/{}/photos'.format(page_id_1)
     image_location = pics[0]
     img_payload = {
     'message': content,
@@ -210,7 +212,7 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
     'access_token': facebook_access_token
     }
     #Send the POST request
-    r = requests.post(image_url, data=img_payload)
+    r = requests.post(image_url, data=img_payload,timeout=30)
     print('    Facebook response: ',r.text, img_payload)
     return r
 
@@ -227,7 +229,7 @@ def postImage(group_id, img,auth_token, title):
         "description" : title
     }
     try:
-        r = requests.post(url, files=files, data=data).json()
+        r = requests.post(url, files=files, data=data,timeout=40).json()
     except Exception as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
@@ -252,7 +254,7 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
             "alt_text" : title
     }
     try:
-        r = requests.post(url, files=files, data=data).json()
+        r = requests.post(url, files=files, data=data,timeout=40).json()
     except Exception as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
@@ -303,7 +305,7 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
     url = f"https://graph.facebook.com/{group_id}/feed?access_token=" + auth_token
     #print ("r = request.post(" +url+", data="+args+")")
     try: 
-        r = requests.post(url, data=args)
+        r = requests.post(url, data=args,timeout=40)
     #try: r = requests.post(url, data=args).json()
     except Exception as error:
         print("    An error getting date occurred:",error) # An error occurred:
@@ -346,7 +348,7 @@ def get_data(driver,outputs ):
 #   "X-Goog-FieldMask: id,displayName,formattingtedAddress,plusCode"
 #   https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri
     """
-    this function get main text, score, name
+    this function gets main text, score, name
     """
     print('get data...')
     # Click on more botton on each text reviews
@@ -561,13 +563,13 @@ def database_read(data):
     db_connection_str = 'mysql+pymysql://mysql_user:mysql_password@mysql_host/mysql_db'
     db_connection = create_engine(db_connection_str)
     df = pd.read_sql('SELECT * FROM table_name', con=db_connection)
-    return (df)
+    return df
 
 ##################################################################################################
 
 def check_web_media(filename,headers):
     file_name_minus_extension = filename
-    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
+    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers,timeout=40)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
@@ -580,7 +582,7 @@ def check_web_media(filename,headers):
 ##################################################################################################
 
 def check_web_post(postname,postdate,headers):
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers,timeout=50)
     try:
         result = response.json()
         post_id = int(result[0]['id'])
@@ -608,7 +610,7 @@ def check_media(filename, headers):
     # Regex gilename to format like in WordPress media name
     #file_name_minus_extension = re.sub(r'\'|(....$)','', filename, flags=re.IGNORECASE)
     file_name_minus_extension = filename
-    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
+    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers,timeout=50)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
@@ -621,7 +623,7 @@ def check_media(filename, headers):
 ##################################################################################################
 
 def check_post(postname,postdate,headers2):
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
     if len(result) > 0 :
         post_id = int(result[0]['id'])
@@ -720,7 +722,7 @@ POST_ID = 'your_post_id'
 # Function to get the featured photo ID of a WordPress post
 def get_featured_photo_id(post_id):
     # Make a GET request to the WordPress REST API to retrieve media details
-    response = requests.get(f"{WP_API_MEDIA_URL}?parent={post_id}")
+    response = requests.get(f"{WP_API_MEDIA_URL}?parent={post_id}",timeout=50)
 
     # Check if the request was successful
     if response.status_code == 200:
@@ -812,7 +814,7 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
         except Exception as error:
             print("    An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
-    return
+    return (media.media_id)
 
 ##################################################################################################
 
@@ -825,7 +827,7 @@ def post_tiktok(title, content, date, rating, address, picslist, instasession):
     file_path = 'path_to_video.mp4'
 
     # Replace 'Your video title' with the title of your video.
-    title = 'Your video title'
+    #title = 'Your video title'
 
     # Replace the following list with the hashtags you want to add to your post.
     tags = ['hashtag1', 'hashtag2', 'hashtag3']
@@ -1056,7 +1058,8 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
             try:
                 image_response = requests.post(env.wpAPI + "/media", headers=headers, files=image,timeout=30)
             except Exception as error:
-                print("    An error uploading picture ' + picname+ ' occurred:", type(error).__name__)
+                print("    An error uploading picture ' + picname+ ' occurred:", \
+                      type(error).__name__)
             if image_response.status_code != 201 :
                 print ('    Error- Image ',picname,' was not successfully uploaded.  response: ', \
                        image_response)
@@ -1075,9 +1078,11 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
             print ('    Photo ',picname,' was already in library and added to post with ID: ', \
                    file_id,' : ',link)
             try:
-                image_response = requests.post(env.wpAPI + "/media/" + str(file_id), headers=headers, data={"post" : post_id},timeout=30)
+                image_response = requests.post(env.wpAPI + "/media/" + str(file_id), \
+                    headers=headers, data={"post" : post_id},timeout=30)
             except Exception as error:
-                print ('    Error- Image ',picname,' was not attached to post.  response: ',image_response+' '+error)
+                print ('    Error- Image ',picname,' was not attached to post.  response: ',\
+                       image_response+' '+error)
             try:
                 post_response = requests.post(env.wpAPI + "/posts/" + str(post_id), headers=headers,timeout=30)
                 if link in str(post_response.text):
