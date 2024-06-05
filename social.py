@@ -1095,7 +1095,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 print("    An error loading the metadata from the post " + post_response.title + \
                        ' occurred: '+type(error).__name__)
     #ratinghtml = post_response.text
-    first_MP4 = True
+    first_mp4 = True
     fmedia = {}
     for piclink in linkslist:
         #for loop in linkslist:
@@ -1103,10 +1103,10 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         try:
             ext = piclink['link'].split( '.')[-1]
             if ext == 'mp4':
-                if first_MP4:
+                if first_mp4:
                     contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + \
                         r'" autoplay="true"]'
-                    first_MP4 = False
+                    first_mp4 = False
                 else:
                     contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
 #[evp_embed_video url="http://example.com/wp-content/uploads/videos/vid1.mp4" autoplay="true"]
@@ -1125,7 +1125,10 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         else:
             fmedia = file_id
             print ('featured_media2 = ',file_id)
-        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics, "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,timeout=30)
+        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+            data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics,\
+            "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
+            timeout=30)
         print (response_piclinks)
     except Exception as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', \
