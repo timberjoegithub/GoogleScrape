@@ -1056,7 +1056,8 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 "description": description
             }
             try:
-                image_response = requests.post(env.wpAPI + "/media", headers=headers, files=image,timeout=30)
+                image_response = requests.post(env.wpAPI + "/media", headers=headers, \
+                    files=image,timeout=30)
             except Exception as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", \
                       type(error).__name__)
@@ -1067,7 +1068,8 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 pic_dic=image_response.json()
                 file_id= pic_dic.get('id')
                 link = pic_dic.get('guid').get("rendered")
-                print ('    ',picname,' was successfully uploaded to website with ID: ',file_id, link)
+                print ('    ',picname,' was successfully uploaded to website with ID: ',\
+                    file_id, link)
             try:
                 linksDict = {'file_id' : file_id , 'link' : link}
                 linkslist.append(linksDict)
@@ -1084,7 +1086,8 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 print ('    Error- Image ',picname,' was not attached to post.  response: ',\
                        image_response+' '+error)
             try:
-                post_response = requests.post(env.wpAPI + "/posts/" + str(post_id), headers=headers,timeout=30)
+                post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
+                    headers=headers,timeout=30)
                 if link in str(post_response.text):
                     print ('    Image link for ', picname, 'already in content of post: ' \
                            ,post_id, post_response.text, link)
