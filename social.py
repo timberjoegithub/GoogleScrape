@@ -52,13 +52,13 @@ def preload():
     file=pathlib.Path("./config/joeteststeele_uuid_and_cookie.json")
     if pathlib.Path.exists(file):
         pathlib.Path.unlink(file)
-    global today
     today = datetime.today().strftime('%Y-%m-%d')
     return
 
 ##################################################################################################
 
 class Users(Base):
+    """Class representing a user config"""
     __tablename__ = 'userConfig'
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     user = sqlalchemy.Column(sqlalchemy.String(length=11, collation="utf8"))
@@ -86,6 +86,7 @@ class Users(Base):
 ##################################################################################################
 
 class Posts(Base):
+    """Class representing the attributes of a post"""
     __tablename__ = 'posts'
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     name = sqlalchemy.Column(sqlalchemy.String(length=256, collation="utf8"))
@@ -97,11 +98,17 @@ class Posts(Base):
     date = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
     address = sqlalchemy.Column(sqlalchemy.String(length=256, collation="utf8"))
     dictPostComplete = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
+    googleurl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
+    weburl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
+    businessurl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
+    longitude = sqlalchemy.Column(sqlalchemy.Float())
+    latitude = sqlalchemy.Column(sqlalchemy.Float())
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
 
 ##################################################################################################
 
 def authconnect():
+    """Make all connections to socials and DB, etec.."""
     connections = {}
     if env.mariadb:
         print('Connecting to MariaDB for configuration and storage')
@@ -144,7 +151,7 @@ def authconnect():
         print('  Connecting to facebook ...')
         # page_id_1 = facebookpageID
         # facebook_access_token = 'paste-your-page-access-token-here'
-        # image_url = 'https://graph.facebook.com/{}/photos'.format(page_id_1)
+        # image_url = 'https://graph.facebook.com/{}/photos'.formatting(page_id_1)
         # image_location = 'http://image.careers-portal.co.za/f_output.jpg'
         # img_payload = {
         # 'message': msg,
@@ -208,7 +215,7 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
     'access_token': facebook_access_token
     }
     #Send the POST request
-    r = requests.post(image_url, data=img_payload)
+    r = requests.post(image_url, data=img_payload,timeout=30)
     print('    Facebook response: ',r.text, img_payload)
     return r
 
@@ -225,7 +232,7 @@ def postImage(group_id, img,auth_token, title):
         "description" : title
     }
     try:
-        r = requests.post(url, files=files, data=data).json()
+        r = requests.post(url, files=files, data=data,timeout=40).json()
     except Exception as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
@@ -250,7 +257,7 @@ def postVideo(group_id, video_path,auth_token,title, content, date, rating, addr
             "alt_text" : title
     }
     try:
-        r = requests.post(url, files=files, data=data).json()
+        r = requests.post(url, files=files, data=data,timeout=40).json()
     except Exception as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
@@ -301,7 +308,7 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
     url = f"https://graph.facebook.com/{group_id}/feed?access_token=" + auth_token
     #print ("r = request.post(" +url+", data="+args+")")
     try: 
-        r = requests.post(url, data=args)
+        r = requests.post(url, data=args,timeout=40)
     #try: r = requests.post(url, data=args).json()
     except Exception as error:
         print("    An error getting date occurred:",error) # An error occurred:
@@ -340,10 +347,10 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
 
 def get_data(driver,outputs ):
 # curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H
-#   "X-Goog-FieldMask: id,displayName,formattedAddress,plusCode"
+#   "X-Goog-FieldMask: id,displayName,formattingtedAddress,plusCode"
 #   https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri
     """
-    this function get main text, score, name
+    this function gets main text, score, name
     """
     print('get data...')
     # Click on more botton on each text reviews
@@ -366,16 +373,16 @@ def get_data(driver,outputs ):
         except Exception:
             address = 'Unknonwn'
         print ('Name of location: ',name, '   Address:',address)
-        try: 
+        try:
             visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
         except Exception:
             visitdate = "Unknown"
         print('Visited: ',visitdate)
-        try: 
+        try:
             text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
         except Exception:
             text = ''
-        try: 
+        try:
             score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")
         #find_element(By.CSS_SELECTOR,'aria-label').text #)  ##QA0Szd > div > div > div.w6VYqd >
         #  div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf
@@ -558,13 +565,13 @@ def database_read(data):
     db_connection_str = 'mysql+pymysql://mysql_user:mysql_password@mysql_host/mysql_db'
     db_connection = create_engine(db_connection_str)
     df = pd.read_sql('SELECT * FROM table_name', con=db_connection)
-    return (df)
+    return df
 
 ##################################################################################################
 
 def check_web_media(filename,headers):
     file_name_minus_extension = filename
-    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
+    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers,timeout=40)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
@@ -577,7 +584,7 @@ def check_web_media(filename,headers):
 ##################################################################################################
 
 def check_web_post(postname,postdate,headers):
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers,timeout=50)
     try:
         result = response.json()
         post_id = int(result[0]['id'])
@@ -605,7 +612,7 @@ def check_media(filename, headers):
     # Regex gilename to format like in WordPress media name
     #file_name_minus_extension = re.sub(r'\'|(....$)','', filename, flags=re.IGNORECASE)
     file_name_minus_extension = filename
-    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers)
+    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers,timeout=50)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
@@ -618,7 +625,7 @@ def check_media(filename, headers):
 ##################################################################################################
 
 def check_post(postname,postdate,headers2):
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
     if len(result) > 0 :
         post_id = int(result[0]['id'])
@@ -733,7 +740,7 @@ POST_ID = 'your_post_id'
 # Function to get the featured photo ID of a WordPress post
 def get_featured_photo_id(post_id):
     # Make a GET request to the WordPress REST API to retrieve media details
-    response = requests.get(f"{WP_API_MEDIA_URL}?parent={post_id}")
+    response = requests.get(f"{WP_API_MEDIA_URL}?parent={post_id}",timeout=50)
 
     # Check if the request was successful
     if response.status_code == 200:
@@ -825,7 +832,7 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
         except Exception as error:
             print("    An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
-    return
+    return (media.media_id)
 
 ##################################################################################################
 
@@ -838,7 +845,7 @@ def post_tiktok(title, content, date, rating, address, picslist, instasession):
     file_path = 'path_to_video.mp4'
 
     # Replace 'Your video title' with the title of your video.
-    title = 'Your video title'
+    #title = 'Your video title'
 
     # Replace the following list with the hashtags you want to add to your post.
     tags = ['hashtag1', 'hashtag2', 'hashtag3']
@@ -929,7 +936,7 @@ def post_x(title, content, date, rating, address, picslist, instasession):
 
 def post_to_wp(title, content,  headers,date, rating,address, picslist):
     # post
-    NewPost = False
+    newPost = False
     #countreview = False
     addresshtml = re.sub(" ", ".",address)
     googleadress = r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
@@ -941,47 +948,47 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
     pidchop = pic3.split(" ")
     linkslist=[]
     print ('    Figuring out date of Post : ',title)
-    format = '%b/%Y/%d' #specifify the format of the date_string.
+    formatting = '%b/%Y/%d' #specifify the formatting of the date_string.
     date_string = date
     if "a day" in date_string:
         date = dt.timedelta(days=-1)
-#        newdate = dt.datetime.strptime(date_string, format).date()
+#        newdate = dt.datetime.strptime(date_string, formatting).date()
         newdate = datetime.today() - date
     else:
         if "day" in date:
             tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
             print ('Stuff - > ',tempdate)
  #           date = dt.timedelta(days=tempdate)
-#            newdate = dt.datetime.strptime(date_string, format).date()
+#            newdate = dt.datetime.strptime(date_string, formatting).date()
             newdate = datetime.today() + relativedelta(days=tempdate)
         else:
             if "a week" in date:
  #               date = dt.timedelta(weeks= -1)
-#                newdate = dt.datetime.strptime(date_string, format).date()
+#                newdate = dt.datetime.strptime(date_string, formatting).date()
                 newdate = datetime.today() - relativedelta(weeks= -1)
             else:
                 if "week" in date:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
                     print ('Stuff - > ',tempdate)
  #                   date = dt.timedelta(weeks= tempdate)
-#                    newdate = dt.datetime.strptime(date_string, format).date()
+#                    newdate = dt.datetime.strptime(date_string, formatting).date()
                     newdate = datetime.today() + relativedelta(weeks= tempdate)
                 else:
                     if "a month" in date:
  #                       date = dt.timedelta(months= -1)
-#                        newdate = dt.datetime.strptime(date_string, format).date()
+#                        newdate = dt.datetime.strptime(date_string, formatting).date()
                         newdate = datetime.today() - relativedelta(months = -1)
                     else:
                         if "month" in date:
                             tempdate = -int(re.sub( r'[^0-9]','',date_string))
                             print ('Stuff - > ',tempdate)
  #                           date = dt.timedelta(months= tempdate)
-#                            newdate = dt.datetime.strptime(date_string, format).date()
+#                            newdate = dt.datetime.strptime(date_string, formatting).date()
                             newdate = datetime.today() + relativedelta(months =  tempdate)
                         else:
                             if "a year" in date:
  #                               date = dt.timedelta(years= -1)
-#                                newdate = dt.datetime.strptime(date_string, format).date()
+#                                newdate = dt.datetime.strptime(date_string, formatting).date()
                                 newdate = datetime.today() - relativedelta(years= -1)
                             else:
                                 if "year" in date:
@@ -992,24 +999,24 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
 #                                    newdate = dt.datetime.strptime(date_string).date()
                                         newdate = datetime.today() + relativedelta(years= tempdate)
                                     except Exception as error:
-                                        print("    An error getting date occurred:",error) 
+                                        print("    An error getting date occurred:",error)
                                 else:
-                                    format = '%Y-%b-%d' #specifify the format of the date_string.
+                                    formatting = '%Y-%b-%d' #specifify the formatting of the date_string.
                                     month = date[:3]
                                     year = date[3:]
                                     day = '01'
                                     date_string = year+'-'+ month+'-'+day
                                     try:
-                                        newdate = dt.datetime.strptime(date_string, format).date()
+                                        newdate = dt.datetime.strptime(date_string, formatting).date()
                                     except Exception as error:
                                         print("    An error getting date occurred:",error)
 #                                    try:
-#                                        newdate = dt.datetime.strptime(date_string, format).date()
+#                                        newdate = dt.datetime.strptime(date_string, formatting).date()
 #                                    except Exception as error:
-#                                        print("    An error getting date occurred:", type(error).c)
+#                                        print("    An error getting date occurred:", error)
                                     newdate = str(newdate)
-    #format = '%b/%Y/%d' #specifify the format of the date_string.
-    #newdate2 = dt.datetime.strptime(str(newdate), format).date()
+    #formatting = '%b/%Y/%d' #specifify the formatting of the date_string.
+    #newdate2 = dt.datetime.strptime(str(newdate), formatting).date()
     dateparts = (str(newdate)).split("-")
     dateparts2 = dateparts[2].split(" ")
     #dateparts = dateparts2[0]
@@ -1035,11 +1042,11 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         }
         try:
             headers2 = headers
-            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2)
+            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=30)
             if response.status_code != 201:
                 print ('Error: ',response, response.text)
             else:
-                NewPost = True
+                newPost = True
                 post_id_json = response.json()
                 post_id = post_id_json.get('id')
                 print ('    New post is has post_id = ',post_id)
@@ -1067,38 +1074,49 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                 "description": description
             }
             try:
-                image_response = requests.post(env.wpAPI + "/media", headers=headers, files=image)
+                image_response = requests.post(env.wpAPI + "/media", headers=headers, \
+                    files=image,timeout=30)
             except Exception as error:
-                print("    An error uploading picture ' + picname+ ' occurred:", type(error).__name__) # An error occurred:
+                print("    An error uploading picture ' + picname+ ' occurred:", \
+                      type(error).__name__)
             if image_response.status_code != 201 :
-                print ('    Error- Image ',picname,' was not successfully uploaded.  response: ',image_response)
+                print ('    Error- Image ',picname,' was not successfully uploaded.  response: ', \
+                       image_response)
             else:
-                PicDict=image_response.json()
-                file_id= PicDict.get('id')
-                link = PicDict.get('guid').get("rendered")
-                print ('    ',picname,' was successfully uploaded to website with ID: ',file_id, link)
+                pic_dic=image_response.json()
+                file_id= pic_dic.get('id')
+                link = pic_dic.get('guid').get("rendered")
+                print ('    ',picname,' was successfully uploaded to website with ID: ',\
+                    file_id, link)
             try:
                 linksDict = {'file_id' : file_id , 'link' : link}
                 linkslist.append(linksDict)
             except Exception as error:
-                print("    An error adding to dictionary " , file_id , link , " occurred:", type(error).__name__) # An error occurred:
+                print("    An error adding to dictionary " , file_id , link , " occurred:", \
+                      type(error).__name__) # An error occurred:
         else:
-            print ('    Photo ',picname,' was already in library and added to post with ID: ',file_id,' : ',link)
+            print ('    Photo ',picname,' was already in library and added to post with ID: ', \
+                   file_id,' : ',link)
             try:
-                image_response = requests.post(env.wpAPI + "/media/" + str(file_id), headers=headers, data={"post" : post_id})
+                image_response = requests.post(env.wpAPI + "/media/" + str(file_id), \
+                    headers=headers, data={"post" : post_id},timeout=30)
             except Exception as error:
-                print ('    Error- Image ',picname,' was not attached to post.  response: ',image_response+' '+error)
+                print ('    Error- Image ',picname,' was not attached to post.  response: ',\
+                       image_response+' '+error)
             try:
-                post_response = requests.post(env.wpAPI + "/posts/" + str(post_id), headers=headers)
+                post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
+                    headers=headers,timeout=30)
                 if link in str(post_response.text):
-                    print ('    Image link for ', picname, 'already in content of post: ',post_id, post_response.text, link)
+                    print ('    Image link for ', picname, 'already in content of post: ' \
+                           ,post_id, post_response.text, link)
                 else:
                     linkslist.append({'file_id' : file_id , 'link' : link})
  #                   countreview = True
-            except Exception as error:
-                print("    An error loading the metadata from the post " + post_response.title + ' occurred: '+type(error).__name__)
+            except BaseException as error:
+                print("    An error loading the metadata from the post " + post_response.title + \
+                       ' occurred: '+type(error).__name__)
     #ratinghtml = post_response.text
-    firstMP4 = True
+    first_mp4 = True
     fmedia = {}
     for piclink in linkslist:
         #for loop in linkslist:
@@ -1106,14 +1124,16 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         try:
             ext = piclink['link'].split( '.')[-1]
             if ext == 'mp4':
-                if firstMP4:
-                    contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'" autoplay="true"]'
-                    firstMP4 = False
+                if first_mp4:
+                    contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + \
+                        r'" autoplay="true"]'
+                    first_mp4 = False
                 else:
                     contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
-                #[evp_embed_video url="http://example.com/wp-content/uploads/videos/vid1.mp4" autoplay="true"]
+#[evp_embed_video url="http://example.com/wp-content/uploads/videos/vid1.mp4" autoplay="true"]
             else:
-                contentpics += '\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"' + r'src="' + piclink['link'] + r'"></div>'
+                contentpics += '\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"' + r'src="' + \
+                    piclink['link'] + r'"></div>'
  #               fmedia.append = piclink{'file_id' }
 #            contentpics += '\n '+r'<img src="'+ piclink['link'] + '> \n'
             #contentpics += r'<img src="'+ piclink['link'] + r' alt="' + title +r'">' +'\n\n'
@@ -1126,11 +1146,15 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         else:
             fmedia = file_id
             print ('featured_media2 = ',file_id)
-        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics, "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers)
+        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+            data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics,\
+            "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
+            timeout=30)
         print (response_piclinks)
     except Exception as error:
-        print("    An error writing images to the post " + post_response.title + ' occurred:', type(error).__name__) # An error occurred')
-    return NewPost
+        print("    An error writing images to the post " + post_response.title + ' occurred:', \
+              type(error).__name__) # An error occurred')
+    return newPost
 
 ##################################################################################################
 
@@ -1138,8 +1162,8 @@ def make_video(inphotos):
 # Load the photos from the folder
 # Set the duration of each photo to 2 seconds
     if inphotos:
-        dir = inphotos[0].rsplit(r'/', 1)
-        folder = dir[0]
+        directory = inphotos[0].rsplit(r'/', 1)
+        folder = directory[0]
         output = folder+"/montage.mp4"
         if not os.path.exists(output) and len(inphotos) >1:
             video = VideoFileClip(inphotos[0])
