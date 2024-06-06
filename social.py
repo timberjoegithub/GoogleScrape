@@ -103,6 +103,7 @@ class Posts(Base):
     businessurl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
     longitude = sqlalchemy.Column(sqlalchemy.Float())
     latitude = sqlalchemy.Column(sqlalchemy.Float())
+    google = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
 
 ##################################################################################################
@@ -1191,7 +1192,7 @@ def make_video(inphotos):
 ##################################################################################################
 
 def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
-    #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
+    #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value,processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
     #montageexists = "montage.mp4" in picslist
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
@@ -1339,6 +1340,24 @@ def process_reviews(outputs):
                                 try:
                                     print('  write to xls for web')
                                     outputs['datawb'].save(env.xls)
+                                except Exception as error:
+                                    print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:                                try:
+                                try:
+                                    print('  write to DB for web')
+            #                        outputs['postssession'].update save(env.xls)
+                                    stmt = (sqlalchemy.update('posts').where("posts".c.name == processrow[1].value).values(google=True))
+                                    print(stmt)
+                                    # outputs['postssession'].query(
+                                    #         processrow[1].value 
+                                    #     ).filter(
+                                    #         processrow[1].value  
+                                    #     ).update({
+                                    #         processrow[1].value.dicPostComplete: '{'google': 1, 'web': 0, 'yelp': 0, 'facebook': 0, 'xtwitter': 0, 'instagram': 0, 'tiktok': 0}',})
+                                    #         # UserModel.email: 'johndeo@domain.com',
+                                    #         # UserModel.city: 'New York'
+                                    #     #})
+                                    # outputs['postssession'].commit()
+                                    stmt.commit()
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
                             except Exception as error:
