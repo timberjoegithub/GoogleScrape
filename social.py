@@ -1347,29 +1347,19 @@ def process_reviews(outputs):
                                 try:
                                     print('  write to xls for web')
                                     outputs['datawb'].save(env.xls)
+                                    print('  Successfully updated spreadsheet')
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:                                try:
                                 try:
                                     print('  write to DB for web')
-            #                        outputs['postssession'].update save(env.xls)
-                                    stmt = (sqlalchemy.update('posts').where("posts".c.name == processrow[1].value).values(google=True))
-                                    print(stmt)
-                                    # outputs['postssession'].query(
-                                    #         processrow[1].value 
-                                    #     ).filter(
-                                    #         processrow[1].value  
-                                    #     ).update({
-                                    #         processrow[1].value.dicPostComplete: '{'google': 1, 'web': 0, 'yelp': 0, 'facebook': 0, 'xtwitter': 0, 'instagram': 0, 'tiktok': 0}',})
-                                    #         # UserModel.email: 'johndeo@domain.com',
-                                    #         # UserModel.city: 'New York'
-                                    #     #})
-                                    # outputs['postssession'].commit()
-                                    stmt.commit()
+                                    stmt = outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"web" : 1})
+                                    outputs['postssession'].commit()
+                                    print('  Successfully wrote to database')
                                 except Exception as error:
-                                    print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                                    print("  An error occurred writing database", type(error).__name__) # An error occurred:
                             except Exception as error:
-                                print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"],' ',error)
-                                #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
+                                print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"])
+                                print (error)                                #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
                         else:
                             print ('  Exceeded the number of web posts per run, skipping', processrow[1].value)
                     else:
