@@ -1352,7 +1352,7 @@ def process_reviews(outputs):
                                 try:
                                     print('  write to DB for web')
             #                        outputs['postssession'].update save(env.xls)
-                                    stmt = (sqlalchemy.update('posts').where("posts".c.name == processrow[1].value).values(google=True))
+                                    stmt = (sqlalchemy.update('posts').where("posts".c.name == processrow[1].value).values(web=True))
                                     print(stmt)
                                     # outputs['postssession'].query(
                                     #         processrow[1].value 
