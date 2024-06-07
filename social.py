@@ -1331,7 +1331,8 @@ def process_reviews(outputs):
             # Check to see if the website has already been written to according to the xls sheet, if it has not... then process
             if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or writtento["threads"]==0 ) and (is_port_open(env.wpAPI, 443)) and (env.web or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or env.threads or env.google)and (processrow[2].value is not None) :
                 if env.web :
-                    if writtento["web"] == 0 :
+                    #if writtento["web"] == 0 :
+                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.web != 1):
                         if webcount <= env.postsperrun:
                             try:
                                 #NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
@@ -1352,7 +1353,7 @@ def process_reviews(outputs):
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:                                try:
                                 try:
                                     print('  write to DB for web')
-                                    stmt = outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"web" : 1})
+                                    outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"web" : 1})
                                     outputs['postssession'].commit()
                                     print('  Successfully wrote to database')
                                 except Exception as error:
@@ -1365,7 +1366,7 @@ def process_reviews(outputs):
                     else:
                         print ('  Website: Skipping posting for ',processrow[1].value,' previously written')
                 if env.instagram:
-                    if writtento["instagram"] == 0:
+                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.instagram != 1):
                         if instagramcount <= env.postsperrun:
                             try:
                                 print('  Starting to generate Instagram post')
@@ -1375,7 +1376,7 @@ def process_reviews(outputs):
                                     writtento["instagram"] = 1
                                     processrow[9].value = str(writtento)
                                 except Exception as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
+                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
                                 print ('  Success Posting to Instagram: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
                                 if NewInstagramPost:
                                     instagramcount +=1
@@ -1383,10 +1384,15 @@ def process_reviews(outputs):
                                     print('  write to xls for instagram')
                                     outputs['datawb'].save(env.xls)
                                     print('  write to mariadb for instagram')
-                                    # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
-                                    # outputs['postssession'].commit()
                                 except Exception as error:
-                                    print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                                    print("  An error occurred writing Excel file:", type(error).__name__)
+                                try:
+                                    print('  write to DB for instagram')
+                                    outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"instagram" : 1})
+                                    outputs['postssession'].commit()
+                                    print('  Successfully wrote to database')
+                                except Exception as error:
+                                    print("  An error occurred writing database", type(error).__name__)
                             except Exception as error:
                                 print ('  Error writing Instagram post : ',processrow[1].value, processrow[2].value, outputs['instagram'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["instagram"], type(error).__name__ )
                         else:
@@ -1394,7 +1400,7 @@ def process_reviews(outputs):
                     else:
                         print ('  Instagram: Skipping posting for ',processrow[1].value,' previously written')
                 if env.facebook:
-                    if writtento["facebook"] == 0:
+                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.facebook != 1):
                         if facebookcount <= env.postsperrun:
                             try:
                                 print('  Starting to generate Facebook post')
@@ -1404,7 +1410,7 @@ def process_reviews(outputs):
                                     writtento["facebook"] = 1
                                     processrow[9].value = str(writtento)
                                 except Exception as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
+                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
                                 print ('  Success Posting to facebook: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
                                 if NewFacebookPost:
                                     facebookcount +=1
@@ -1412,10 +1418,15 @@ def process_reviews(outputs):
                                     print('  write to xls for facebook')
                                     outputs['datawb'].save(env.xls)
                                     print('  write to mariadb for facebook')
-                                    # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
-                                    # outputs['postssession'].commit()
                                 except Exception as error:
-                                    print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                                    print("  An error occurred writing Excel file:", type(error).__name__)
+                                try:
+                                    print('  write to DB for facebook')
+                                    outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"facebook" : 1})
+                                    outputs['postssession'].commit()
+                                    print('  Successfully wrote to database')
+                                except Exception as error:
+                                    print("  An error occurred writing database", type(error).__name__)
                             except Exception as error:
                                 print ('  Error writing facebook post : ',processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["facebook"], type(error).__name__ )
                         else:
@@ -1423,7 +1434,9 @@ def process_reviews(outputs):
                     else:
                         print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
                 if env.xtwitter:
-                    if writtento["xtwitter"] == 0:
+                    #if writtento["xtwitter"] == 0:
+                   # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
+                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != 1):
                         if xtwittercount <= env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
@@ -1445,6 +1458,13 @@ def process_reviews(outputs):
                                     # outputs['postssession'].commit()
                                 except Exception as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                                try:
+                                    print('  write to DB for xtwitter')
+                                    outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"xtwitter" : 1})
+                                    outputs['postssession'].commit()
+                                    print('  Successfully wrote to database')
+                                except Exception as error:
+                                    print("  An error occurred writing database", type(error).__name__)
                             except Exception as error:
                                 print ('  Error writing xtwitter post : ',error,processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
                         else:
