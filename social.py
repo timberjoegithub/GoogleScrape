@@ -1331,8 +1331,7 @@ def process_reviews(outputs):
             # Check to see if the website has already been written to according to the xls sheet, if it has not... then process
             if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or writtento["threads"]==0 ) and (is_port_open(env.wpAPI, 443)) and (env.web or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or env.threads or env.google)and (processrow[2].value is not None) :
                 if env.web :
-                    #if writtento["web"] == 0 :
-                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.web != 1):
+                    if writtento["web"] == 0 :
                         if webcount <= env.postsperrun:
                             try:
                                 #NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
@@ -1361,6 +1360,9 @@ def process_reviews(outputs):
                             except Exception as error:
                                 print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"])
                                 print (error)                                #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
+                                print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"],' ',error)
+                                print (error)
+                                #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
                         else:
                             print ('  Exceeded the number of web posts per run, skipping', processrow[1].value)
                     else:
