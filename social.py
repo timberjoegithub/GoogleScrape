@@ -104,6 +104,13 @@ class Posts(Base):
     longitude = sqlalchemy.Column(sqlalchemy.Float())
     latitude = sqlalchemy.Column(sqlalchemy.Float())
     google = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    facebook = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    instagram = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    xtwitter = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    threads = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    yelp = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    web = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
+    tiktok = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
 
 ##################################################################################################
