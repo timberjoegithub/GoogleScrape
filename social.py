@@ -1438,6 +1438,9 @@ def process_reviews(outputs):
                             except Exception as error:
                                 print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"])
                                 print (error)                                #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
+                                print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"],' ',error)
+                                print (error)
+                                #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
                         else:
                             print ('  Exceeded the number of web posts per run, skipping', processrow[1].value)
                     else:
