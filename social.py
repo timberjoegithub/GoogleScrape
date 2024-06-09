@@ -407,7 +407,7 @@ def get_data(driver,outputs ):
         #  div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf
         #  > div.m6QErb > div:nth-child(3) > div:nth-child(2) > div > div:nth-child(4) > div.DU9Pgb
         #  > span.kvMYJc
-        except Exception:
+        except Exception as error:
             score = "Unknown"
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
 
@@ -437,6 +437,8 @@ def get_data(driver,outputs ):
                     update_db_row(name,"google",1,"forceall",outputs)
                 except Exception as error:
                     print('Error writing business details from google maps : ',error)
+        else:
+            print ('  Post was already in database, skipping update unless you activate override')
         pics= []
         pics2 = []
         # check to see if folder for pictures and videos already exists, if not, create it
