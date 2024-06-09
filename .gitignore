@@ -19,3 +19,4 @@ config/
 env.py
 social.py
 .vscode/
+googleinfo.py
