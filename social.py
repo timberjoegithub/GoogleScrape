@@ -1,5 +1,3 @@
-import sqlalchemy
-
 #data
 import time
 import os
@@ -41,6 +39,8 @@ import tweepy
 from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy
+import googlemaps
 #import mysqlclient
 #import mysql-connector-python
 import env
@@ -98,9 +98,9 @@ class Posts(Base):
     date = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
     address = sqlalchemy.Column(sqlalchemy.String(length=256, collation="utf8"))
     dictPostComplete = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
-    googleurl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
-    weburl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
-    businessurl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
+    #googleurl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
+    wpurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
+    businessurl = sqlalchemy.Column(sqlalchemy.String(length=2048, collation="utf8"))
     longitude = sqlalchemy.Column(sqlalchemy.Float())
     latitude = sqlalchemy.Column(sqlalchemy.Float())
     google = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
@@ -112,6 +112,14 @@ class Posts(Base):
     web = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     tiktok = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
+    place_id = sqlalchemy.Column(sqlalchemy.String(length=126, collation="utf8"))
+    googledetails = sqlalchemy.Column(sqlalchemy.String(length=4096, collation="utf8"))
+    #businessurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
+    pluscode = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
+    googleurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
+
+
+
 
 ##################################################################################################
 
@@ -373,6 +381,9 @@ def get_data(driver,outputs ):
             print('Found extra pics')
             list_more_pics.click()
     elements = driver.find_elements(By.CLASS_NAME, 'jftiEf')
+
+
+
     lst_data = []
     for data in elements:
         name = data.find_element(By.CSS_SELECTOR, 'div.d4r55.YJxk2d').text
@@ -399,6 +410,33 @@ def get_data(driver,outputs ):
         except Exception:
             score = "Unknown"
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
+
+    #  Grab more info from google maps entry on this particular review
+        if outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google != 1) or env.forcegoogleupdate:
+            gmaps = googlemaps.Client(env.googleapipass)
+            place_ids = gmaps.find_place(name+address, input_type = 'textquery', fields='')
+            if len(place_ids['candidates']) == 1 :
+                place_id = place_ids['candidates'][0]['place_id']
+                details = gmaps.place(place_id)
+        #place_id = "ChIJh2OwH6KA54gRZLcx1Cjk8ic"
+            # Get place details
+        # googledetails = gmaps.place(place_id)
+                try:
+                    businessurl = (details['result']['website'])
+                    latitude = (details['result']['geometry']['location']['lat'])
+                    longitude = (details['result']['geometry']['location']['lng'])
+                    pluscode = (details['result']['plus_code']['compound_code'])
+                    googleurl = (details['result']['url'])
+                    update_db_row(name,"businessurl",businessurl,"onlyempty",outputs)
+                    update_db_row(name,"latitude",latitude,"onlyempty",outputs)
+                    update_db_row(name,"longitude",longitude,"onlyempty",outputs)
+                    update_db_row(name,"pluscode",pluscode,"onlyempty",outputs)
+                    update_db_row(name,"googleurl",googleurl,"onlyempty",outputs)
+                    update_db_row(name,"place_id",place_id,"onlyempty",outputs)
+                    update_db_row(name,"googledetails",details,"onlyempty",outputs)
+                    update_db_row(name,"google",1,"forceall",outputs)
+                except Exception as error:
+                    print('Error writing business details from google maps : ',error)
         pics= []
         pics2 = []
         # check to see if folder for pictures and videos already exists, if not, create it
@@ -411,7 +449,7 @@ def get_data(driver,outputs ):
             #   it is full size
             urlmedia = re.sub('=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
                 lmpics.get_attribute("style")))[0])
-            print ('URL : ',urlmedia)
+            print ('Pic URL : ',urlmedia)
             pics.append(urlmedia)
             # Grab the name of the file and remove all spaces and special charecters to name the
             #    folder
@@ -566,6 +604,45 @@ def write_to_xlsx2(data, outputs):
             raise
     df.to_excel(env.xls)
     return data
+
+##################################################################################################
+
+def update_db_row(review_name,column_name,column_value,update_style,outputs):
+    #kwargs = {Posts.column_name : ''}
+    #setattr(Posts, attribute_name, column_name)
+    #randdd = Posts.column_name 
+    #filter_db = text('Posts.name == review_name,Posts.column_name == \'\'')
+    try:
+        if update_style == "forceall":
+            outputs['postssession'].query(Posts).filter(Posts.name == review_name).update({column_name : column_value})
+            print ('    Force Updated ',column_name, ' to: ',column_value)
+        elif update_style == "onlyempty":
+            #print('Posts.name == review_name,**kwargs')
+            postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,getattr(Posts,column_name).is_(None)).all()
+ #           print ('Postval : ',postval)
+            temp = getattr(Posts,column_name)
+ #           print ('temp = ',temp)
+ #           print (getattr(Posts,column_name))
+            # db_session.query(Notice).filter(getattr(Notice, col_name).like("%" + query + "%"))
+            if postval:
+#            if outputs['postssession'].query(Posts).filter(Posts.name == review_name,temp.is_(None)).all:
+ #           if outputs['postssession'].query(Posts).filter(Posts.name == review_name,Posts.(eval(column_name ))):
+                outputs['postssession'].query(Posts).filter(Posts.name == review_name).update({column_name : column_value})
+                print ('    Updated blank ',postval ,' on value',column_name, ' to: ',column_value)
+        elif update_style == "toggletrue":
+            postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,getattr(Posts,column_name).is_(None)).all()
+            print ('Postval : ',postval)
+            if postval:
+                outputs['postssession'].query(Posts).filter(Posts.name == review_name).update({column_name : column_value})
+                print ('    Updated blank on value',column_name, ' to: ',column_value)
+    except Exception as error:
+        print("    Not able to write to post data table to update ",review_name," ",column_name," to: ",column_value , type(error), error)
+        outputs['postssession'].rollback()
+        raise
+    else:
+        outputs['postssession'].commit()
+    return True
+
 
 ##################################################################################################
 
@@ -1333,7 +1410,7 @@ def process_reviews(outputs):
                 if env.web :
                     #if writtento["web"] == 0 :
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.web != 1):
-                        if webcount <= env.postsperrun:
+                        if webcount < env.postsperrun:
                             try:
                                 #NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
                                 NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, outputs['web'] ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
@@ -1367,7 +1444,7 @@ def process_reviews(outputs):
                         print ('  Website: Skipping posting for ',processrow[1].value,' previously written')
                 if env.instagram:
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.instagram != 1):
-                        if instagramcount <= env.postsperrun:
+                        if instagramcount < env.postsperrun:
                             try:
                                 print('  Starting to generate Instagram post')
                                 NewInstagramPost = post_to_instagram2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'] )
@@ -1401,7 +1478,7 @@ def process_reviews(outputs):
                         print ('  Instagram: Skipping posting for ',processrow[1].value,' previously written')
                 if env.facebook:
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.facebook != 1):
-                        if facebookcount <= env.postsperrun:
+                        if facebookcount < env.postsperrun:
                             try:
                                 print('  Starting to generate Facebook post')
                                 NewFacebookPost = post_facebook3(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['facebook'] )
@@ -1437,7 +1514,7 @@ def process_reviews(outputs):
                     #if writtento["xtwitter"] == 0:
                    # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != 1):
-                        if xtwittercount <= env.postsperrun:
+                        if xtwittercount < env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
                                 NewxtwitterPost = post_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'] )
