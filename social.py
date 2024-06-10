@@ -1249,11 +1249,11 @@ def post_to_wordpress(title, content,  headers,date, rating,address, picslist):
         picname = picslice[0]
         caption =title
         description = title+"\n"+address
-        print ('  Found Picture: ',picname)
+        print ('    Found Picture: ',picname)
         file_id, link = check_wordpress_media(picname, headers)
 #        link = linknew['rendered']
         if file_id is False:
-            print ('    '+str(picname)+' was not already found in library, adding it')
+            print ('      '+str(picname)+' was not already found in library, adding it')
 #            countreview = True
             image = {
                 "file": open(pic, "rb"),
@@ -1268,13 +1268,13 @@ def post_to_wordpress(title, content,  headers,date, rating,address, picslist):
                 print("    An error uploading picture ' + picname+ ' occurred:", \
                       type(error).__name__)
             if image_response.status_code != 201 :
-                print ('    Error- Image ',picname,' was not successfully uploaded.  response: ', \
+                print ('      Error- Image ',picname,' was not successfully uploaded.  response: ', \
                        image_response)
             else:
                 pic_dic=image_response.json()
                 file_id= pic_dic.get('id')
                 link = pic_dic.get('guid').get("rendered")
-                print ('    ',picname,' was successfully uploaded to website with ID: ',\
+                print ('      ',picname,' was successfully uploaded to website with ID: ',\
                     file_id, link)
             try:
                 linksDict = {'file_id' : file_id , 'link' : link}
@@ -1328,17 +1328,17 @@ def post_to_wordpress(title, content,  headers,date, rating,address, picslist):
         except Exception as error:
             print("An error occurred:", type(error).__name__) # An error occurred:
     try:
-        print ('featured_media = ',linkslist[0]['file_id'])
+#        print ('featured_media = ',linkslist[0]['file_id'])
         if linkslist[0]['file_id']:
             print ('featuredmedia2 = ',linkslist[0]['file_id'])
         else:
             fmedia = file_id
-            print ('featured_media2 = ',file_id)
+#            print ('featured_media2 = ',file_id)
         response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
             data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics,\
             "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
             timeout=30)
-        print (response_piclinks)
+        print ('  ',response_piclinks)
     except Exception as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', \
               type(error).__name__) # An error occurred')
