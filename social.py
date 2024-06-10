@@ -36,6 +36,10 @@ from moviepy.editor import VideoFileClip, concatenate_videoclips
 #twitter
 import tweepy
 
+#Thread    
+import asyncio
+#import aiohttps
+
 from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -686,8 +690,8 @@ def check_web_post(postname,postdate,headers):
 
 def is_port_open(host, port):
     try:
-        isWebUp = urllib3.request("GET", host)
-        if isWebUp.status == 200:
+        is_web_up = urllib3.request("GET", host)
+        if is_web_up.status == 200:
             return True
     except Exception as error:
         print ('Could not open port to website: ', host,  type(error))
@@ -698,7 +702,7 @@ def is_port_open(host, port):
 def check_media(filename, headers):
     # Regex gilename to format like in WordPress media name
     #file_name_minus_extension = re.sub(r'\'|(....$)','', filename, flags=re.IGNORECASE)
-    file_name_minus_extension = filename
+    file_name_minus_extension = str(filename)
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers,timeout=50)
     try:
         result = response.json()
@@ -729,9 +733,6 @@ def check_post(postname,postdate,headers2):
 ##################################################################################################
 
 def threads():
-    import asyncio
-    import aiohttp
-
     # Replace 'your_access_token' with your actual access token for Meta's Threads
     ACCESS_TOKEN = 'your_access_token'
     # The URL for the Meta's Threads API endpoint to post a video
@@ -1113,6 +1114,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
     print ('    Got Date: ', newdate2, newdate)
     try:
         post_id = check_post(title,newdate2,headers)
+        update_db_row(title,"wpurl","https://www.joeeatswhat.com/"+str(post_id),"onlyempty",outputs)
     except  Exception as error :
         print ('Could not check to see post already exists',error)
     if not post_id:
