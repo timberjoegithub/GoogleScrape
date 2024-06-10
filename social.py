@@ -263,6 +263,38 @@ def counter_google(driver):
 
 ##################################################################################################
 
+def make_montage_video_from_google(inphotos):
+# Load the photos from the folder
+# Set the duration of each photo to 2 seconds
+    if inphotos:
+        directory = inphotos[0].rsplit(r'/', 1)
+        folder = directory[0]
+        output = folder+"/montage.mp4"
+        if not os.path.exists(output) and len(inphotos) >1:
+            video = VideoFileClip(inphotos[0])
+            for photo in inphotos :
+                #clip = VideoFileClip("myHolidays.mp4").subclip(50,60)
+                clip = VideoFileClip(photo)
+                # Concatenate the photos into a clip
+                if ".jpg" in photo:
+                    clip.duration = 2
+                try:
+                    video = concatenate_videoclips([video, clip], method="compose")
+                except Exception as error:
+                    print("  An error occurred :", type(error).__name__) # An error occurred:
+            # Load the audio file
+        #    audio = AudioFileClip("audio.mp3")
+            # Set the audio as the soundtrack of the montage
+        #    montage = montage.set_audio(audio)
+            # Write the final montage to a file
+            outputvideo = video.write_videofile(folder+"/montage.mp4", fps=24)
+        else:
+            outputvideo = False
+        return outputvideo, output
+    return False, False
+
+##################################################################################################
+
 def is_docker():
     cgroup = Path('/proc/self/cgroup')
     #print (cgroup.read_text())
@@ -398,7 +430,6 @@ def post_to_threads_example():
     VIDEO_FILE_PATH = 'path_to_your_video.mp4'
     # The caption for your video
     VIDEO_CAPTION = 'Your video caption'
-
     async def post_video_to_threads():
         # Open the video file in binary read mode
         with open(VIDEO_FILE_PATH, 'rb') as video_file:
@@ -417,7 +448,6 @@ def post_to_threads_example():
                     print('Video successfully posted to Threads.')
                 else:
                     print('Failed to post video. Response:', await response.text())
-
     # Run the asynchronous function using asyncio
     if __name__ == '__main__':
         asyncio.run(post_video_to_threads())
@@ -440,7 +470,7 @@ def post_to_x_example(title, content, date, rating, address, picslist, instasess
 #     try:
 #         fetch_response = oauth.fetch_request_token(request_token_url)
 #     except ValueError:
-#         print("There may have been an issue with the consumer_key or consumer_secret you entered.")
+#       print("There may have been an issue with the consumer_key or consumer_secret you entered.")
 #     resource_owner_key = fetch_response.get("oauth_token")
 #     resource_owner_secret = fetch_response.get("oauth_token_secret")
 #     print("Got OAuth token: %s" % resource_owner_key)
@@ -734,29 +764,37 @@ def database_update_row(review_name,column_name,column_value,update_style,output
     #filter_db = text('Posts.name == review_name,Posts.column_name == \'\'')
     try:
         if update_style == "forceall":
-            outputs['postssession'].query(Posts).filter(Posts.name == review_name).update({column_name : column_value})
+            outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+                        ({column_name : column_value})
             print ('    Force Updated ',column_name, ' to: ',column_value)
         elif update_style == "onlyempty":
             #print('Posts.name == review_name,**kwargs')
-            postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,getattr(Posts,column_name).is_(None)).all()
+            postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
+                     getattr(Posts,column_name).is_(None)).all()
  #           print ('Postval : ',postval)
             temp = getattr(Posts,column_name)
  #           print ('temp = ',temp)
  #           print (getattr(Posts,column_name))
             # db_session.query(Notice).filter(getattr(Notice, col_name).like("%" + query + "%"))
             if postval:
-#            if outputs['postssession'].query(Posts).filter(Posts.name == review_name,temp.is_(None)).all:
- #           if outputs['postssession'].query(Posts).filter(Posts.name == review_name,Posts.(eval(column_name ))):
-                outputs['postssession'].query(Posts).filter(Posts.name == review_name).update({column_name : column_value})
+# #            if outputs['postssession'].query(Posts).filter(Posts.name ==\
+#                     review_name,temp.is_(None)).all:
+#  #           if outputs['postssession'].query(Posts).filter(Posts.name == review_name,Posts.\
+#                     (eval(column_name ))):
+                outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+                    ({column_name : column_value})
                 print ('    Updated blank ',postval ,' on value',column_name, ' to: ',column_value)
         elif update_style == "toggletrue":
-            postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,getattr(Posts,column_name).is_(None)).all()
+            postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,getattr\
+                    (Posts,column_name).is_(None)).all()
             print ('Postval : ',postval)
             if postval:
-                outputs['postssession'].query(Posts).filter(Posts.name == review_name).update({column_name : column_value})
+                outputs['postssession'].query(Posts).filter(Posts.name == review_name).\
+                    update({column_name : column_value})
                 print ('    Updated blank on value',column_name, ' to: ',column_value)
     except Exception as error:
-        print("    Not able to write to post data table to update ",review_name," ",column_name," to: ",column_value , type(error), error)
+        print("    Not able to write to post data table to update ",review_name," ",column_name,"\
+               to: ",column_value , type(error), error)
         outputs['postssession'].rollback()
         raise
     else:
@@ -1033,7 +1071,8 @@ def post_to_tiktok(title, content, date, rating, address, picslist, instasession
 #######################################################################################################
 
 def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
-    #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value,processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
+    #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value,processrow[3].
+    #   value, processrow[8].value, processrow[5].value,outputs['instagram'])
     #montageexists = "montage.mp4" in picslist
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
@@ -1046,7 +1085,7 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
             instasession.video_upload(outputmontage, data)
  #           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
-            print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+            print("  An error occurred uploading video to Instagram:", type(error).__name__)
             return False
         #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
         #media_path = instasession.video_download(media_pk)
@@ -1307,42 +1346,10 @@ def post_to_wordpress(title, content,  headers,date, rating,address, picslist):
 
 ##################################################################################################
 
-def make_montage_video_from_google(inphotos):
-# Load the photos from the folder
-# Set the duration of each photo to 2 seconds
-    if inphotos:
-        directory = inphotos[0].rsplit(r'/', 1)
-        folder = directory[0]
-        output = folder+"/montage.mp4"
-        if not os.path.exists(output) and len(inphotos) >1:
-            video = VideoFileClip(inphotos[0])
-            for photo in inphotos :
-                #clip = VideoFileClip("myHolidays.mp4").subclip(50,60)
-                clip = VideoFileClip(photo)
-                # Concatenate the photos into a clip
-                if ".jpg" in photo:
-                    clip.duration = 2
-                try:
-                    video = concatenate_videoclips([video, clip], method="compose")
-                except Exception as error:
-                    print("  An error occurred :", type(error).__name__) # An error occurred:
-            # Load the audio file
-        #    audio = AudioFileClip("audio.mp3")
-            # Set the audio as the soundtrack of the montage
-        #    montage = montage.set_audio(audio)
-            # Write the final montage to a file
-            outputvideo = video.write_videofile(folder+"/montage.mp4", fps=24)
-        else:
-            outputvideo = False
-        return outputvideo, output
-    return False, False
-
-##################################################################################################
-
 def process_reviews(outputs):
     # Process
     webcount = xtwittercount = instagramcount = facebookcount = 0
-#    webcount = xtwittercount = instagramcount = yelpcount = threadscount = facebookcount= tiktokcount = 0
+#    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
     rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
     if env.google:
         print('Configuration says to update google Reviews prior to processing them')
@@ -1372,7 +1379,8 @@ def process_reviews(outputs):
         else:
             driver = webdriver.Chrome(options=options) # Firefox(options=options)
         # Changing the property of the navigator value for webdriver to undefined
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        driver.execute_script("Object.defineProperty(navigator,'webdriver',\
+                              {get:()=> undefined})")
         driver.get(env.URL)
         time.sleep(5)
         google_scroll(counter_google(driver), driver)
@@ -1390,20 +1398,27 @@ def process_reviews(outputs):
         if processrow[1].value != "name":  # Skip header line of xls sheet
             print ("Processing : ",processrow[1].value)
             writtento = (ast.literal_eval(processrow[9].value))
-            # Check to see if the website has already been written to according to the xls sheet, if it has not... then process
-            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or env.threads or env.google)and (processrow[2].value is not None) :
+            # Check to see if the website has already been written to according to the xls sheet,\
+            # if it has not... then process
+            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or \
+                writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or \
+                writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
+                or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
+                env.threads or env.google)and (processrow[2].value is not None) :
                 if env.web :
                     #if writtento["web"] == 0 :
-                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.web != 1):
+                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
+                                                                   value,Posts.web != 1):
                         if webcount < env.postsperrun:
                             try:
-                                #NewWebPost = post_to_wordpress(processrow[1].value, processrow[2].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
-                                NewWebPost = post_to_wordpress(processrow[1].value, processrow[2].value, outputs['web'] ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
+                                NewWebPost=post_to_wordpress(processrow[1].value,processrow[2].\
+                                    value,outputs['web'] ,processrow[7].value, processrow[3].value\
+                                    , processrow[8].value, processrow[5].value)
                                 try:
                                     writtento["web"] = 1
                                     processrow[9].value = str(writtento)
                                 except Exception as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
+                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
                                 print ('  Success Posting to Wordpress: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
                                 if NewWebPost:
                                     webcount +=1
@@ -1544,56 +1559,6 @@ def process_reviews(outputs):
                 #    # junction('xtwitter',xtwittercount,'NewxtwitterPost','post_to_x_example', outputs, writtento, processrow)
                 #     socials('xtwitter',namedict,outputs,writtento, processrow,post_to_x_example)
     return #(outputs['web'])
-
-
-
-
-##################################################################################################
-
-# def junction(name,namedict, outputs, writtento, processrow ):
-#     if name == "xtwitter":
-#         twitteroptions = {'name':'xtwitter', 'namecount':namedict['namecount'], 'namepost':'NewxtwitterPost', 'subroutine':'post_to_x_example'}
-#         namedict.update({'xtwitter':twitteroptions})
-#         stationout = socials(name, namedict, outputs, writtento, processrow)
-#     return namedict
-
-#def socials(namedict, outputs, writtento, processrow):
-#def socials(name, namecount, namepost, subroutine, outputs, writtento, processrow):
-def socials(name, namedict,outputs, writtento, processrow,funct):# namecount, namepost, subroutine, outputs, writtento, processrow):
-    #namedict{'name':name, 'namecount':namecount, 'namepost':namepost, 'subroutine':subroutine}
-    #namedict{'name':xtwitter, 'namecount':xtwiteercount, 'namepost':NewxtwitterPost, 'subroutine':postx}
-    namecount =0
-    if name:
-        if writtento[name] == 0 :
-            print (namedict['namecount'])
-            if int(namedict['namecount']) <= env.postsperrun:
-                try:
-                    print('  Starting to generate xtwitter post : ',namedict['subroutine'])
-                    funct(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[4].value,outputs )
-                    try:
-                        print ('  Start generating content to post to xtwitter : ') #,namedict['subroutine'])
-                        writtento[name] = 1
-                        processrow[9].value = str(writtento)
-                    except Exception as error:
-                        print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
-                    print ('  Success Posting to '+name+': '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
-                    if namedict['namepost'].value:
-                        namecount +=1
-                    try:
-                        print('  write to xls for '+name)
-                        outputs['datawb'].save(env.xls)
-                        print('  write to mariadb for '+name)
-                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
-                        # outputs['postssession'].commit()
-                    except Exception as error:
-                        print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                except Exception as error:
-                    print ('  Error writing '+name+' post : ',processrow[1].value, processrow[2].value, outputs[name],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento[name], type(error).__name__ )
-            else:
-                print ('  Exceeded the number of '+name+' posts per run, skipping', processrow[1].value)
-        else:
-            print ('  '+name+': Skipping posting for ',processrow[1].value,' previously written')
-    return namedict
 
 ##################################################################################################
 
