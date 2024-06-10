@@ -52,15 +52,6 @@ Base = declarative_base()
 
 ##################################################################################################
 
-def preload():
-    file=pathlib.Path("./config/joeteststeele_uuid_and_cookie.json")
-    if pathlib.Path.exists(file):
-        pathlib.Path.unlink(file)
-    today = datetime.today().strftime('%Y-%m-%d')
-    return
-
-##################################################################################################
-
 class Users(Base):
     """Class representing a user config"""
     __tablename__ = 'userConfig'
@@ -123,11 +114,25 @@ class Posts(Base):
     googleurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
 
 
+##################################################################################################
 
+def preload():
+    file=pathlib.Path("./config/joeteststeele_uuid_and_cookie.json")
+    if pathlib.Path.exists(file):
+        pathlib.Path.unlink(file)
+    today = datetime.today().strftime('%Y-%m-%d')
+    return
 
 ##################################################################################################
 
-def authconnect():
+def clearlist (list):
+    for listelement in list:
+        listelement.clear
+    return list
+
+##################################################################################################
+
+def get_auth_connect():
     """Make all connections to socials and DB, etec.."""
     connections = {}
     if env.mariadb:
@@ -203,8 +208,53 @@ def authconnect():
 
 ##################################################################################################
 
+def get_twitter_conn_v1(api_key, api_secret, access_token, access_token_secret) -> tweepy.API:
+    """Get twitter conn 1.1"""
+    auth = tweepy.OAuth1UserHandler(api_key, api_secret)
+    auth.set_access_token(
+        access_token,
+        access_token_secret,
+    )
+    return tweepy.API(auth)
+
+##################################################################################################
+
+def get_twitter_conn_v2(api_key, api_secret, access_token, access_token_secret) -> tweepy.Client:
+    """Get twitter conn 2.0"""
+    client = tweepy.Client(
+        consumer_key=api_key,
+        consumer_secret=api_secret,
+        access_token=access_token,
+        access_token_secret=access_token_secret,
+    )
+    return client
+
+##################################################################################################
+
+def get_hastags (address, name, type):
+    nameNoSpaces = re.sub( r'[^a-zA-Z]','',name)
+    addressdict = address.rsplit(r' ',3)
+    zip = addressdict[3]
+    state = addressdict[2]
+    city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
+    if 'short' in type:
+        defaulttags = '#'+nameNoSpaces+' #foodie #food #joeeatswhat @timberjoe'
+    else:
+        defaulttags = "\n\n\n#"+nameNoSpaces+" #foodie #music #food #travel #drinks #instagood #feedme #joeeatswhat @timberjoe"
+    citytag = "#"+city
+    statetag = "#"+state
+    ziptag = "#"+zip
+    if statetag == 'FL':
+        statetag += ' #Florida'
+    fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag
+    # 153 Sugar Belle Dr, Winter Garden, FL 34787
+    # inphotos[0].rsplit(r'/', 1)
+    return (fulltag)
+
+##################################################################################################
+
 # Grab a count of how far we need to scroll
-def counter(driver):
+def counter_google(driver):
     result = driver.find_element(By.CLASS_NAME,'Qha3nb').text
     result = result.replace(',', '')
     result = result.split(' ')
@@ -217,6 +267,51 @@ def is_docker():
     cgroup = Path('/proc/self/cgroup')
     #print (cgroup.read_text())
     return Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in cgroup.read_text()
+
+##################################################################################################
+
+def post_facebook_image(group_id, img,auth_token, title):
+    files={}
+    url = f"https://graph.facebook.com/{group_id}/photos?access_token=" + auth_token
+    for eachfile in img:
+        files.update({eachfile: open(eachfile, 'rb')})
+    data = {
+        "published" : False,
+        "alt_text" : title,
+        "description" : title
+    }
+    try:
+        r = requests.post(url, files=files, data=data,timeout=40).json()
+    except Exception as error:
+        print("    An error getting date occurred:", error) # An error occurred:
+        r = False
+    time.sleep(env.facebooksleep)
+    return r
+
+##################################################################################################
+
+def post_facebook_video(group_id, video_path,auth_token,title, content, date, rating, address):
+    url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
+    files={}
+    addresshtml = re.sub(" ", ".",address)
+    #args={}
+    #data["message"]=title + "\n"+address+"\n\n"+ content + "\n"+rating+"\n"+date
+    for eachfile in video_path:
+       # my_dict['key'].append(1)
+        files.update({eachfile: open(eachfile, 'rb')})
+    data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
+             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
+             "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title, 'long')+
+             "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
+            "alt_text" : title
+    }
+    try:
+        r = requests.post(url, files=files, data=data,timeout=40).json()
+    except Exception as error:
+        print("    An error getting date occurred:", error) # An error occurred:
+        r = False
+    time.sleep(env.facebooksleep)
+    return r
 
 ##################################################################################################
 
@@ -241,51 +336,6 @@ def post_facebook(title, content, date, rating, address, picslist, instasession)
 
 ##################################################################################################
 
-def postImage(group_id, img,auth_token, title):
-    files={}
-    url = f"https://graph.facebook.com/{group_id}/photos?access_token=" + auth_token
-    for eachfile in img:
-        files.update({eachfile: open(eachfile, 'rb')})
-    data = {
-        "published" : False,
-        "alt_text" : title,
-        "description" : title
-    }
-    try:
-        r = requests.post(url, files=files, data=data,timeout=40).json()
-    except Exception as error:
-        print("    An error getting date occurred:", error) # An error occurred:
-        r = False
-    time.sleep(env.facebooksleep)
-    return r
-
-##################################################################################################
-
-def postVideo(group_id, video_path,auth_token,title, content, date, rating, address):
-    url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
-    files={}
-    addresshtml = re.sub(" ", ".",address)
-    #args={}
-    #data["message"]=title + "\n"+address+"\n\n"+ content + "\n"+rating+"\n"+date
-    for eachfile in video_path:
-       # my_dict['key'].append(1)
-        files.update({eachfile: open(eachfile, 'rb')})
-    data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
-             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
-             "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title, 'long')+
-             "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
-            "alt_text" : title
-    }
-    try:
-        r = requests.post(url, files=files, data=data,timeout=40).json()
-    except Exception as error:
-        print("    An error getting date occurred:", error) # An error occurred:
-        r = False
-    time.sleep(env.facebooksleep)
-    return r
-
-##################################################################################################
-
 def post_facebook2(title, content, date, rating, address, picslist, instasession):
     #msg = 'Purple Ombre Bob Lace Wig Natural Human Hair now available on https://lace-wigs.co.za/'
     pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
@@ -304,13 +354,13 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
     # if imgs_vid :
     #     print ("loop")
     #     try:
-    #         post_id = postVideo(group_id, imgs_vid,auth_token)
+    #         post_id = post_facebook_video(group_id, imgs_vid,auth_token)
     #         imgs_id.append(post_id['id'])
     #     except Exception as error:
     #         print("    An error occurred:", type(error).c) # An error occurred:
     if imgs_pic:
         try:
-            post_id = postImage(group_id ,imgs_pic,auth_token,title)
+            post_id = post_facebook_image(group_id ,imgs_pic,auth_token,title)
             imgs_id.append(post_id['id'])
         except Exception as error:
             print("    An error occurred:", type(error)) # An error occurred:
@@ -339,33 +389,99 @@ def post_facebook2(title, content, date, rating, address, picslist, instasession
 
 ##################################################################################################
 
-def post_facebook3(title, content, date, rating, address, picslist, instasession):
-    pics = ((picslist[1:-1]).replace("'","")).split(",")
-    group_id = env.facebookpageID
-    auth_token = env.facebookpass
-    imgs_id = []
-    imgs_vid = []
-    imgs_pic = []
-    img_list = pics
-    for img in img_list:
-        if 'montage.mp4' in img:
-            imgs_vid.append(img.strip())
-        else:
-            imgs_pic.append(img.strip())
-    if imgs_vid:
-        try:
-            post_id = postVideo(group_id, imgs_vid,auth_token,title, content,
-                date, rating, address)
-            imgs_id.append(post_id['id'])
-        except Exception as error:
-            print("    An error occurred:",error)
-    time.sleep(env.facebooksleep)
-    print('    Facebook response: ',post_id)
-    return  (True)
+def post_to_threads_example():
+    # Replace 'your_access_token' with your actual access token for Meta's Threads
+    ACCESS_TOKEN = 'your_access_token'
+    # The URL for the Meta's Threads API endpoint to post a video
+    THREADS_API_ENDPOINT = 'https://api.threads.meta.com/v1/videos'
+    # The path to the video file you want to upload
+    VIDEO_FILE_PATH = 'path_to_your_video.mp4'
+    # The caption for your video
+    VIDEO_CAPTION = 'Your video caption'
+
+    async def post_video_to_threads():
+        # Open the video file in binary read mode
+        with open(VIDEO_FILE_PATH, 'rb') as video_file:
+            video_data = video_file.read()
+        # Prepare the headers for the HTTP request
+        headers = {
+            'Authorization': f'Bearer {ACCESS_TOKEN}',
+            'Content-Type': 'video/mp4'
+        }
+        # Use aiohttp to make an asynchronous HTTP POST request
+        async with aiohttp.ClientSession() as session:
+            async with session.post(THREADS_API_ENDPOINT, data=video_data, headers=headers) as\
+                     response:
+                # Check if the request was successful
+                if response.status == 200:
+                    print('Video successfully posted to Threads.')
+                else:
+                    print('Failed to post video. Response:', await response.text())
+
+    # Run the asynchronous function using asyncio
+    if __name__ == '__main__':
+        asyncio.run(post_video_to_threads())
+    return
 
 ##################################################################################################
 
-def get_data(driver,outputs ):
+
+def post_to_x_example(title, content, date, rating, address, picslist, instasession):
+#     pics = ((picslist[1:-1]).replace("'","")).split(",")
+#     from requests_oauthlib import OAuth1Session
+#     # Be sure to add replace the text of the with the text you wish to Tweet. You can also add
+#     # parameters to post polls, quote Tweets, Tweet with reply settings, and Tweet to Super
+#     # Followers in addition to other features.
+#     payload = {"text": content}
+#     # Get request token
+#     request_token_url = \
+#       "https://api.twitter.com/oauth/request_token?oauth_callback=oob&x_auth_access_type=write"
+#     oauth = OAuth1Session(env.consumer_key, client_secret=env.consumer_secret)
+#     try:
+#         fetch_response = oauth.fetch_request_token(request_token_url)
+#     except ValueError:
+#         print("There may have been an issue with the consumer_key or consumer_secret you entered.")
+#     resource_owner_key = fetch_response.get("oauth_token")
+#     resource_owner_secret = fetch_response.get("oauth_token_secret")
+#     print("Got OAuth token: %s" % resource_owner_key)
+#     # Get authorization
+#     base_authorization_url = "https://api.twitter.com/oauth/authorize"
+#     authorization_url = oauth.authorization_url(base_authorization_url)
+#     print("Please go here and authorize: %s" % authorization_url)
+#     verifier = input("Paste the PIN here: ")
+#     # Get the access token
+#     access_token_url = "https://api.twitter.com/oauth/access_token"
+#     oauth = OAuth1Session(
+#         env.consumer_key,
+#         client_secret=env.consumer_secret,
+#         resource_owner_key=env.resource_owner_key,
+#         resource_owner_secret=env.resource_owner_secret,
+#         verifier=verifier,
+#     )
+#     oauth_tokens = oauth.fetch_access_token(access_token_url)
+#     access_token = oauth_tokens["oauth_token"]
+#     access_token_secret = oauth_tokens["oauth_token_secret"]
+#     # Make the request
+#     oauth = OAuth1Session(
+#         env.consumer_key,
+#         client_secret=env.consumer_secret,
+#         resource_owner_key=env.access_token,
+#         resource_owner_secret=env.access_token_secret,
+#     )
+#     # Making the request
+#     response = oauth.post("https://api.twitter.com/2/tweets",json=payload)
+#     if response.status_code != 201:
+#         raise Exception("Request returned an error: {} {}".format \
+#             (response.status_code,response.text))
+#     print("Response code: {}".format(response.status_code))
+#     # Saving the response as JSON
+#     json_response = response.json()
+#     print(json.dumps(json_response, indent=4, sort_keys=True))
+    return
+
+##################################################################################################
+
+def get_google_data(driver,outputs ):
 # curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H
 #   "X-Goog-FieldMask: id,displayName,formattingtedAddress,plusCode"
 #   https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri
@@ -385,8 +501,6 @@ def get_data(driver,outputs ):
             print('Found extra pics')
             list_more_pics.click()
     elements = driver.find_elements(By.CLASS_NAME, 'jftiEf')
-
-
 
     lst_data = []
     for data in elements:
@@ -431,14 +545,14 @@ def get_data(driver,outputs ):
                     longitude = (details['result']['geometry']['location']['lng'])
                     pluscode = (details['result']['plus_code']['compound_code'])
                     googleurl = (details['result']['url'])
-                    update_db_row(name,"businessurl",businessurl,"onlyempty",outputs)
-                    update_db_row(name,"latitude",latitude,"onlyempty",outputs)
-                    update_db_row(name,"longitude",longitude,"onlyempty",outputs)
-                    update_db_row(name,"pluscode",pluscode,"onlyempty",outputs)
-                    update_db_row(name,"googleurl",googleurl,"onlyempty",outputs)
-                    update_db_row(name,"place_id",place_id,"onlyempty",outputs)
-                    update_db_row(name,"googledetails",details,"onlyempty",outputs)
-                    update_db_row(name,"google",1,"forceall",outputs)
+                    database_update_row(name,"businessurl",businessurl,"onlyempty",outputs)
+                    database_update_row(name,"latitude",latitude,"onlyempty",outputs)
+                    database_update_row(name,"longitude",longitude,"onlyempty",outputs)
+                    database_update_row(name,"pluscode",pluscode,"onlyempty",outputs)
+                    database_update_row(name,"googleurl",googleurl,"onlyempty",outputs)
+                    database_update_row(name,"place_id",place_id,"onlyempty",outputs)
+                    database_update_row(name,"googledetails",details,"onlyempty",outputs)
+                    database_update_row(name,"google",1,"forceall",outputs)
                 except Exception as error:
                     print('Error writing business details from google maps : ',error)
         else:
@@ -499,7 +613,7 @@ def get_data(driver,outputs ):
             picsLocalpath = "./Output/Pics/"+cleanname+"/"+visitdate+'/'+filename
             pics2.append(picsLocalpath)
         if pics2:
-            make_video(pics2)
+            make_montage_video_from_google(pics2)
             pics2.append("./Output/Pics/"+cleanname+"/"+visitdate+'/'+'montage.mp4')
         dictPostComplete= {'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,
             'instagram':0,'tiktok':0}
@@ -509,25 +623,25 @@ def get_data(driver,outputs ):
 
 ##################################################################################################
 
-# Do the scrolling
-def scrolling(counter,driver):
-    print('scrolling...')
+# Do the google_scroll
+def google_scroll(counter_google,driver):
+    print('google_scroll...')
     time.sleep(3)
     scrollable_div = driver.find_element(By.XPATH,
         '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[5]/div[2]')
 #        '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[2]/div[10]/div')
-    for _i in range(counter):
+    for _i in range(counter_google):
         try:
-            scrolling = driver.execute_script(
+            google_scroll = driver.execute_script(
                 'document.getElementsByClassName("dS8AEf")[0].\
                     scrollTop=document.getElementsByClassName("dS8AEf")[0].scrollHeight',
                     scrollable_div
             )
             time.sleep(3)
         except Exception as e:
-            print(f"Error while scrolling: {e}")
+            print(f"Error while google_scroll: {e}")
             break
-    return scrolling
+    return google_scroll
 
 ##################################################################################################
 
@@ -613,7 +727,7 @@ def write_to_xlsx2(data, outputs):
 
 ##################################################################################################
 
-def update_db_row(review_name,column_name,column_value,update_style,outputs):
+def database_update_row(review_name,column_name,column_value,update_style,outputs):
     #kwargs = {Posts.column_name : ''}
     #setattr(Posts, attribute_name, column_name)
     #randdd = Posts.column_name 
@@ -652,7 +766,7 @@ def update_db_row(review_name,column_name,column_value,update_style,outputs):
 
 ##################################################################################################
 
-def database_read(data):
+def database_read_all_example(data):
     db_connection_str = 'mysql+pymysql://mysql_user:mysql_password@mysql_host/mysql_db'
     db_connection = create_engine(db_connection_str)
     df = pd.read_sql('SELECT * FROM table_name', con=db_connection)
@@ -660,21 +774,23 @@ def database_read(data):
 
 ##################################################################################################
 
-def check_web_media(filename,headers):
+def check_wordpress_media(filename,headers):
     file_name_minus_extension = filename
-    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers,timeout=40)
+    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
+                             headers=headers,timeout=40)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
         link = result[0]['guid']['rendered']
         return file_id, link
     except Exception as error:
-        print('    No existing media with same name in Wordpress media folder: '+filename+' '+error)
+        print('    No existing media with same name in Wordpress media folder: '+filename+' '\
+              +error)
         return (False, False)
 
 ##################################################################################################
 
-def check_web_post(postname,postdate,headers):
+def check_wordpress_post(postname,postdate,headers):
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers,timeout=50)
     try:
         result = response.json()
@@ -688,7 +804,7 @@ def check_web_post(postname,postdate,headers):
 
 ##################################################################################################
 
-def is_port_open(host, port):
+def check_is_port_open(host, port):
     try:
         is_web_up = urllib3.request("GET", host)
         if is_web_up.status == 200:
@@ -699,94 +815,23 @@ def is_port_open(host, port):
 
 ##################################################################################################
 
-def check_media(filename, headers):
-    # Regex gilename to format like in WordPress media name
-    #file_name_minus_extension = re.sub(r'\'|(....$)','', filename, flags=re.IGNORECASE)
-    file_name_minus_extension = str(filename)
-    response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension, headers=headers,timeout=50)
-    try:
-        result = response.json()
-        file_id = int(result[0]['id'])
-        link = result[0]['guid']['rendered']
-        return file_id, link
-    except Exception as error:
-        print('    No existing media with same name in Wordpress media folder: ' + filename+' '+error)
-        return False, False
-
-##################################################################################################
-
-def check_post(postname,postdate,headers2):
+def check_wordpress_post(postname,postdate,headers2):
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
     if len(result) > 0 :
         post_id = int(result[0]['id'])
         post_date = result[0]['date']
+        post_link = result[0]['link']
         if postdate == post_date:
-            return post_id
+            return post_id, post_link
         else: #  Exception as error:
             print('No existing post with same name: ' + postname)
-            return False
+            return False, False
     else:
         print('No existing post with same name: ' + postname)
-        return False
+        return False, False
 
 ##################################################################################################
-
-def threads():
-    # Replace 'your_access_token' with your actual access token for Meta's Threads
-    ACCESS_TOKEN = 'your_access_token'
-    # The URL for the Meta's Threads API endpoint to post a video
-    THREADS_API_ENDPOINT = 'https://api.threads.meta.com/v1/videos'
-    # The path to the video file you want to upload
-    VIDEO_FILE_PATH = 'path_to_your_video.mp4'
-    # The caption for your video
-    VIDEO_CAPTION = 'Your video caption'
-
-    async def post_video_to_threads():
-        # Open the video file in binary read mode
-        with open(VIDEO_FILE_PATH, 'rb') as video_file:
-            video_data = video_file.read()
-        # Prepare the headers for the HTTP request
-        headers = {
-            'Authorization': f'Bearer {ACCESS_TOKEN}',
-            'Content-Type': 'video/mp4'
-        }
-        # Use aiohttp to make an asynchronous HTTP POST request
-        async with aiohttp.ClientSession() as session:
-            async with session.post(THREADS_API_ENDPOINT, data=video_data, headers=headers) as response:
-                # Check if the request was successful
-                if response.status == 200:
-                    print('Video successfully posted to Threads.')
-                else:
-                    print('Failed to post video. Response:', await response.text())
-
-    # Run the asynchronous function using asyncio
-    if __name__ == '__main__':
-        asyncio.run(post_video_to_threads())
-    return
-
-def post_to_threads (title, content, date, rating, address, picslist, instasession):
-    if picslist != '[]' and "montage.mp4" in picslist:
-        outputmontage = ''
-        addresshtml = re.sub(" ", ".",address)
-        #content = content + hastags(address, title)
-        pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-        video, outputmontage = make_video(pics)
-        try:
-            data =  title + "\n"+ address+"\nGoogle map to destination: " \
-                r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n" \
-                + content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title,'long')+ \
-                "\n\nhttps://www.joeeatswhat.com "+"\n\n"
-            instasession.video_upload(outputmontage, data)
- #           video2 = instasession.video_upload(outputmontage, data)
-        except Exception as error:
-            print("  An error occurred uploading video to Threads:", type(error).__name__) 
-            return False
-        return True
-    else:
-        return False
-
-#######################################################################################################
 
 # from googleapiclient.discovery import build
 # from oauth2client.service_account import ServiceAccountCredentials
@@ -819,17 +864,10 @@ def post_to_threads (title, content, date, rating, address, picslist, instasessi
 
 ##################################################################################################
 
-# The URL to your WordPress website's REST API endpoint for media
-WP_API_MEDIA_URL = 'https://yourwebsite.com/wp-json/wp/v2/media'
-
-# The ID of the post for which you want to retrieve the featured photo ID
-POST_ID = 'your_post_id'
-
 # Function to get the featured photo ID of a WordPress post
-def get_featured_photo_id(post_id):
+def get_wordpress_featured_photo_id(post_id):
     # Make a GET request to the WordPress REST API to retrieve media details
-    response = requests.get(f"{WP_API_MEDIA_URL}?parent={post_id}",timeout=50)
-
+    response = requests.get(f"{env.wpAPI}?parent={post_id}",timeout=50)
     # Check if the request was successful
     if response.status_code == 200:
         # Parse the JSON response
@@ -841,36 +879,15 @@ def get_featured_photo_id(post_id):
             if item.get('post', None) == int(post_id):
                 # Return the ID of the featured image
                 return item['id']
-
     # If the request failed or the featured image was not found, return None
     return None
-
 # # Example usage
 # featured_photo_id = get_featured_photo_id(POST_ID)
 # print(f"The featured photo ID for post {POST_ID} is: {featured_photo_id}")
 
 ##################################################################################################
 
-def get_twitter_conn_v1(api_key, api_secret, access_token, access_token_secret) -> tweepy.API:
-    """Get twitter conn 1.1"""
-    auth = tweepy.OAuth1UserHandler(api_key, api_secret)
-    auth.set_access_token(
-        access_token,
-        access_token_secret,
-    )
-    return tweepy.API(auth)
-
-def get_twitter_conn_v2(api_key, api_secret, access_token, access_token_secret) -> tweepy.Client:
-    """Get twitter conn 2.0"""
-    client = tweepy.Client(
-        consumer_key=api_key,
-        consumer_secret=api_secret,
-        access_token=access_token,
-        access_token_secret=access_token_secret,
-    )
-    return client
-
-def post_x2(title, content, date, rating, address, picslist, instasession): 
+def post_to_x2(title, content, date, rating, address, picslist, instasession): 
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
     CONSUMER_KEY = env.x_consumer_key
@@ -897,15 +914,15 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
     if imgs_vid:
        # print ("loop")
         try:
-            # post_id = postVideo(group_id, imgs_vid,auth_token,title, content,
+            # post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, content,
             #     date, rating, address)
             # imgs_id.append(post_id['id'])
             video_path = imgs_vid[0]
             # Path to the video you want to upload
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
-            status_message = title + ': Review  https://www.joeeatswhat.com'
-            status_message2  = status_message +' '+hastags(address, title, 'short')+' '
+            status_message = str(title) + ': Review  https://www.joeeatswhat.com'
+            status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
             status_message_short = status_message2[:279]
             # if len(status_message) > 279:
             #     print ('   Count of twitter message: ',len(status_message))
@@ -924,7 +941,56 @@ def post_x2(title, content, date, rating, address, picslist, instasession):
 
 ##################################################################################################
 
-def post_tiktok(title, content, date, rating, address, picslist, instasession):
+def post_facebook3(title, content, date, rating, address, picslist, instasession):
+    pics = ((picslist[1:-1]).replace("'","")).split(",")
+    group_id = env.facebookpageID
+    auth_token = env.facebookpass
+    imgs_id = []
+    imgs_vid = []
+    imgs_pic = []
+    img_list = pics
+    for img in img_list:
+        if 'montage.mp4' in img:
+            imgs_vid.append(img.strip())
+        else:
+            imgs_pic.append(img.strip())
+    if imgs_vid:
+        try:
+            post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, content,
+                date, rating, address)
+            imgs_id.append(post_id['id'])
+        except Exception as error:
+            print("    An error occurred:",error)
+    time.sleep(env.facebooksleep)
+    print('    Facebook response: ',post_id)
+    return  (True)
+
+##################################################################################################
+
+def post_to_threads (title, content, date, rating, address, picslist, instasession):
+    if picslist != '[]' and "montage.mp4" in picslist:
+        outputmontage = ''
+        addresshtml = re.sub(" ", ".",address)
+        #content = content + get_hastags(address, title)
+        pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+        video, outputmontage = make_montage_video_from_google(pics)
+        try:
+            data =  title + "\n"+ address+"\nGoogle map to destination: " \
+                r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n" \
+                + content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+ \
+                "\n\nhttps://www.joeeatswhat.com "+"\n\n"
+            instasession.video_upload(outputmontage, data)
+ #           video2 = instasession.video_upload(outputmontage, data)
+        except Exception as error:
+            print("  An error occurred uploading video to Threads:", type(error).__name__) 
+            return False
+        return True
+    else:
+        return False
+
+#######################################################################################################
+
+def post_to_tiktok(title, content, date, rating, address, picslist, instasession):
 
     # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
     session_id = 'your_sessionid_cookie'
@@ -964,65 +1030,59 @@ def post_tiktok(title, content, date, rating, address, picslist, instasession):
 # response = upload_video(session_id, file_path, title, tags, schedule_time)
 # print(response)
 
+#######################################################################################################
+
+def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
+    #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value,processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
+    #montageexists = "montage.mp4" in picslist
+    if picslist != '[]' and "montage.mp4" in picslist:
+        outputmontage = ''
+        addresshtml = re.sub(" ", ".",address)
+        #content = content + get_hastags(address, title)
+        pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+        video, outputmontage = make_montage_video_from_google(pics)
+        try:
+            data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
+            instasession.video_upload(outputmontage, data)
+ #           video2 = instasession.video_upload(outputmontage, data)
+        except Exception as error:
+            print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+            return False
+        #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
+        #media_path = instasession.video_download(media_pk)
+        # joeeatswhat = instasession.user_info_by_username('timberjoe')
+        # try: buildout = instagrapi.story.StoryBuilder(outputmontage,'Credits @timberjoe',[StoryMention(user=joeeatswhat)]).video(40)  # seconds
+        # except Exception as error:
+        #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+        # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
+#         try:
+#             instasession.video_upload_to_story(
+#             outputmontage,
+#             "Credits @joeeatswhat",
+#  #           mentions=[StoryMention(user='timberjoe', x=0.49892962, y=0.703125, width=0.8333333333333334, height=0.125)],
+#             links=[StoryLink(webUri='https://www.joeeatswhat.com')],
+#   #          hashtags=[StoryHashtag(hashtag=get_hastags(address,title), x=0.23, y=0.32, width=0.5, height=0.22)],
+#             #medias=[StoryMedia(media_pk=media_pk, x=0.5, y=0.5, width=0.6, height=0.8)],
+#         )
+#             story = instasession.story_photo("path/to/photo.jpg")
+#             instasession.video_elements.add_link("https://www.joeeatswhat.com")
+#             #story.add_link("https://www.joeeatswhat.com")
+#             instasession.video_elements.add_hashtags(get_hastags)
+#             story = instasession.video_upload_to_story(outputmontage)
+#             story.upload()
+#             #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: get_hastags )
+#             # temp = dict()
+#             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=get_hastags)
+#         except Exception as error:
+#             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+#             return False
+        return True
+    else:
+        return False
+
 ##################################################################################################
 
-
-def post_x(title, content, date, rating, address, picslist, instasession):
-#     pics = ((picslist[1:-1]).replace("'","")).split(",")
-#     from requests_oauthlib import OAuth1Session
-#     # Be sure to add replace the text of the with the text you wish to Tweet. You can also add
-#     # parameters to post polls, quote Tweets, Tweet with reply settings, and Tweet to Super
-#     # Followers in addition to other features.
-#     payload = {"text": content}
-#     # Get request token
-#     request_token_url = \
-#         "https://api.twitter.com/oauth/request_token?oauth_callback=oob&x_auth_access_type=write"
-#     oauth = OAuth1Session(env.consumer_key, client_secret=env.consumer_secret)
-#     try:
-#         fetch_response = oauth.fetch_request_token(request_token_url)
-#     except ValueError:
-#         print("There may have been an issue with the consumer_key or consumer_secret you entered.")
-#     resource_owner_key = fetch_response.get("oauth_token")
-#     resource_owner_secret = fetch_response.get("oauth_token_secret")
-#     print("Got OAuth token: %s" % resource_owner_key)
-#     # Get authorization
-#     base_authorization_url = "https://api.twitter.com/oauth/authorize"
-#     authorization_url = oauth.authorization_url(base_authorization_url)
-#     print("Please go here and authorize: %s" % authorization_url)
-#     verifier = input("Paste the PIN here: ")
-#     # Get the access token
-#     access_token_url = "https://api.twitter.com/oauth/access_token"
-#     oauth = OAuth1Session(
-#         env.consumer_key,
-#         client_secret=env.consumer_secret,
-#         resource_owner_key=env.resource_owner_key,
-#         resource_owner_secret=env.resource_owner_secret,
-#         verifier=verifier,
-#     )
-#     oauth_tokens = oauth.fetch_access_token(access_token_url)
-#     access_token = oauth_tokens["oauth_token"]
-#     access_token_secret = oauth_tokens["oauth_token_secret"]
-#     # Make the request
-#     oauth = OAuth1Session(
-#         env.consumer_key,
-#         client_secret=env.consumer_secret,
-#         resource_owner_key=env.access_token,
-#         resource_owner_secret=env.access_token_secret,
-#     )
-#     # Making the request
-#     response = oauth.post("https://api.twitter.com/2/tweets",json=payload)
-#     if response.status_code != 201:
-#         raise Exception("Request returned an error: {} {}".format \
-#             (response.status_code,response.text))
-#     print("Response code: {}".format(response.status_code))
-#     # Saving the response as JSON
-#     json_response = response.json()
-#     print(json.dumps(json_response, indent=4, sort_keys=True))
-    return
-
-# ################################################################################################
-
-def post_to_wp(title, content,  headers,date, rating,address, picslist):
+def post_to_wordpress(title, content,  headers,date, rating,address, picslist):
     # post
     newPost = False
     #countreview = False
@@ -1113,8 +1173,8 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
     #newdate2 = str(re.sub(r'-','/',str(newdate.date())))+'T22:00:00'
     print ('    Got Date: ', newdate2, newdate)
     try:
-        post_id = check_post(title,newdate2,headers)
-        update_db_row(title,"wpurl","https://www.joeeatswhat.com/"+str(post_id),"onlyempty",outputs)
+        post_id, post_link = check_wordpress_post(title,newdate2,headers)
+        database_update_row(title,"wpurl",post_link,"forceall",outputs)
     except  Exception as error :
         print ('Could not check to see post already exists',error)
     if not post_id:
@@ -1151,7 +1211,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         caption =title
         description = title+"\n"+address
         print ('  Found Picture: ',picname)
-        file_id, link = check_media(picname, headers)
+        file_id, link = check_wordpress_media(picname, headers)
 #        link = linknew['rendered']
         if file_id is False:
             print ('    '+str(picname)+' was not already found in library, adding it')
@@ -1247,7 +1307,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
 
 ##################################################################################################
 
-def make_video(inphotos):
+def make_montage_video_from_google(inphotos):
 # Load the photos from the folder
 # Set the duration of each photo to 2 seconds
     if inphotos:
@@ -1276,85 +1336,6 @@ def make_video(inphotos):
             outputvideo = False
         return outputvideo, output
     return False, False
-
-##################################################################################################
-
-def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
-    #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value,processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'])
-    #montageexists = "montage.mp4" in picslist
-    if picslist != '[]' and "montage.mp4" in picslist:
-        outputmontage = ''
-        addresshtml = re.sub(" ", ".",address)
-        #content = content + hastags(address, title)
-        pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-        video, outputmontage = make_video(pics)
-        try:
-            data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
-            instasession.video_upload(outputmontage, data)
- #           video2 = instasession.video_upload(outputmontage, data)
-        except Exception as error:
-            print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
-            return False
-        #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
-        #media_path = instasession.video_download(media_pk)
-        # joeeatswhat = instasession.user_info_by_username('timberjoe')
-        # try: buildout = instagrapi.story.StoryBuilder(outputmontage,'Credits @timberjoe',[StoryMention(user=joeeatswhat)]).video(40)  # seconds
-        # except Exception as error:
-        #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
-        # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
-#         try:
-#             instasession.video_upload_to_story(
-#             outputmontage,
-#             "Credits @joeeatswhat",
-#  #           mentions=[StoryMention(user='timberjoe', x=0.49892962, y=0.703125, width=0.8333333333333334, height=0.125)],
-#             links=[StoryLink(webUri='https://www.joeeatswhat.com')],
-#   #          hashtags=[StoryHashtag(hashtag=hastags(address,title), x=0.23, y=0.32, width=0.5, height=0.22)],
-#             #medias=[StoryMedia(media_pk=media_pk, x=0.5, y=0.5, width=0.6, height=0.8)],
-#         )
-#             story = instasession.story_photo("path/to/photo.jpg")
-#             instasession.video_elements.add_link("https://www.joeeatswhat.com")
-#             #story.add_link("https://www.joeeatswhat.com")
-#             instasession.video_elements.add_hashtags(hastags)
-#             story = instasession.video_upload_to_story(outputmontage)
-#             story.upload()
-#             #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: hastags )
-#             # temp = dict()
-#             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=hastags)
-#         except Exception as error:
-#             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
-#             return False
-        return True
-    else:
-        return False
-
-##################################################################################################
-
-def clearlist (list):
-    for listelement in list:
-        listelement.clear
-    return list
-
-##################################################################################################
-
-def hastags (address, name, type):
-    nameNoSpaces = re.sub( r'[^a-zA-Z]','',name)
-    addressdict = address.rsplit(r' ',3)
-    zip = addressdict[3]
-    state = addressdict[2]
-    city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
-    if 'short' in type:
-        defaulttags = '#'+nameNoSpaces+' #foodie #food #joeeatswhat @timberjoe'
-    else:
-        defaulttags = "\n\n\n#"+nameNoSpaces+" #foodie #music #food #travel #drinks #instagood #feedme #joeeatswhat @timberjoe"
-    citytag = "#"+city
-    statetag = "#"+state
-    ziptag = "#"+zip
-    if statetag == 'FL':
-        statetag += ' #Florida'
-    fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag
-    # 153 Sugar Belle Dr, Winter Garden, FL 34787
-    # inphotos[0].rsplit(r'/', 1)
-    return (fulltag)
 
 ##################################################################################################
 
@@ -1394,8 +1375,8 @@ def process_reviews(outputs):
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         driver.get(env.URL)
         time.sleep(5)
-        scrolling(counter(driver), driver)
-        webdata = get_data(driver,outputs)
+        google_scroll(counter_google(driver), driver)
+        webdata = get_google_data(driver,outputs)
         write_to_xlsx2(webdata, outputs)
         driver.close()
         # outputs['data'].save(xls)
@@ -1410,14 +1391,14 @@ def process_reviews(outputs):
             print ("Processing : ",processrow[1].value)
             writtento = (ast.literal_eval(processrow[9].value))
             # Check to see if the website has already been written to according to the xls sheet, if it has not... then process
-            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or writtento["threads"]==0 ) and (is_port_open(env.wpAPI, 443)) and (env.web or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or env.threads or env.google)and (processrow[2].value is not None) :
+            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or env.threads or env.google)and (processrow[2].value is not None) :
                 if env.web :
                     #if writtento["web"] == 0 :
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.web != 1):
                         if webcount < env.postsperrun:
                             try:
-                                #NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
-                                NewWebPost = post_to_wp(processrow[1].value, processrow[2].value, outputs['web'] ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
+                                #NewWebPost = post_to_wordpress(processrow[1].value, processrow[2].value, processrow[2].value ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
+                                NewWebPost = post_to_wordpress(processrow[1].value, processrow[2].value, outputs['web'] ,processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value)
                                 try:
                                     writtento["web"] = 1
                                     processrow[9].value = str(writtento)
@@ -1524,7 +1505,7 @@ def process_reviews(outputs):
                         if xtwittercount < env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
-                                NewxtwitterPost = post_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'] )
+                                NewxtwitterPost = post_to_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'] )
                                 try:
                                     print ('  Start generating content to post to xtwitter')
                                     writtento["xtwitter"] = 1
@@ -1555,13 +1536,13 @@ def process_reviews(outputs):
                             print ('  Exceeded the number of xtwitter posts per run, skipping', processrow[1].value)
                     else:
                         print ('  Xtwitter: Skipping posting for ',processrow[1].value,' previously written')
-    #post_x(title, content, date, rating, address, picslist, instasession)
+    #post_to_x_example(title, content, date, rating, address, picslist, instasession)
     # else:
     #     print ('Exceeded the number of posts per run, exiting')
                 # if xtwitter:
-                #     namedict = {'name':'xtwitter', 'namecount':xtwittercount, 'namepost':'NewxtwitterPost', 'subroutine':post_x}
-                #    # junction('xtwitter',xtwittercount,'NewxtwitterPost','post_x', outputs, writtento, processrow)
-                #     socials('xtwitter',namedict,outputs,writtento, processrow,post_x)
+                #     namedict = {'name':'xtwitter', 'namecount':xtwittercount, 'namepost':'NewxtwitterPost', 'subroutine':post_to_x_example}
+                #    # junction('xtwitter',xtwittercount,'NewxtwitterPost','post_to_x_example', outputs, writtento, processrow)
+                #     socials('xtwitter',namedict,outputs,writtento, processrow,post_to_x_example)
     return #(outputs['web'])
 
 
@@ -1571,7 +1552,7 @@ def process_reviews(outputs):
 
 # def junction(name,namedict, outputs, writtento, processrow ):
 #     if name == "xtwitter":
-#         twitteroptions = {'name':'xtwitter', 'namecount':namedict['namecount'], 'namepost':'NewxtwitterPost', 'subroutine':'post_x'}
+#         twitteroptions = {'name':'xtwitter', 'namecount':namedict['namecount'], 'namepost':'NewxtwitterPost', 'subroutine':'post_to_x_example'}
 #         namedict.update({'xtwitter':twitteroptions})
 #         stationout = socials(name, namedict, outputs, writtento, processrow)
 #     return namedict
@@ -1620,7 +1601,7 @@ if __name__ == "__main__":
     print('starting ...')
     preload()
     print('making connections ...')
-    outputs = authconnect()
+    outputs = get_auth_connect()
     process_reviews(outputs)
     print('Done!')
 
