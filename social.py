@@ -1028,7 +1028,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
     #countreview = False
     addresshtml = re.sub(" ", ".",address)
     googleadress = r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
-        addresshtml + r">"+address+r"</a>"
+        addresshtml + r">"+str(address)+r"</a>"
     contentpics = ''
     picl = picslist[1:-1]
     pic2 = picl.replace(",","")#re.sub(r',','',picl) #re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
@@ -1154,7 +1154,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
         file_id, link = check_media(picname, headers)
 #        link = linknew['rendered']
         if file_id is False:
-            print ('    '+picname+' was not already found in library, adding it')
+            print ('    '+str(picname)+' was not already found in library, adding it')
 #            countreview = True
             image = {
                 "file": open(pic, "rb"),
@@ -1191,7 +1191,7 @@ def post_to_wp(title, content,  headers,date, rating,address, picslist):
                     headers=headers, data={"post" : post_id},timeout=30)
             except Exception as error:
                 print ('    Error- Image ',picname,' was not attached to post.  response: ',\
-                       image_response+' '+error)
+                       image_response+' '+type(error).__name__)
             try:
                 post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
                     headers=headers,timeout=30)
