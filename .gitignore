@@ -20,3 +20,4 @@ env.py
 social.py
 .vscode/
 googleinfo.py
+social.examples.py
