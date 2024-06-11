@@ -38,7 +38,7 @@ import tweepy
 
 #Thread    
 import asyncio
-#import aiohttps
+import aiohttp
 
 from pathlib import Path
 from sqlalchemy import create_engine
@@ -705,6 +705,8 @@ def write_to_xlsx(webdata, outputs):
 
     #df = pd.DataFrame(data, columns=cols)
     #df.to_excel('./Output/reviews.xlsx')
+
+##################################################################################################
 
 def write_to_xlsx2(data, outputs):
     print('write to excel...')
