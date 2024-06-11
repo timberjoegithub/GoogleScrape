@@ -1412,7 +1412,7 @@ def process_reviews(outputs):
                                                                    value,Posts.web != 1):
                         if webcount < env.postsperrun:
                             try:
-                                NewWebPost=post_to_wordpress(processrow[1].value,processrow[2].\
+                                new_web_post=post_to_wordpress(processrow[1].value,processrow[2].\
                                     value,outputs['web'] ,processrow[7].value, processrow[3].value\
                                     , processrow[8].value, processrow[5].value,outputs)
                                 try:
@@ -1421,7 +1421,7 @@ def process_reviews(outputs):
                                 except Exception as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__)
                                 print ('  Success Posting to Wordpress: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
-                                if NewWebPost:
+                                if new_web_post:
                                     webcount +=1
                                 try:
                                     print('  write to xls for web')
