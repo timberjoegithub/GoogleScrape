@@ -44,6 +44,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy
+from sqlalchemy import null
 import googlemaps
 #import mysqlclient
 #import mysql-connector-python
@@ -582,7 +583,7 @@ def get_google_data(driver,outputs ):
                     database_update_row(name,"googleurl",googleurl,"onlyempty",outputs)
                     database_update_row(name,"place_id",place_id,"onlyempty",outputs)
                     database_update_row(name,"googledetails",details,"onlyempty",outputs)
-                    database_update_row(name,"google",1,"forceall",outputs)
+                    database_update_row(name,"google",1,"onlyempty",outputs)
                 except Exception as error:
                     print('Error writing business details from google maps : ',error)
         else:
@@ -770,13 +771,13 @@ def database_update_row(review_name,column_name,column_value,update_style,output
         elif update_style == "onlyempty":
             #print('Posts.name == review_name,**kwargs')
             postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
-                     getattr(Posts,column_name).is_(None)).all()
+                            getattr(Posts,column_name).is_not(null())).all()
  #           print ('Postval : ',postval)
-            temp = getattr(Posts,column_name)
+ #           temp = getattr(Posts,column_name)
  #           print ('temp = ',temp)
  #           print (getattr(Posts,column_name))
             # db_session.query(Notice).filter(getattr(Notice, col_name).like("%" + query + "%"))
-            if postval:
+            if len(postval) == 0 :
 # #            if outputs['postssession'].query(Posts).filter(Posts.name ==\
 #                     review_name,temp.is_(None)).all:
 #  #           if outputs['postssession'].query(Posts).filter(Posts.name == review_name,Posts.\
@@ -823,12 +824,12 @@ def check_wordpress_media(filename,headers):
         return file_id, link
     except Exception as error:
         print('    No existing media with same name in Wordpress media folder: '+filename+' '\
-              +error)
+              ,error)
         return (False, False)
 
 ##################################################################################################
 
-def check_wordpress_post(postname,postdate,headers):
+def check_wordpress_post_backup(postname,postdate,headers):
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers,timeout=50)
     try:
         result = response.json()
@@ -1121,7 +1122,7 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
 
 ##################################################################################################
 
-def post_to_wordpress(title, content,  headers,date, rating,address, picslist):
+def post_to_wordpress(title,content, headers,date,rating,address,picslist,outputs):
     # post
     newPost = False
     #countreview = False
@@ -1213,7 +1214,7 @@ def post_to_wordpress(title, content,  headers,date, rating,address, picslist):
     print ('    Got Date: ', newdate2, newdate)
     try:
         post_id, post_link = check_wordpress_post(title,newdate2,headers)
-        database_update_row(title,"wpurl",post_link,"forceall",outputs)
+        database_update_row(title,"wpurl",post_link,"onlyempty",outputs)
     except  Exception as error :
         print ('Could not check to see post already exists',error)
     if not post_id:
@@ -1413,7 +1414,7 @@ def process_reviews(outputs):
                             try:
                                 NewWebPost=post_to_wordpress(processrow[1].value,processrow[2].\
                                     value,outputs['web'] ,processrow[7].value, processrow[3].value\
-                                    , processrow[8].value, processrow[5].value)
+                                    , processrow[8].value, processrow[5].value,outputs)
                                 try:
                                     writtento["web"] = 1
                                     processrow[9].value = str(writtento)
