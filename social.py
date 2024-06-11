@@ -147,7 +147,7 @@ def get_auth_connect():
         usersession = session.query(Users).filter(Users.user=='joesteele')
         dbuser = usersession[0]
         #for userloop in usersession:
-        print(" - " + dbuser.user + ' ' + dbuser.googleurl)
+        print("- " + dbuser.user + ' ' + dbuser.googleurl)
         connections.update({'user':dbuser})
         posts = session.query(Posts).all()
         connections.update({'posts':posts})
@@ -345,7 +345,7 @@ def get_google_data(driver,outputs ):
     more_pics = driver.find_elements(By.CLASS_NAME, 'Tya61d')
     for list_more_pics in more_pics:
         if 'showMorePhotos' in  list_more_pics.get_attribute("jsaction") :
-            print('Found extra pics')
+            print('    Found extra pics')
             list_more_pics.click()
     elements = driver.find_elements(By.CLASS_NAME, 'jftiEf')
 
@@ -361,7 +361,7 @@ def get_google_data(driver,outputs ):
             visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
         except Exception:
             visitdate = "Unknown"
-        print('Visited: ',visitdate)
+        print('  Visited: ',visitdate)
         try:
             text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
         except Exception:
@@ -416,7 +416,7 @@ def get_google_data(driver,outputs ):
             #   it is full size
             urlmedia = re.sub('=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
                 lmpics.get_attribute("style")))[0])
-            print ('Pic URL : ',urlmedia)
+            print ('    Pic URL : ',urlmedia)
             pics.append(urlmedia)
             # Grab the name of the file and remove all spaces and special charecters to name the
             #    folder
@@ -660,7 +660,7 @@ def get_wordpress_post_id_and_link(postname,headers2):
     result = response.json()
     if len(result) > 0 :
         post_id = int(result[0]['id'])
-        post_date = result[0]['date']
+#        post_date = result[0]['date']
         post_link = result[0]['link']
         return post_id, post_link
     else:
@@ -1249,7 +1249,7 @@ def process_reviews(outputs):
                                 new_web_post=post_to_wordpress(processrow[1].value,processrow[2].\
                                     value,outputs['web'] ,processrow[7].value, processrow[3].value\
                                     , processrow[8].value, processrow[5].value,outputs)
-                                print ('  Success Posting to Wordpress: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
+                                print ('  Success Posting to Wordpress: '+processrow[1].value)
                                 if new_web_post:
                                     webcount +=1
                                 try:
@@ -1257,20 +1257,17 @@ def process_reviews(outputs):
                                     outputs['datawb'].save(env.xls)
                                     print('  Successfully updated spreadsheet')
                                 except Exception as error:
-                                    print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:                                try:
+                                    print("  An error occurred writing Excel file:", type(error).__name__)
                                 try:
                                     print('  write to DB for web')
                                     outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"web" : 1})
                                     outputs['postssession'].commit()
                                     print('  Successfully wrote to database')
                                 except Exception as error:
-                                    print("  An error occurred writing database", type(error).__name__) # An error occurred:
+                                    print("  An error occurred writing database", type(error).__name__)
                             except Exception as error:
-                                print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"])
-                                print (error)                                #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
                                 print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"],' ',error)
                                 print (error)
-                                #print ('  Error writing web post : ',processrow[1].value, processrow[2].value, outputs['web'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"] )
                         else:
                             print ('  Exceeded the number of web posts per run, skipping', processrow[1].value)
                     else:
@@ -1287,7 +1284,7 @@ def process_reviews(outputs):
                                     processrow[9].value = str(writtento)
                                 except Exception as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__)
-                                print ('  Success Posting to Instagram: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
+                                print ('  Success Posting to Instagram: '+processrow[1].value)
                                 if NewInstagramPost:
                                     instagramcount +=1
                                 try:
