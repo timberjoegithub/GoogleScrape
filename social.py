@@ -399,7 +399,7 @@ def get_google_data(driver,outputs ):
                     database_update_row(name,"googleurl",googleurl,"onlyempty",outputs)
                     database_update_row(name,"place_id",place_id,"onlyempty",outputs)
                     database_update_row(name,"googledetails",details,"onlyempty",outputs)
-                    database_update_row(name,"google",1,"onlyempty",outputs)
+                    database_update_row(name,"google","1","onlyempty",outputs)
                 except Exception as error:
                     print('Error writing business details from google maps : ',error)
         else:
@@ -599,6 +599,21 @@ def check_is_port_open(host, port):
     except Exception as error:
         print ('Could not open port to website: ', host,  type(error))
         return False
+
+##################################################################################################
+
+
+def get_wordpress_post_id_and_link(postname,headers2):
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
+    result = response.json()
+    if len(result) > 0 :
+        post_id = int(result[0]['id'])
+        post_date = result[0]['date']
+        post_link = result[0]['link']
+        return post_id, post_link
+    else:
+        print('No existing post with same name: ' + postname)
+        return False, False
 
 ##################################################################################################
 
@@ -884,7 +899,7 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
 
 ##################################################################################################
 
-def post_to_wordpress(title,content, headers,date,rating,address,picslist,outputs):
+def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs):
     # post
     newPost = False
     #countreview = False
@@ -1170,6 +1185,11 @@ def process_reviews(outputs):
                 env.threads or env.google)and (processrow[2].value is not None) :
                 if env.web :
                     #if writtento["web"] == 0 :
+                    try:
+                        post_id, post_link = get_wordpress_post_id_and_link(processrow[1].value,outputs['web'] )
+                        database_update_row(processrow[1].value,"wpurl",post_link,"forceall",outputs)
+                    except  Exception as error :
+                        print ('Could not check to see post already exists',error)
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
                                                                    value,Posts.web != 1):
                         if webcount < env.postsperrun:
