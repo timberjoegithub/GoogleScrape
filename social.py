@@ -544,6 +544,58 @@ def write_to_xlsx2(data, outputs):
 
 ##################################################################################################
 
+def write_to_database(data, outputs):
+    print('write to database ...')
+    sqlalchemy.null()
+    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
+        'dictPostComplete']
+    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+        'address','dictPostComplete']
+    df = pd.DataFrame(data, columns=cols)
+    df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2)
+    #df2 = df1.where((pd.notnull(df)), None)  # take out NAN problems
+    #df3.astype(object).where(pd.notnull(df2), None)
+    print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
+    rows = list(data)
+    if env.needreversed:
+        rows = reversed(rows)
+    #jsonposts = json.dumps(outputs['posts'], default=Posts)
+    print("Encode Object into JSON formatted Data using jsonpickle")
+    jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
+    for processrow in df2.values:
+        if  (processrow[1] in df.values):
+            print ('  Row ',processrow[0],' ', processrow[1],'  already in XLS sheet')
+            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
+                picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
+                date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
+        else:
+            if processrow[1] is not None:
+                # Create a Python dictionary object with all the column values
+                # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
+                #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
+                #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
+                d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
+                    picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
+                    date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
+                print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
+        # Append the above Python dictionary object as a row to the existing pandas DataFrame
+        # Using the DataFrame.append() function
+        try:
+            if processrow[1] in jsonposts : #outputs['posts']):
+                print ('  Row ',processrow[0],' ', processrow[1],'  already in Database')
+            else:
+                outputs['postssession'].add(d2_row)
+                outputs['postssession'].commit()
+                print ('  Row ',processrow[0],' ', processrow[1],'  added to Database')
+        except Exception as error:
+            print('    Not able to write to post data table: ' , type(error))
+            outputs['postssession'].rollback()
+            raise
+    df.to_excel(env.xls)
+    return data
+
+##################################################################################################
+
 def database_update_row(review_name,column_name,column_value,update_style,outputs):
     try:
         if update_style == "forceall":
@@ -976,7 +1028,7 @@ def post_to_wordpress(title,content, headers,date,rating,address,picslist,output
     print ('    Got Date: ', newdate2, newdate)
     try:
         post_id, post_link = check_wordpress_post(title,newdate2,headers)
-        database_update_row(title,"wpurl",post_link,"onlyempty",outputs)
+        database_update_row(title,"wpurl",post_link,"forceall",outputs)
     except  Exception as error :
         print ('Could not check to see post already exists',error)
     if not post_id:
@@ -1170,18 +1222,18 @@ def process_reviews(outputs):
                 env.threads or env.google)and (processrow[2].value is not None) :
                 if env.web :
                     #if writtento["web"] == 0 :
+                    try:
+                        writtento["web"] = 1
+                        processrow[9].value = str(writtento)
+                    except Exception as error:
+                        print("  An error occurred setting value to go into Excel file:", type(error).__name__)
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
-                                                                   value,Posts.web != 1):
+                            value,Posts.web != 1):
                         if webcount < env.postsperrun:
                             try:
                                 new_web_post=post_to_wordpress(processrow[1].value,processrow[2].\
                                     value,outputs['web'] ,processrow[7].value, processrow[3].value\
                                     , processrow[8].value, processrow[5].value,outputs)
-                                try:
-                                    writtento["web"] = 1
-                                    processrow[9].value = str(writtento)
-                                except Exception as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
                                 print ('  Success Posting to Wordpress: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
                                 if new_web_post:
                                     webcount +=1
