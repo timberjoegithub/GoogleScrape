@@ -793,22 +793,22 @@ def get_wordpress_featured_photo_id(post_id):
 
 def post_to_x2(title, content, date, rating, address, picslist, instasession): 
     """
-Post to x2.
+    Post to x2.
 
-This function posts content to a social media platform using the provided data.
+    This function posts content to a social media platform using the provided data.
 
-Args:
-    title (str): The title of the post.
-    content (str): The content of the post.
-    date (str): The date of the post.
-    rating (int): The rating of the post.
-    address (str): The address associated with the post.
-    picslist (list): A list of pictures for the post.
-    instasession: The Instagram session for posting.
+    Args:
+        title (str): The title of the post.
+        content (str): The content of the post.
+        date (str): The date of the post.
+        rating (int): The rating of the post.
+        address (str): The address associated with the post.
+        picslist (list): A list of pictures for the post.
+        instasession: The Instagram session for posting.
 
-Returns:
-    str: The media ID of the posted content.
-"""
+    Returns:
+        str: The media ID of the posted content.
+    """
 
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
@@ -864,6 +864,23 @@ Returns:
 ##################################################################################################
 
 def post_facebook3(title, content, date, rating, address, picslist, instasession):
+    """
+    Post to Facebook3.
+
+    This function posts content to Facebook using the provided data.
+
+    Args:
+        title (str): The title of the post.
+        content (str): The content of the post.
+        date (str): The date of the post.
+        rating (int): The rating of the post.
+        address (str): The address associated with the post.
+        picslist (list): A list of pictures for the post.
+        instasession: The Instagram session for posting.
+
+    Returns:
+        bool: Indicates if the post was successfully made.
+    """
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     group_id = env.facebookpageID
     auth_token = env.facebookpass
@@ -1051,6 +1068,24 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
 ##################################################################################################
 
 def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs):
+    """
+    Post to WordPress.
+
+    This function posts content to a WordPress site using the provided data.
+
+    Args:
+        title (str): The title of the post.
+        content (str): The content of the post.
+        headers: Headers for the request.
+        date (str): The date of the post.
+        rating (str): The rating of the post.
+        address (str): The address associated with the post.
+        picslist (list): A list of pictures for the post.
+        outputs: Outputs for the post.
+
+    Returns:
+        None
+"""
     # post
     newPost = False
     #countreview = False
