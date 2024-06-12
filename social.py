@@ -121,15 +121,15 @@ def preload():
     file=pathlib.Path("./config/joeteststeele_uuid_and_cookie.json")
     if pathlib.Path.exists(file):
         pathlib.Path.unlink(file)
-    today = datetime.today().strftime('%Y-%m-%d')
+#    today = datetime.today().strftime('%Y-%m-%d')
     return
 
 ##################################################################################################
 
-def clearlist (list):
-    for listelement in list:
+def clearlist (my_list):
+    for listelement in my_list:
         listelement.clear
-    return list
+    return my_list
 
 ##################################################################################################
 
@@ -232,19 +232,19 @@ def get_twitter_conn_v2(api_key, api_secret, access_token, access_token_secret) 
 
 ##################################################################################################
 
-def get_hastags (address, name, type):
+def get_hastags (address, name, hashtype):
     nameNoSpaces = re.sub( r'[^a-zA-Z]','',name)
     addressdict = address.rsplit(r' ',3)
-    zip = addressdict[3]
+    zip_code = addressdict[3]
     state = addressdict[2]
     city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
-    if 'short' in type:
+    if 'short' in hashtype:
         defaulttags = '#'+nameNoSpaces+' #foodie #food #joeeatswhat @timberjoe'
     else:
         defaulttags = "\n\n\n#"+nameNoSpaces+" #foodie #music #food #travel #drinks #instagood #feedme #joeeatswhat @timberjoe"
     citytag = "#"+city
     statetag = "#"+state
-    ziptag = "#"+zip
+    ziptag = "#"+zip_code
     if statetag == 'FL':
         statetag += ' #Florida'
     fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag
@@ -307,15 +307,12 @@ def post_facebook_video(group_id, video_path,auth_token,title, content, date, ra
     url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
     files={}
     addresshtml = re.sub(" ", ".",address)
-    #args={}
-    #data["message"]=title + "\n"+address+"\n\n"+ content + "\n"+rating+"\n"+date
     for eachfile in video_path:
-       # my_dict['key'].append(1)
         files.update({eachfile: open(eachfile, 'rb')})
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
-             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
-             "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title, 'long')+
-             "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
+            r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
+            "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title, 'long')+
+            "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
             "alt_text" : title
     }
     try:
@@ -374,8 +371,8 @@ def get_google_data(driver,outputs ):
         #  > span.kvMYJc
         except Exception as error:
             score = "Unknown"
+            print ('Error: ',error)
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
-
     #  Grab more info from google maps entry on this particular review
         if outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google != 1) or env.forcegoogleupdate:
             gmaps = googlemaps.Client(env.googleapipass)
@@ -387,11 +384,11 @@ def get_google_data(driver,outputs ):
             # Get place details
         # googledetails = gmaps.place(place_id)
                 try:
-                    businessurl = (details['result']['website'])
-                    latitude = (details['result']['geometry']['location']['lat'])
-                    longitude = (details['result']['geometry']['location']['lng'])
-                    pluscode = (details['result']['plus_code']['compound_code'])
-                    googleurl = (details['result']['url'])
+                    businessurl = details['result']['website']
+                    latitude = details['result']['geometry']['location']['lat']
+                    longitude = details['result']['geometry']['location']['lng']
+                    pluscode = details['result']['plus_code']['compound_code']
+                    googleurl = details['result']['url']
                     database_update_row(name,"businessurl",businessurl,"onlyempty",outputs)
                     database_update_row(name,"latitude",latitude,"onlyempty",outputs)
                     database_update_row(name,"longitude",longitude,"onlyempty",outputs)
@@ -615,10 +612,10 @@ def database_update_row(review_name,column_name,column_value,update_style,output
             outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
                     ({column_name : "1"})
             print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',\
-                   column_value)
+                column_value)
     except Exception as error:
         print("    Not able to write to post data table to update ",review_name," ",column_name,"\
-               to: ",column_value , type(error), error)
+            to: ",column_value , type(error), error)
         outputs['postssession'].rollback()
         raise
     else:
@@ -630,7 +627,7 @@ def database_update_row(review_name,column_name,column_value,update_style,output
 def check_wordpress_media(filename,headers):
     file_name_minus_extension = filename
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
-                             headers=headers,timeout=40)
+                        headers=headers,timeout=40)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
@@ -638,7 +635,7 @@ def check_wordpress_media(filename,headers):
         return file_id, link
     except Exception as error:
         print('    No existing media with same name in Wordpress media folder: '+filename+' '\
-              ,error)
+            ,error)
         return (False, False)
 
 ##################################################################################################
@@ -728,14 +725,14 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession):
     #imgs_id = []
     client_v1 = get_twitter_conn_v1(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
     client_v2 = get_twitter_conn_v2(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
-   # media_path = "C:\\YourPath"
+    # media_path = "C:\\YourPath"
     for img in img_list:
         if 'montage.mp4' in img:
             imgs_vid.append(img.strip())
         else:
             imgs_pic.append(img.strip())
     if imgs_vid:
-       # print ("loop")
+        # print ("loop")
         try:
             # post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, content,
             #     date, rating, address)
@@ -751,7 +748,7 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession):
             #     print ('   Count of twitter message: ',len(status_message))
             # Upload video
             media = client_v1.media_upload(filename=video_path)
-      #      media_id = media.media_id
+        #      media_id = media.media_id
             #media = api.media_upload(video_path, media_category='tweet_video')
             # Post tweet with video
             client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
@@ -803,7 +800,7 @@ def post_to_threads (title, content, date, rating, address, picslist, instasessi
                 + content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+ \
                 "\n\nhttps://www.joeeatswhat.com "+"\n\n"
             instasession.video_upload(outputmontage, data)
- #           video2 = instasession.video_upload(outputmontage, data)
+#           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
             print("  An error occurred uploading video to Threads:", type(error).__name__) 
             return False
@@ -820,7 +817,7 @@ def post_to_threads2 (title, content, date, rating, address, picslist, instasess
         try:
             data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
             instasession.video_upload(outputmontage, data)
- #           video2 = instasession.video_upload(outputmontage, data)
+#           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__)
             return False
@@ -913,7 +910,7 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
         try:
             data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
             instasession.video_upload(outputmontage, data)
- #           video2 = instasession.video_upload(outputmontage, data)
+#           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__)
             return False
@@ -975,36 +972,36 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         if "day" in date:
             tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
             print ('Stuff - > ',tempdate)
- #           date = dt.timedelta(days=tempdate)
+#           date = dt.timedelta(days=tempdate)
 #            newdate = dt.datetime.strptime(date_string, formatting).date()
             newdate = datetime.today() + relativedelta(days=tempdate)
         else:
             if "a week" in date:
- #               date = dt.timedelta(weeks= -1)
+#               date = dt.timedelta(weeks= -1)
 #                newdate = dt.datetime.strptime(date_string, formatting).date()
                 newdate = datetime.today() - relativedelta(weeks= -1)
             else:
                 if "week" in date:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
                     print ('Stuff - > ',tempdate)
- #                   date = dt.timedelta(weeks= tempdate)
+#                   date = dt.timedelta(weeks= tempdate)
 #                    newdate = dt.datetime.strptime(date_string, formatting).date()
                     newdate = datetime.today() + relativedelta(weeks= tempdate)
                 else:
                     if "a month" in date:
- #                       date = dt.timedelta(months= -1)
+#                       date = dt.timedelta(months= -1)
 #                        newdate = dt.datetime.strptime(date_string, formatting).date()
                         newdate = datetime.today() - relativedelta(months = -1)
                     else:
                         if "month" in date:
                             tempdate = -int(re.sub( r'[^0-9]','',date_string))
                             print ('Stuff - > ',tempdate)
- #                           date = dt.timedelta(months= tempdate)
+#                           date = dt.timedelta(months= tempdate)
 #                            newdate = dt.datetime.strptime(date_string, formatting).date()
                             newdate = datetime.today() + relativedelta(months =  tempdate)
                         else:
                             if "a year" in date:
- #                               date = dt.timedelta(years= -1)
+#                               date = dt.timedelta(years= -1)
 #                                newdate = dt.datetime.strptime(date_string, formatting).date()
                                 newdate = datetime.today() - relativedelta(years= -1)
                             else:
@@ -1012,7 +1009,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                                     try:
                                         tempdate = -int(re.sub( r'[^0-9]','',date_string))
                                         print ('Stuff - > ',tempdate)
- #                                       date = dt.timedelta( years= tempdate)
+#                                       date = dt.timedelta( years= tempdate)
 #                                    newdate = dt.datetime.strptime(date_string).date()
                                         newdate = datetime.today() + relativedelta(years= tempdate)
                                     except Exception as error:
@@ -1055,7 +1052,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             "content": googleadress+'\n\n'+content+'\n'+rating ,
             "status": "publish",  # Set to 'draft' if you want to save as a draft
             "date": newdate2,
-     #       "date": str(newdate)+'T22:00:00',
+    #       "date": str(newdate)+'T22:00:00',
         # "author":"joesteele"
         }
         try:
@@ -1096,10 +1093,10 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                     files=image,timeout=30)
             except Exception as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", \
-                      type(error).__name__)
+                    type(error).__name__)
             if image_response.status_code != 201 :
                 print ('      Error- Image ',picname,' was not successfully uploaded.  response: ', \
-                       image_response)
+                    image_response)
             else:
                 pic_dic=image_response.json()
                 file_id= pic_dic.get('id')
@@ -1111,28 +1108,28 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                 linkslist.append(linksDict)
             except Exception as error:
                 print("    An error adding to dictionary " , file_id , link , " occurred:", \
-                      type(error).__name__) # An error occurred:
+                    type(error).__name__) # An error occurred:
         else:
             print ('    Photo ',picname,' was already in library and added to post with ID: ', \
-                   file_id,' : ',link)
+                file_id,' : ',link)
             try:
                 image_response = requests.post(env.wpAPI + "/media/" + str(file_id), \
                     headers=headers, data={"post" : post_id},timeout=30)
             except Exception as error:
                 print ('    Error- Image ',picname,' was not attached to post.  response: ',\
-                       image_response+' '+type(error).__name__)
+                    image_response+' '+type(error).__name__)
             try:
                 post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
                     headers=headers,timeout=30)
                 if link in str(post_response.text):
                     print ('    Image link for ', picname, 'already in content of post: ' \
-                           ,post_id, post_response.text, link)
+                        ,post_id, post_response.text, link)
                 else:
                     linkslist.append({'file_id' : file_id , 'link' : link})
- #                   countreview = True
+#                   countreview = True
             except BaseException as error:
                 print("    An error loading the metadata from the post " + post_response.title + \
-                       ' occurred: '+type(error).__name__)
+                    ' occurred: '+type(error).__name__)
     #ratinghtml = post_response.text
     first_mp4 = True
     fmedia = {}
@@ -1152,7 +1149,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             else:
                 contentpics += '\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"' + r'src="' + \
                     piclink['link'] + r'"></div>'
- #               fmedia.append = piclink{'file_id' }
+#               fmedia.append = piclink{'file_id' }
 #            contentpics += '\n '+r'<img src="'+ piclink['link'] + '> \n'
             #contentpics += r'<img src="'+ piclink['link'] + r' alt="' + title +r'">' +'\n\n'
         except Exception as error:
@@ -1171,7 +1168,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         print ('  ',response_piclinks)
     except Exception as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', \
-              type(error).__name__) # An error occurred')
+            type(error).__name__) # An error occurred')
     return newPost
 
 ##################################################################################################
@@ -1210,7 +1207,7 @@ def process_reviews(outputs):
             driver = webdriver.Chrome(options=options) # Firefox(options=options)
         # Changing the property of the navigator value for webdriver to undefined
         driver.execute_script("Object.defineProperty(navigator,'webdriver',\
-                              {get:()=> undefined})")
+                            {get:()=> undefined})")
         driver.get(env.URL)
         time.sleep(5)
         google_scroll(counter_google(driver), driver)
@@ -1342,7 +1339,7 @@ def process_reviews(outputs):
                         print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
                 if env.xtwitter:
                     #if writtento["xtwitter"] == 0:
-                   # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
+                    #               # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != 1):
                         if xtwittercount < env.postsperrun:
                             try:
