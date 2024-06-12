@@ -118,6 +118,13 @@ class Posts(Base):
 ##################################################################################################
 
 def preload():
+    """
+    Removes a specific file if it exists.
+
+    Returns:
+        None
+    """
+
     file=pathlib.Path("./config/joeteststeele_uuid_and_cookie.json")
     if pathlib.Path.exists(file):
         pathlib.Path.unlink(file)
@@ -126,7 +133,17 @@ def preload():
 
 ##################################################################################################
 
-def clearlist (my_list):
+def clearlist(my_list):
+    """
+    Clears all elements in a list.
+
+    Args:
+        my_list (list): The list to be cleared.
+
+    Returns:
+        list: The input list with all elements cleared.
+    """
+
     for listelement in my_list:
         listelement.clear
     return my_list
@@ -232,7 +249,19 @@ def get_twitter_conn_v2(api_key, api_secret, access_token, access_token_secret) 
 
 ##################################################################################################
 
-def get_hastags (address, name, hashtype):
+def get_hastags(address, name, hashtype):
+    """
+    Generates hashtags based on the address, name, and type provided.
+
+    Args:
+        address (str): The address related to the content.
+        name (str): The name associated with the content.
+        hashtype (str): The type of hashtags to generate.
+
+    Returns:
+        str: The generated hashtags based on the input parameters.
+    """
+
     nameNoSpaces = re.sub( r'[^a-zA-Z]','',name)
     addressdict = address.rsplit(r' ',3)
     zip_code = addressdict[3]
@@ -256,6 +285,16 @@ def get_hastags (address, name, hashtype):
 
 # Grab a count of how far we need to scroll
 def counter_google(driver):
+    """
+    Counts the number of Google search results pages.
+
+    Args:
+        driver: The Selenium WebDriver instance.
+
+    Returns:
+        int: The total number of search result pages.
+    """
+
     result = driver.find_element(By.CLASS_NAME,'Qha3nb').text
     result = result.replace(',', '')
     result = result.split(' ')
@@ -265,6 +304,16 @@ def counter_google(driver):
 ##################################################################################################
 
 def make_montage_video_from_google(inphotos):
+    """
+    Creates a montage video from a list of input photos.
+
+    Args:
+        inphotos (list): List of paths to input photo files.
+
+    Returns:
+        tuple: A tuple containing the path to the output video file and a boolean indicating success.
+    """
+
 # Load the photos from the folder
 # Set the duration of each photo to 2 seconds
     if inphotos:
@@ -297,13 +346,36 @@ def make_montage_video_from_google(inphotos):
 ##################################################################################################
 
 def is_docker():
+    """
+    Checks if the code is running in a Docker container.
+
+    Returns:
+        bool: True if running in a Docker container, False otherwise.
+    """
     cgroup = Path('/proc/self/cgroup')
     #print (cgroup.read_text())
     return Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in cgroup.read_text()
 
 ##################################################################################################
 
-def post_facebook_video(group_id, video_path,auth_token,title, content, date, rating, address):
+def post_facebook_video(group_id, video_path, auth_token, title, content, date, rating, address):
+    """
+    Posts a video to a Facebook group with specified details.
+
+    Args:
+        group_id (str): The ID of the Facebook group.
+        video_path (list): List of paths to the video files to be uploaded.
+        auth_token (str): The authentication token for posting to Facebook.
+        title (str): The title of the video.
+        content (str): Additional content to be included in the post.
+        date (str): The date of the post.
+        rating (str): The rating associated with the post.
+        address (str): The address related to the post.
+
+    Returns:
+        dict or bool: The response JSON if successful, False if an error occurs.
+    """
+
     url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
     files={}
     addresshtml = re.sub(" ", ".",address)
@@ -469,6 +541,19 @@ def get_google_data(driver,outputs ):
 
 # Do the google_scroll
 def google_scroll(counter_google,driver):
+    """
+    Scrolls down a Google search results page a specified number of times.
+
+    Args:
+        counter_google (int): The number of times to scroll down the page.
+        driver: The Selenium WebDriver instance.
+
+    Returns:
+        int: The result of the last scroll operation.
+
+    Raises:
+        Exception: If an error occurs during scrolling.
+    """
     print('google_scroll...')
     time.sleep(3)
     scrollable_div = driver.find_element(By.XPATH,
@@ -651,7 +736,6 @@ def check_is_port_open(host, port):
 
 ##################################################################################################
 
-
 def get_wordpress_post_id_and_link(postname,headers2):
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
@@ -708,6 +792,24 @@ def get_wordpress_featured_photo_id(post_id):
 ##################################################################################################
 
 def post_to_x2(title, content, date, rating, address, picslist, instasession): 
+    """
+Post to x2.
+
+This function posts content to a social media platform using the provided data.
+
+Args:
+    title (str): The title of the post.
+    content (str): The content of the post.
+    date (str): The date of the post.
+    rating (int): The rating of the post.
+    address (str): The address associated with the post.
+    picslist (list): A list of pictures for the post.
+    instasession: The Instagram session for posting.
+
+Returns:
+    str: The media ID of the posted content.
+"""
+
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
     CONSUMER_KEY = env.x_consumer_key
