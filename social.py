@@ -518,10 +518,10 @@ def write_to_xlsx2(data, outputs):
                 date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
         else:
             if processrow[1] is not None:
-                # Create a Python dictionary object with all the column values
-                # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
-                #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
-                #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
+            # Create a Python dictionary object with all the column values
+            # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
+            #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
+            #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
                 d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
                     picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
                     date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
@@ -570,10 +570,10 @@ def write_to_database(data, outputs):
                 date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
         else:
             if processrow[1] is not None:
-                # Create a Python dictionary object with all the column values
-                # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
-                #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
-                #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
+            # Create a Python dictionary object with all the column values
+            # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
+            #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
+            #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
                 d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
                     picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
                     date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
@@ -598,11 +598,11 @@ def write_to_database(data, outputs):
 
 def database_update_row(review_name,column_name,column_value,update_style,outputs):
     try:
-        if update_style == "forceall":
+        if update_style == "forceall" and column_value != False:
             outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
                         ({column_name : column_value})
             print ('    Force Updated ',column_name, ' to: ',column_value)
-        elif update_style == "onlyempty":
+        elif update_style == "onlyempty"  and column_value != False:
             postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(null())).all()
             if len(postval) == 0 :
@@ -612,10 +612,10 @@ def database_update_row(review_name,column_name,column_value,update_style,output
         elif update_style == "toggletrue":
             postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(1)).all()
-            if len(postval) == 0 :
-                outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
-                    ({column_name : column_value})
-                print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',column_value)
+            outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+                    ({column_name : "1"})
+            print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',\
+                   column_value)
     except Exception as error:
         print("    Not able to write to post data table to update ",review_name," ",column_name,"\
                to: ",column_value , type(error), error)
