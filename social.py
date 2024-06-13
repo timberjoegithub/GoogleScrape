@@ -716,8 +716,7 @@ def check_wordpress_media(filename,headers):
         link = result[0]['guid']['rendered']
         return file_id, link
     except Exception as error:
-        print('    No existing media with same name in Wordpress media folder: '+filename+' '\
-            ,error)
+        print('    No existing media with same name in Wordpress media folder: '+filename)
         return (False, False)
 
 ##################################################################################################
