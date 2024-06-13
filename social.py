@@ -1,10 +1,6 @@
 #data
 import time
 import os
-from selenium import webdriver
-#from selenium.webdriver.chrome.webdriver import WebDriver
-#from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 import re
 import urllib3
 from urllib.request import urlretrieve
@@ -32,7 +28,10 @@ import instagrapi
 #from instagrapi.story import StoryBuilder
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 #import moviepy
-
+from selenium import webdriver
+#from selenium.webdriver.chrome.webdriver import WebDriver
+#from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 #twitter
 import tweepy
 
@@ -126,10 +125,10 @@ def preload():
 
 ##################################################################################################
 
-def clearlist (list):
-    for listelement in list:
+def clearlist (my_list):
+    for listelement in my_list:
         listelement.clear
-    return list
+    return my_list
 
 ##################################################################################################
 
@@ -549,22 +548,20 @@ def write_to_database(data, outputs):
     sqlalchemy.null()
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
         'dictPostComplete']
-    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
-        'address','dictPostComplete']
+    # cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+    #     'address','dictPostComplete']
     df = pd.DataFrame(data, columns=cols)
-    df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2)
-    #df2 = df1.where((pd.notnull(df)), None)  # take out NAN problems
-    #df3.astype(object).where(pd.notnull(df2), None)
-    print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
+    # df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2)
+    # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
     rows = list(data)
     if env.needreversed:
         rows = reversed(rows)
     #jsonposts = json.dumps(outputs['posts'], default=Posts)
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
-    for processrow in df2.values:
+    for processrow in outputs['postssession']:
         if  (processrow[1] in df.values):
-            print ('  Row ',processrow[0],' ', processrow[1],'  already in XLS sheet')
+            print ('  Row ',processrow[0],' ', processrow[1],'  already in database')
             d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
                 picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
                 date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
@@ -630,7 +627,7 @@ def database_update_row(review_name,column_name,column_value,update_style,output
 def check_wordpress_media(filename,headers):
     file_name_minus_extension = filename
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
-                             headers=headers,timeout=40)
+                            headers=headers,timeout=40)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
@@ -638,7 +635,7 @@ def check_wordpress_media(filename,headers):
         return file_id, link
     except Exception as error:
         print('    No existing media with same name in Wordpress media folder: '+filename+' '\
-              ,error)
+            ,error)
         return (False, False)
 
 ##################################################################################################
@@ -670,6 +667,16 @@ def get_wordpress_post_id_and_link(postname,headers2):
 ##################################################################################################
 
 def check_wordpress_post(postname,postdate,headers2):
+    """ Checks workpress website to see if a post already exists
+
+    Args:
+        postname (_type_): _description_
+        postdate (_type_): _description_
+        headers2 (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
     if len(result) > 0 :
@@ -689,6 +696,14 @@ def check_wordpress_post(postname,postdate,headers2):
 
 # Function to get the featured photo ID of a WordPress post
 def get_wordpress_featured_photo_id(post_id):
+    """ Get photoid from featured photo
+
+    Args:
+        post_id (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     # Make a GET request to the WordPress REST API to retrieve media details
     response = requests.get(f"{env.wpAPI}?parent={post_id}",timeout=50)
     # Check if the request was successful
@@ -711,6 +726,17 @@ def get_wordpress_featured_photo_id(post_id):
 ##################################################################################################
 
 def post_to_x2(title, content, date, rating, address, picslist, instasession): 
+    """Post to twitter
+
+    Args:
+        title (_type_): _description_
+        content (_type_): _description_
+        date (_type_): _description_
+        rating (_type_): _description_
+        address (_type_): _description_
+        picslist (_type_): _description_
+        instasession (_type_): _description_
+    """
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
     CONSUMER_KEY = env.x_consumer_key
@@ -728,14 +754,14 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession):
     #imgs_id = []
     client_v1 = get_twitter_conn_v1(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
     client_v2 = get_twitter_conn_v2(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
-   # media_path = "C:\\YourPath"
+    # media_path = "C:\\YourPath"
     for img in img_list:
         if 'montage.mp4' in img:
             imgs_vid.append(img.strip())
         else:
             imgs_pic.append(img.strip())
     if imgs_vid:
-       # print ("loop")
+        # print ("loop")
         try:
             # post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, content,
             #     date, rating, address)
@@ -751,7 +777,7 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession):
             #     print ('   Count of twitter message: ',len(status_message))
             # Upload video
             media = client_v1.media_upload(filename=video_path)
-      #      media_id = media.media_id
+#      media_id = media.media_id
             #media = api.media_upload(video_path, media_category='tweet_video')
             # Post tweet with video
             client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
@@ -803,7 +829,7 @@ def post_to_threads (title, content, date, rating, address, picslist, instasessi
                 + content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+ \
                 "\n\nhttps://www.joeeatswhat.com "+"\n\n"
             instasession.video_upload(outputmontage, data)
- #           video2 = instasession.video_upload(outputmontage, data)
+#           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
             print("  An error occurred uploading video to Threads:", type(error).__name__) 
             return False
@@ -820,7 +846,7 @@ def post_to_threads2 (title, content, date, rating, address, picslist, instasess
         try:
             data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
             instasession.video_upload(outputmontage, data)
- #           video2 = instasession.video_upload(outputmontage, data)
+#           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__)
             return False
@@ -952,6 +978,18 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
 ##################################################################################################
 
 def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs):
+    """ Post to wordpress site
+
+    Args:
+        title (_type_): _description_
+        content (_type_): _description_
+        headers (_type_): _description_
+        date (_type_): _description_
+        rating (_type_): _description_
+        address (_type_): _description_
+        picslist (_type_): _description_
+        outputs (_type_): _description_
+    """
     # post
     newPost = False
     #countreview = False
