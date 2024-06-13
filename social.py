@@ -1317,8 +1317,13 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         else:
             fmedia = file_id
 #            print ('featured_media2 = ',file_id)
+        business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+        business_url = business_url_list[0].business_url_list
+        wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+        wpurl = wpurllist[0].wpurl
+        status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ business_url
         response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-            data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics,\
+            data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+rating  + contentpics,\
             "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
             timeout=30)
         print ('  ',response_piclinks)
