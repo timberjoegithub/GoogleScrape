@@ -1,10 +1,6 @@
 #data
 import time
 import os
-from selenium import webdriver
-#from selenium.webdriver.chrome.webdriver import WebDriver
-#from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 import re
 import urllib3
 from urllib.request import urlretrieve
@@ -32,16 +28,19 @@ import instagrapi
 #from instagrapi.story import StoryBuilder
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 #import moviepy
-
+from selenium import webdriver
+#from selenium.webdriver.chrome.webdriver import WebDriver
+#from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 #twitter
 import tweepy
 
 #Thread    
-import asyncio
-import aiohttp
+#import asyncio
+#import aiohttp
 
 from pathlib import Path
-from sqlalchemy import create_engine
+#from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy
 from sqlalchemy import null
@@ -631,22 +630,20 @@ def write_to_database(data, outputs):
     sqlalchemy.null()
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
         'dictPostComplete']
-    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
-        'address','dictPostComplete']
+    # cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+    #     'address','dictPostComplete']
     df = pd.DataFrame(data, columns=cols)
-    df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2)
-    #df2 = df1.where((pd.notnull(df)), None)  # take out NAN problems
-    #df3.astype(object).where(pd.notnull(df2), None)
-    print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
+    # df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2)
+    # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
     rows = list(data)
     if env.needreversed:
         rows = reversed(rows)
     #jsonposts = json.dumps(outputs['posts'], default=Posts)
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
-    for processrow in df2.values:
+    for processrow in outputs['postssession']:
         if  (processrow[1] in df.values):
-            print ('  Row ',processrow[0],' ', processrow[1],'  already in XLS sheet')
+            print ('  Row ',processrow[0],' ', processrow[1],'  already in database')
             d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
                 picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
                 date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
@@ -751,6 +748,16 @@ def get_wordpress_post_id_and_link(postname,headers2):
 ##################################################################################################
 
 def check_wordpress_post(postname,postdate,headers2):
+    """ Checks workpress website to see if a post already exists
+
+    Args:
+        postname (_type_): _description_
+        postdate (_type_): _description_
+        headers2 (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
     if len(result) > 0 :
@@ -770,6 +777,14 @@ def check_wordpress_post(postname,postdate,headers2):
 
 # Function to get the featured photo ID of a WordPress post
 def get_wordpress_featured_photo_id(post_id):
+    """ Get photoid from featured photo
+
+    Args:
+        post_id (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     # Make a GET request to the WordPress REST API to retrieve media details
     response = requests.get(f"{env.wpAPI}?parent={post_id}",timeout=50)
     # Check if the request was successful
