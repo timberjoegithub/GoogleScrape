@@ -858,9 +858,11 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
             # Path to the video you want to upload
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
+            business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+            business_url = business_url_list[0].business_url_list
             wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
             wpurl = wpurllist[0].wpurl
-            status_message = str(title) + ': My Review - '+ wpurl
+            status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ business_url
             status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
             status_message_short = status_message2[:279]
             # if len(status_message) > 279:
