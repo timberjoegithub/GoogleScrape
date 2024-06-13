@@ -117,15 +117,32 @@ class Posts(Base):
 ##################################################################################################
 
 def preload():
+    """
+    Removes a specific file if it exists.
+
+    Returns:
+        None
+    """
+
     file=pathlib.Path("./config/joeteststeele_uuid_and_cookie.json")
     if pathlib.Path.exists(file):
         pathlib.Path.unlink(file)
-    today = datetime.today().strftime('%Y-%m-%d')
+#    today = datetime.today().strftime('%Y-%m-%d')
     return
 
 ##################################################################################################
 
-def clearlist (my_list):
+def clearlist(my_list):
+    """
+    Clears all elements in a list.
+
+    Args:
+        my_list (list): The list to be cleared.
+
+    Returns:
+        list: The input list with all elements cleared.
+    """
+
     for listelement in my_list:
         listelement.clear
     return my_list
@@ -231,19 +248,31 @@ def get_twitter_conn_v2(api_key, api_secret, access_token, access_token_secret) 
 
 ##################################################################################################
 
-def get_hastags (address, name, type):
+def get_hastags(address, name, hashtype):
+    """
+    Generates hashtags based on the address, name, and type provided.
+
+    Args:
+        address (str): The address related to the content.
+        name (str): The name associated with the content.
+        hashtype (str): The type of hashtags to generate.
+
+    Returns:
+        str: The generated hashtags based on the input parameters.
+    """
+
     nameNoSpaces = re.sub( r'[^a-zA-Z]','',name)
     addressdict = address.rsplit(r' ',3)
-    zip = addressdict[3]
+    zip_code = addressdict[3]
     state = addressdict[2]
     city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
-    if 'short' in type:
+    if 'short' in hashtype:
         defaulttags = '#'+nameNoSpaces+' #foodie #food #joeeatswhat @timberjoe'
     else:
         defaulttags = "\n\n\n#"+nameNoSpaces+" #foodie #music #food #travel #drinks #instagood #feedme #joeeatswhat @timberjoe"
     citytag = "#"+city
     statetag = "#"+state
-    ziptag = "#"+zip
+    ziptag = "#"+zip_code
     if statetag == 'FL':
         statetag += ' #Florida'
     fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag
@@ -255,6 +284,16 @@ def get_hastags (address, name, type):
 
 # Grab a count of how far we need to scroll
 def counter_google(driver):
+    """
+    Counts the number of Google search results pages.
+
+    Args:
+        driver: The Selenium WebDriver instance.
+
+    Returns:
+        int: The total number of search result pages.
+    """
+
     result = driver.find_element(By.CLASS_NAME,'Qha3nb').text
     result = result.replace(',', '')
     result = result.split(' ')
@@ -264,6 +303,16 @@ def counter_google(driver):
 ##################################################################################################
 
 def make_montage_video_from_google(inphotos):
+    """
+    Creates a montage video from a list of input photos.
+
+    Args:
+        inphotos (list): List of paths to input photo files.
+
+    Returns:
+        tuple: A tuple containing the path to the output video file and a boolean indicating success.
+    """
+
 # Load the photos from the folder
 # Set the duration of each photo to 2 seconds
     if inphotos:
@@ -296,25 +345,45 @@ def make_montage_video_from_google(inphotos):
 ##################################################################################################
 
 def is_docker():
+    """
+    Checks if the code is running in a Docker container.
+
+    Returns:
+        bool: True if running in a Docker container, False otherwise.
+    """
     cgroup = Path('/proc/self/cgroup')
     #print (cgroup.read_text())
     return Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in cgroup.read_text()
 
 ##################################################################################################
 
-def post_facebook_video(group_id, video_path,auth_token,title, content, date, rating, address):
+def post_facebook_video(group_id, video_path, auth_token, title, content, date, rating, address):
+    """
+    Posts a video to a Facebook group with specified details.
+
+    Args:
+        group_id (str): The ID of the Facebook group.
+        video_path (list): List of paths to the video files to be uploaded.
+        auth_token (str): The authentication token for posting to Facebook.
+        title (str): The title of the video.
+        content (str): Additional content to be included in the post.
+        date (str): The date of the post.
+        rating (str): The rating associated with the post.
+        address (str): The address related to the post.
+
+    Returns:
+        dict or bool: The response JSON if successful, False if an error occurs.
+    """
+
     url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
     files={}
     addresshtml = re.sub(" ", ".",address)
-    #args={}
-    #data["message"]=title + "\n"+address+"\n\n"+ content + "\n"+rating+"\n"+date
     for eachfile in video_path:
-       # my_dict['key'].append(1)
         files.update({eachfile: open(eachfile, 'rb')})
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
-             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
-             "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title, 'long')+
-             "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
+            r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
+            "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title, 'long')+
+            "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
             "alt_text" : title
     }
     try:
@@ -373,8 +442,8 @@ def get_google_data(driver,outputs ):
         #  > span.kvMYJc
         except Exception as error:
             score = "Unknown"
+            print ('Error: ',error)
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
-
     #  Grab more info from google maps entry on this particular review
         if outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google != 1) or env.forcegoogleupdate:
             gmaps = googlemaps.Client(env.googleapipass)
@@ -386,11 +455,11 @@ def get_google_data(driver,outputs ):
             # Get place details
         # googledetails = gmaps.place(place_id)
                 try:
-                    businessurl = (details['result']['website'])
-                    latitude = (details['result']['geometry']['location']['lat'])
-                    longitude = (details['result']['geometry']['location']['lng'])
-                    pluscode = (details['result']['plus_code']['compound_code'])
-                    googleurl = (details['result']['url'])
+                    businessurl = details['result']['website']
+                    latitude = details['result']['geometry']['location']['lat']
+                    longitude = details['result']['geometry']['location']['lng']
+                    pluscode = details['result']['plus_code']['compound_code']
+                    googleurl = details['result']['url']
                     database_update_row(name,"businessurl",businessurl,"onlyempty",outputs)
                     database_update_row(name,"latitude",latitude,"onlyempty",outputs)
                     database_update_row(name,"longitude",longitude,"onlyempty",outputs)
@@ -471,6 +540,19 @@ def get_google_data(driver,outputs ):
 
 # Do the google_scroll
 def google_scroll(counter_google,driver):
+    """
+    Scrolls down a Google search results page a specified number of times.
+
+    Args:
+        counter_google (int): The number of times to scroll down the page.
+        driver: The Selenium WebDriver instance.
+
+    Returns:
+        int: The result of the last scroll operation.
+
+    Raises:
+        Exception: If an error occurs during scrolling.
+    """
     print('google_scroll...')
     time.sleep(3)
     scrollable_div = driver.find_element(By.XPATH,
@@ -517,10 +599,10 @@ def write_to_xlsx2(data, outputs):
                 date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
         else:
             if processrow[1] is not None:
-                # Create a Python dictionary object with all the column values
-                # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
-                #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
-                #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
+            # Create a Python dictionary object with all the column values
+            # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
+            #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
+            #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
                 d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
                     picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
                     date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
@@ -567,10 +649,10 @@ def write_to_database(data, outputs):
                 date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
         else:
             if processrow[1] is not None:
-                # Create a Python dictionary object with all the column values
-                # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
-                #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
-                #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
+            # Create a Python dictionary object with all the column values
+            # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
+            #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
+            #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
                 d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
                     picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
                     date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
@@ -595,11 +677,11 @@ def write_to_database(data, outputs):
 
 def database_update_row(review_name,column_name,column_value,update_style,outputs):
     try:
-        if update_style == "forceall":
+        if update_style == "forceall" and column_value != False:
             outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
                         ({column_name : column_value})
             print ('    Force Updated ',column_name, ' to: ',column_value)
-        elif update_style == "onlyempty":
+        elif update_style == "onlyempty"  and column_value != False:
             postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(null())).all()
             if len(postval) == 0 :
@@ -609,13 +691,13 @@ def database_update_row(review_name,column_name,column_value,update_style,output
         elif update_style == "toggletrue":
             postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(1)).all()
-            if len(postval) == 0 :
-                outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
-                    ({column_name : column_value})
-                print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',column_value)
+            outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+                    ({column_name : "1"})
+            print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',\
+                column_value)
     except Exception as error:
         print("    Not able to write to post data table to update ",review_name," ",column_name,"\
-               to: ",column_value , type(error), error)
+            to: ",column_value , type(error), error)
         outputs['postssession'].rollback()
         raise
     else:
@@ -627,7 +709,7 @@ def database_update_row(review_name,column_name,column_value,update_style,output
 def check_wordpress_media(filename,headers):
     file_name_minus_extension = filename
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
-                            headers=headers,timeout=40)
+                        headers=headers,timeout=40)
     try:
         result = response.json()
         file_id = int(result[0]['id'])
@@ -650,7 +732,6 @@ def check_is_port_open(host, port):
         return False
 
 ##################################################################################################
-
 
 def get_wordpress_post_id_and_link(postname,headers2):
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
@@ -726,17 +807,24 @@ def get_wordpress_featured_photo_id(post_id):
 ##################################################################################################
 
 def post_to_x2(title, content, date, rating, address, picslist, instasession): 
-    """Post to twitter
-
-    Args:
-        title (_type_): _description_
-        content (_type_): _description_
-        date (_type_): _description_
-        rating (_type_): _description_
-        address (_type_): _description_
-        picslist (_type_): _description_
-        instasession (_type_): _description_
     """
+Post to x2.
+
+This function posts content to a social media platform using the provided data.
+
+Args:
+    title (str): The title of the post.
+    content (str): The content of the post.
+    date (str): The date of the post.
+    rating (int): The rating of the post.
+    address (str): The address associated with the post.
+    picslist (list): A list of pictures for the post.
+    instasession: The Instagram session for posting.
+
+Returns:
+    str: The media ID of the posted content.
+"""
+
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
     CONSUMER_KEY = env.x_consumer_key
@@ -777,7 +865,7 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession):
             #     print ('   Count of twitter message: ',len(status_message))
             # Upload video
             media = client_v1.media_upload(filename=video_path)
-#      media_id = media.media_id
+        #      media_id = media.media_id
             #media = api.media_upload(video_path, media_category='tweet_video')
             # Post tweet with video
             client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
@@ -939,7 +1027,7 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
         try:
             data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
             instasession.video_upload(outputmontage, data)
- #           video2 = instasession.video_upload(outputmontage, data)
+#           video2 = instasession.video_upload(outputmontage, data)
         except Exception as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__)
             return False
@@ -1013,36 +1101,36 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         if "day" in date:
             tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
             print ('Stuff - > ',tempdate)
- #           date = dt.timedelta(days=tempdate)
+#           date = dt.timedelta(days=tempdate)
 #            newdate = dt.datetime.strptime(date_string, formatting).date()
             newdate = datetime.today() + relativedelta(days=tempdate)
         else:
             if "a week" in date:
- #               date = dt.timedelta(weeks= -1)
+#               date = dt.timedelta(weeks= -1)
 #                newdate = dt.datetime.strptime(date_string, formatting).date()
                 newdate = datetime.today() - relativedelta(weeks= -1)
             else:
                 if "week" in date:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
                     print ('Stuff - > ',tempdate)
- #                   date = dt.timedelta(weeks= tempdate)
+#                   date = dt.timedelta(weeks= tempdate)
 #                    newdate = dt.datetime.strptime(date_string, formatting).date()
                     newdate = datetime.today() + relativedelta(weeks= tempdate)
                 else:
                     if "a month" in date:
- #                       date = dt.timedelta(months= -1)
+#                       date = dt.timedelta(months= -1)
 #                        newdate = dt.datetime.strptime(date_string, formatting).date()
                         newdate = datetime.today() - relativedelta(months = -1)
                     else:
                         if "month" in date:
                             tempdate = -int(re.sub( r'[^0-9]','',date_string))
                             print ('Stuff - > ',tempdate)
- #                           date = dt.timedelta(months= tempdate)
+#                           date = dt.timedelta(months= tempdate)
 #                            newdate = dt.datetime.strptime(date_string, formatting).date()
                             newdate = datetime.today() + relativedelta(months =  tempdate)
                         else:
                             if "a year" in date:
- #                               date = dt.timedelta(years= -1)
+#                               date = dt.timedelta(years= -1)
 #                                newdate = dt.datetime.strptime(date_string, formatting).date()
                                 newdate = datetime.today() - relativedelta(years= -1)
                             else:
@@ -1050,7 +1138,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                                     try:
                                         tempdate = -int(re.sub( r'[^0-9]','',date_string))
                                         print ('Stuff - > ',tempdate)
- #                                       date = dt.timedelta( years= tempdate)
+#                                       date = dt.timedelta( years= tempdate)
 #                                    newdate = dt.datetime.strptime(date_string).date()
                                         newdate = datetime.today() + relativedelta(years= tempdate)
                                     except Exception as error:
@@ -1093,7 +1181,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             "content": googleadress+'\n\n'+content+'\n'+rating ,
             "status": "publish",  # Set to 'draft' if you want to save as a draft
             "date": newdate2,
-     #       "date": str(newdate)+'T22:00:00',
+    #       "date": str(newdate)+'T22:00:00',
         # "author":"joesteele"
         }
         try:
@@ -1134,10 +1222,10 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                     files=image,timeout=30)
             except Exception as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", \
-                      type(error).__name__)
+                    type(error).__name__)
             if image_response.status_code != 201 :
                 print ('      Error- Image ',picname,' was not successfully uploaded.  response: ', \
-                       image_response)
+                    image_response)
             else:
                 pic_dic=image_response.json()
                 file_id= pic_dic.get('id')
@@ -1149,28 +1237,28 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                 linkslist.append(linksDict)
             except Exception as error:
                 print("    An error adding to dictionary " , file_id , link , " occurred:", \
-                      type(error).__name__) # An error occurred:
+                    type(error).__name__) # An error occurred:
         else:
             print ('    Photo ',picname,' was already in library and added to post with ID: ', \
-                   file_id,' : ',link)
+                file_id,' : ',link)
             try:
                 image_response = requests.post(env.wpAPI + "/media/" + str(file_id), \
                     headers=headers, data={"post" : post_id},timeout=30)
             except Exception as error:
                 print ('    Error- Image ',picname,' was not attached to post.  response: ',\
-                       image_response+' '+type(error).__name__)
+                    image_response+' '+type(error).__name__)
             try:
                 post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
                     headers=headers,timeout=30)
                 if link in str(post_response.text):
                     print ('    Image link for ', picname, 'already in content of post: ' \
-                           ,post_id, post_response.text, link)
+                        ,post_id, post_response.text, link)
                 else:
                     linkslist.append({'file_id' : file_id , 'link' : link})
- #                   countreview = True
+#                   countreview = True
             except BaseException as error:
                 print("    An error loading the metadata from the post " + post_response.title + \
-                       ' occurred: '+type(error).__name__)
+                    ' occurred: '+type(error).__name__)
     #ratinghtml = post_response.text
     first_mp4 = True
     fmedia = {}
@@ -1190,7 +1278,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             else:
                 contentpics += '\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"' + r'src="' + \
                     piclink['link'] + r'"></div>'
- #               fmedia.append = piclink{'file_id' }
+#               fmedia.append = piclink{'file_id' }
 #            contentpics += '\n '+r'<img src="'+ piclink['link'] + '> \n'
             #contentpics += r'<img src="'+ piclink['link'] + r' alt="' + title +r'">' +'\n\n'
         except Exception as error:
@@ -1209,7 +1297,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         print ('  ',response_piclinks)
     except Exception as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', \
-              type(error).__name__) # An error occurred')
+            type(error).__name__) # An error occurred')
     return newPost
 
 ##################################################################################################
@@ -1248,7 +1336,7 @@ def process_reviews(outputs):
             driver = webdriver.Chrome(options=options) # Firefox(options=options)
         # Changing the property of the navigator value for webdriver to undefined
         driver.execute_script("Object.defineProperty(navigator,'webdriver',\
-                              {get:()=> undefined})")
+                            {get:()=> undefined})")
         driver.get(env.URL)
         time.sleep(5)
         google_scroll(counter_google(driver), driver)
@@ -1380,7 +1468,7 @@ def process_reviews(outputs):
                         print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
                 if env.xtwitter:
                     #if writtento["xtwitter"] == 0:
-                   # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
+                    #               # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != 1):
                         if xtwittercount < env.postsperrun:
                             try:
