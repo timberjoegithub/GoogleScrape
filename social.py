@@ -483,7 +483,7 @@ def get_google_data(driver,outputs ):
         for lmpics in more_specific_pics:
             # Grab URL from style definiton (long multivalue string), and remove the -p-k so that
             #   it is full size
-            urlmedia = re.sub('=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
+            urlmedia = re.sub(r'=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
                 lmpics.get_attribute("style")))[0])
             print ('    Pic URL : ',urlmedia)
             pics.append(urlmedia)
@@ -791,7 +791,7 @@ def get_wordpress_featured_photo_id(post_id):
 
 ##################################################################################################
 
-def post_to_x2(title, content, date, rating, address, picslist, instasession): 
+def post_to_x2(title, content, date, rating, address, picslist, instasession,outputs): 
     """
     Post to x2.
 
@@ -843,7 +843,9 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession):
             # Path to the video you want to upload
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
-            status_message = str(title) + ': Review  https://www.joeeatswhat.com'
+            wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+            wpurl = wpurllist[0].wpurl
+            status_message = str(title) + ': My Review - '+ wpurl
             status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
             status_message_short = status_message2[:279]
             # if len(status_message) > 279:
@@ -1258,7 +1260,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             try:
                 post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
                     headers=headers,timeout=30)
-                if link in str(post_response.text):
+                if link in post_response.text:
                     print ('    Image link for ', picname, 'already in content of post: ' \
                         ,post_id, post_response.text, link)
                 else:
@@ -1481,7 +1483,7 @@ def process_reviews(outputs):
                         if xtwittercount < env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
-                                NewxtwitterPost = post_to_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'] )
+                                NewxtwitterPost = post_to_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'],outputs )
                                 try:
                                     print ('  Start generating content to post to xtwitter')
                                     writtento["xtwitter"] = 1
