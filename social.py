@@ -36,11 +36,11 @@ from selenium.webdriver.common.by import By
 import tweepy
 
 #Thread    
-import asyncio
-import aiohttp
+#import asyncio
+#import aiohttp
 
 from pathlib import Path
-from sqlalchemy import create_engine
+#from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy
 from sqlalchemy import null
