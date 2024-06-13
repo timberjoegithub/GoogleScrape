@@ -1,6 +1,10 @@
 #data
 import time
 import os
+from pathlib import Path
+#from selenium.webdriver.chrome.webdriver import WebDriver
+#from selenium.webdriver.chrome.service import Service
+
 import re
 import urllib3
 from urllib.request import urlretrieve
@@ -39,11 +43,13 @@ import tweepy
 #import asyncio
 #import aiohttp
 
-from pathlib import Path
-#from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+
 import sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import null
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 import googlemaps
 #import mysqlclient
 #import mysql-connector-python
