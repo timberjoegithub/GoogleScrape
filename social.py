@@ -852,7 +852,6 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
             # Message to post along with the video
             attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
             business_url = attrib_list[0].businessurl
-            #wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
             wpurl = attrib_list[0].wpurl
             status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
                 business_url
@@ -872,7 +871,7 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
 
 ##################################################################################################
 
-def post_facebook3(title, content, date, rating, address, picslist, instasession):
+def post_facebook3(title, content, date, rating, address, picslist, outputs):
     """
     Post to Facebook3.
 
@@ -897,6 +896,11 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
     imgs_vid = []
     imgs_pic = []
     img_list = pics
+    attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+    business_url = attrib_list[0].businessurl
+    wpurl = attrib_list[0].wpurl
+    status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
+        business_url+' \n\n'+ content
     for img in img_list:
         if 'montage.mp4' in img:
             imgs_vid.append(img.strip())
@@ -904,7 +908,7 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
             imgs_pic.append(img.strip())
     if imgs_vid:
         try:
-            post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, content,
+            post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, status_message,
                 date, rating, address)
             imgs_id.append(post_id['id'])
         except AttributeError  as error:
