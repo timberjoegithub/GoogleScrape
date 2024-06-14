@@ -469,7 +469,7 @@ def get_google_data(driver,outputs ):
                     database_update_row(name,"googleurl",googleurl,"onlyempty",outputs)
                     database_update_row(name,"place_id",place_id,"onlyempty",outputs)
                     database_update_row(name,"googledetails",details,"onlyempty",outputs)
-                    database_update_row(name,"google","1","onlyempty",outputs)
+                    database_update_row(name,"google",True,"onlyempty",outputs)
                 except KeyError as error:
                     print('Error writing business details from google maps : ',error)
         else:
@@ -852,18 +852,19 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
             # Message to post along with the video
             attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
             business_url = attrib_list[0].businessurl
-            wpurl = attrib_list[0].wpurl
-            status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
-                business_url
-            status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
-            status_message_short = status_message2[:279]
-            # Upload video
-            media = client_v1.media_upload(filename=video_path)
-            # Post tweet with video
-            if media.processing_info['state'] != 'failed':
-                client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
-            else:
-                print ('Problem uploading video to twitter: ',media.processing_info['error'])
+            if business_url:
+                wpurl = attrib_list[0].wpurl
+                status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
+                    business_url
+                status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
+                status_message_short = status_message2[:279]
+                # Upload video
+                media = client_v1.media_upload(filename=video_path)
+                # Post tweet with video
+                if media.processing_info['state'] != 'failed':
+                    client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
+                else:
+                    print ('Problem uploading video to twitter: ',media.processing_info['error'])
         except AttributeError  as error:
             print("AttributeError     An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
@@ -1393,11 +1394,12 @@ def process_reviews(outputs):
                 if env.web :
                     #if writtento["web"] == 0 :
                     try:
-                        post_id, post_link = get_wordpress_post_id_and_link(processrow[1].value,outputs['web'] )
-                        if post_link:
-                            database_update_row(processrow[1].value,"wpurl",post_link,"forceall",outputs)
-                        else:
-                            print ('  Error getting wordpress links to update databse')
+                        if env.forcegoogleupdate:
+                            post_id, post_link = get_wordpress_post_id_and_link(processrow[1].value,outputs['web'] )
+                            if post_link:
+                                database_update_row(processrow[1].value,"wpurl",post_link,"forceall",outputs)
+                            else:
+                                print ('  Error getting wordpress links to update databse')
                     except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
