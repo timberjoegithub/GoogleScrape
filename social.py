@@ -1,5 +1,9 @@
 import time
 import os
+from pathlib import Path
+#from selenium.webdriver.chrome.webdriver import WebDriver
+#from selenium.webdriver.chrome.service import Service
+
 import re
 import urllib3
 from urllib.request import urlretrieve
@@ -36,11 +40,13 @@ import tweepy
 #import asyncio
 #import aiohttp
 
-from pathlib import Path
-#from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+
 import sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import null
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 import googlemaps
 #import mysqlclient
 #import mysql-connector-python
@@ -479,7 +485,7 @@ def get_google_data(driver,outputs ):
         for lmpics in more_specific_pics:
             # Grab URL from style definiton (long multivalue string), and remove the -p-k so that
             #   it is full size
-            urlmedia = re.sub('=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
+            urlmedia = re.sub(r'=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
                 lmpics.get_attribute("style")))[0])
             print ('    Pic URL : ',urlmedia)
             pics.append(urlmedia)
@@ -713,8 +719,7 @@ def check_wordpress_media(filename,headers):
         link = result[0]['guid']['rendered']
         return file_id, link
     except Exception as error:
-        print('    No existing media with same name in Wordpress media folder: '+filename+' '\
-            ,error)
+        print('    No existing media with same name in Wordpress media folder: '+filename)
         return (False, False)
 
 ##################################################################################################
@@ -803,24 +808,24 @@ def get_wordpress_featured_photo_id(post_id):
 
 ##################################################################################################
 
-def post_to_x2(title, content, date, rating, address, picslist, instasession): 
+def post_to_x2(title, content, date, rating, address, picslist, instasession,outputs): 
     """
-Post to x2.
+    Post to x2.
 
-This function posts content to a social media platform using the provided data.
+    This function posts content to a social media platform using the provided data.
 
-Args:
-    title (str): The title of the post.
-    content (str): The content of the post.
-    date (str): The date of the post.
-    rating (int): The rating of the post.
-    address (str): The address associated with the post.
-    picslist (list): A list of pictures for the post.
-    instasession: The Instagram session for posting.
+    Args:
+        title (str): The title of the post.
+        content (str): The content of the post.
+        date (str): The date of the post.
+        rating (int): The rating of the post.
+        address (str): The address associated with the post.
+        picslist (list): A list of pictures for the post.
+        instasession: The Instagram session for posting.
 
-Returns:
-    str: The media ID of the posted content.
-"""
+    Returns:
+        str: The media ID of the posted content.
+    """
 
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
@@ -855,7 +860,11 @@ Returns:
             # Path to the video you want to upload
             #video_path = 'path_to_video.mp4'
             # Message to post along with the video
-            status_message = str(title) + ': Review  https://www.joeeatswhat.com'
+            business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+            business_url = business_url_list[0].business_url_list
+            wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+            wpurl = wpurllist[0].wpurl
+            status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ business_url
             status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
             status_message_short = status_message2[:279]
             # if len(status_message) > 279:
@@ -876,6 +885,23 @@ Returns:
 ##################################################################################################
 
 def post_facebook3(title, content, date, rating, address, picslist, instasession):
+    """
+    Post to Facebook3.
+
+    This function posts content to Facebook using the provided data.
+
+    Args:
+        title (str): The title of the post.
+        content (str): The content of the post.
+        date (str): The date of the post.
+        rating (int): The rating of the post.
+        address (str): The address associated with the post.
+        picslist (list): A list of pictures for the post.
+        instasession: The Instagram session for posting.
+
+    Returns:
+        bool: Indicates if the post was successfully made.
+    """
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     group_id = env.facebookpageID
     auth_token = env.facebookpass
@@ -1063,18 +1089,24 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
 ##################################################################################################
 
 def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs):
-    """ Post to wordpress site
+    """
+    Post to WordPress.
+
+    This function posts content to a WordPress site using the provided data.
 
     Args:
-        title (_type_): _description_
-        content (_type_): _description_
-        headers (_type_): _description_
-        date (_type_): _description_
-        rating (_type_): _description_
-        address (_type_): _description_
-        picslist (_type_): _description_
-        outputs (_type_): _description_
-    """
+        title (str): The title of the post.
+        content (str): The content of the post.
+        headers: Headers for the request.
+        date (str): The date of the post.
+        rating (str): The rating of the post.
+        address (str): The address associated with the post.
+        picslist (list): A list of pictures for the post.
+        outputs: Outputs for the post.
+
+    Returns:
+        None
+"""
     # post
     newPost = False
     #countreview = False
@@ -1247,7 +1279,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             try:
                 post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
                     headers=headers,timeout=30)
-                if link in str(post_response.text):
+                if link in post_response.text:
                     print ('    Image link for ', picname, 'already in content of post: ' \
                         ,post_id, post_response.text, link)
                 else:
@@ -1287,8 +1319,13 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         else:
             fmedia = file_id
 #            print ('featured_media2 = ',file_id)
+        business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+        business_url = business_url_list[0].business_url_list
+        # wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+        # wpurl = wpurllist[0].wpurl
+        status_message = str(title) + ': Business website: '+ business_url
         response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-            data={"content" : title+' = '+content+'\n'+googleadress+'\n'+rating  + contentpics,\
+            data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+rating  + contentpics,\
             "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
             timeout=30)
         print ('  ',response_piclinks)
@@ -1470,7 +1507,7 @@ def process_reviews(outputs):
                         if xtwittercount < env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
-                                NewxtwitterPost = post_to_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'] )
+                                NewxtwitterPost = post_to_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'],outputs )
                                 try:
                                     print ('  Start generating content to post to xtwitter')
                                     writtento["xtwitter"] = 1

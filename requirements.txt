@@ -17,3 +17,6 @@ tweepy
 sqlalchemy
 googlemaps
 moviepy
+mysqlclient
+mysql-connector-python
+pymysql
