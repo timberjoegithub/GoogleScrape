@@ -850,10 +850,10 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
         try:
             video_path = imgs_vid[0]
             # Message to post along with the video
-            business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
-            business_url = business_url_list[0].business_url_list
-            wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
-            wpurl = wpurllist[0].wpurl
+            attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+            business_url = attrib_list[0].businessurl
+            #wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+            wpurl = attrib_list[0].wpurl
             status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
                 business_url
             status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
@@ -861,7 +861,10 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
             # Upload video
             media = client_v1.media_upload(filename=video_path)
             # Post tweet with video
-            client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
+            if media.processing_info['state'] != 'failed':
+                client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
+            else:
+                print ('Problem uploading video to twitter: ',media.processing_info['error'])
         except AttributeError  as error:
             print("AttributeError     An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
@@ -1305,7 +1308,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             fmedia = file_id
 #            print ('featured_media2 = ',file_id)
         business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
-        business_url = business_url_list[0].business_url_list
+        business_url = business_url_list[0].businessurl
         # wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
         # wpurl = wpurllist[0].wpurl
         status_message = str(title) + ': Business website: '+ business_url
