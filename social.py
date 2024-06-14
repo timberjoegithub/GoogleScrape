@@ -279,7 +279,7 @@ def get_hastags(address, name, hashtype):
     ziptag = "#"+zip_code
     if statetag == 'FL':
         statetag += ' #Florida'
-    fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag
+    fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag+" "
     # 153 Sugar Belle Dr, Winter Garden, FL 34787
     # inphotos[0].rsplit(r'/', 1)
     return (fulltag)
@@ -865,6 +865,7 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
                     client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
                 else:
                     print ('Problem uploading video to twitter: ',media.processing_info['error'])
+                    return False
         except AttributeError  as error:
             print("AttributeError     An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
@@ -914,6 +915,7 @@ def post_facebook3(title, content, date, rating, address, picslist, outputs):
             imgs_id.append(post_id['id'])
         except AttributeError  as error:
             print("    An error occurred:",error)
+            return False
     time.sleep(env.facebooksleep)
     print('    Facebook response: ',post_id)
     return  (True)
@@ -1412,19 +1414,19 @@ def process_reviews(outputs):
                                 print ('  Success Posting to Wordpress: '+processrow[1].value)
                                 if new_web_post:
                                     webcount +=1
-                                try:
-                                    print('  write to xls for web')
-                                    outputs['datawb'].save(env.xls)
-                                    print('  Successfully updated spreadsheet')
-                                except AttributeError  as error:
-                                    print("  An error occurred writing Excel file:", type(error).__name__)
-                                try:
-                                    print('  write to DB for web')
-                                    outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"web" : 1})
-                                    outputs['postssession'].commit()
-                                    print('  Successfully wrote to database')
-                                except AttributeError  as error:
-                                    print("  An error occurred writing database", type(error).__name__)
+                                    try:
+                                        print('  write to xls for web')
+                                        outputs['datawb'].save(env.xls)
+                                        print('  Successfully updated spreadsheet')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing Excel file:", type(error).__name__)
+                                    try:
+                                        print('  write to DB for web')
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"web" : 1})
+                                        outputs['postssession'].commit()
+                                        print('  Successfully wrote to database')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing database", type(error).__name__)
                             except AttributeError  as error:
                                 print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"],' ',error)
                                 print (error)
@@ -1447,19 +1449,19 @@ def process_reviews(outputs):
                                 print ('  Success Posting to Instagram: '+processrow[1].value)
                                 if NewInstagramPost:
                                     instagramcount +=1
-                                try:
-                                    print('  write to xls for instagram')
-                                    outputs['datawb'].save(env.xls)
-                                    print('  write to mariadb for instagram')
-                                except AttributeError  as error:
-                                    print("  An error occurred writing Excel file:", type(error).__name__)
-                                try:
-                                    print('  write to DB for instagram')
-                                    outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"instagram" : 1})
-                                    outputs['postssession'].commit()
-                                    print('  Successfully wrote to database')
-                                except AttributeError  as error:
-                                    print("  An error occurred writing database", type(error).__name__)
+                                    try:
+                                        print('  write to xls for instagram')
+                                        outputs['datawb'].save(env.xls)
+                                        print('  write to mariadb for instagram')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing Excel file:", type(error).__name__)
+                                    try:
+                                        print('  write to DB for instagram')
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"instagram" : 1})
+                                        outputs['postssession'].commit()
+                                        print('  Successfully wrote to database')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing database", type(error).__name__)
                             except AttributeError  as error:
                                 print ('  Error writing Instagram post : ',processrow[1].value, processrow[2].value, outputs['instagram'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["instagram"], type(error).__name__ )
                         else:
@@ -1481,19 +1483,19 @@ def process_reviews(outputs):
                                 print ('  Success Posting to facebook: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
                                 if NewFacebookPost:
                                     facebookcount +=1
-                                try:
-                                    print('  write to xls for facebook')
-                                    outputs['datawb'].save(env.xls)
-                                    print('  write to mariadb for facebook')
-                                except AttributeError  as error:
-                                    print("  An error occurred writing Excel file:", type(error).__name__)
-                                try:
-                                    print('  write to DB for facebook')
-                                    outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"facebook" : 1})
-                                    outputs['postssession'].commit()
-                                    print('  Successfully wrote to database')
-                                except AttributeError  as error:
-                                    print("  An error occurred writing database", type(error).__name__)
+                                    try:
+                                        print('  write to xls for facebook')
+                                        outputs['datawb'].save(env.xls)
+                                        print('  write to mariadb for facebook')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing Excel file:", type(error).__name__)
+                                    try:
+                                        print('  write to DB for facebook')
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"facebook" : 1})
+                                        outputs['postssession'].commit()
+                                        print('  Successfully wrote to database')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing database", type(error).__name__)
                             except AttributeError  as error:
                                 print ('  Error writing facebook post : ',processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["facebook"], type(error).__name__ )
                         else:
@@ -1514,24 +1516,24 @@ def process_reviews(outputs):
                                     processrow[9].value = str(writtento)
                                 except AttributeError  as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
-                                print ('  Success Posting to xtwitter: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
+                                    print ('  Success Posting to xtwitter: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
                                 if NewxtwitterPost:
                                     xtwittercount +=1
-                                try:
-                                    print('  write to xls for xtwitter')
-                                    outputs['datawb'].save(env.xls)
-                                    print('  write to mariadb for xtwitter')
-                                    # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
-                                    # outputs['postssession'].commit()
-                                except AttributeError  as error:
-                                    print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                                try:
-                                    print('  write to DB for xtwitter')
-                                    outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"xtwitter" : 1})
-                                    outputs['postssession'].commit()
-                                    print('  Successfully wrote to database')
-                                except AttributeError  as error:
-                                    print("  An error occurred writing database", type(error).__name__)
+                                    try:
+                                        print('  write to xls for xtwitter')
+                                        outputs['datawb'].save(env.xls)
+                                        print('  write to mariadb for xtwitter')
+                                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
+                                        # outputs['postssession'].commit()
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                                    try:
+                                        print('  write to DB for xtwitter')
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"xtwitter" : 1})
+                                        outputs['postssession'].commit()
+                                        print('  Successfully wrote to database')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing database", type(error).__name__)
                             except AttributeError as error:
                                 print ('  Error writing xtwitter post : ',error,processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
                         else:
