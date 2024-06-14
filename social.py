@@ -36,18 +36,18 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 #twitter
 import tweepy
-
+from selenium.common.exceptions import NoSuchElementException
 
 #import asyncio
 #import aiohttp
 
 
 import sqlalchemy
-from sqlalchemy import create_engine
+#from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import null
 #from selenium import webdriver
-from selenium.webdriver.common.by import By
+#from selenium.webdriver.common.by import By
 import googlemaps
 #import mysqlclient
 #import mysql-connector-python
@@ -436,7 +436,7 @@ def get_google_data(driver,outputs ):
         print('  Visited: ',visitdate)
         try:
             text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
-        except AttributeError :
+        except NoSuchElementException :
             text = ''
         try:
             score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")
@@ -455,9 +455,7 @@ def get_google_data(driver,outputs ):
             if len(place_ids['candidates']) == 1 :
                 place_id = place_ids['candidates'][0]['place_id']
                 details = gmaps.place(place_id)
-        #place_id = "ChIJh2OwH6KA54gRZLcx1Cjk8ic"
             # Get place details
-        # googledetails = gmaps.place(place_id)
                 try:
                     businessurl = details['result']['website']
                     latitude = details['result']['geometry']['location']['lat']
@@ -472,7 +470,7 @@ def get_google_data(driver,outputs ):
                     database_update_row(name,"place_id",place_id,"onlyempty",outputs)
                     database_update_row(name,"googledetails",details,"onlyempty",outputs)
                     database_update_row(name,"google","1","onlyempty",outputs)
-                except AttributeError  as error:
+                except KeyError as error:
                     print('Error writing business details from google maps : ',error)
         else:
             print ('  Post was already in database, skipping update unless you activate override')
@@ -499,7 +497,7 @@ def get_google_data(driver,outputs ):
                 #iframe = driver.find_element(By.TAG_NAME, "iframe")
                 tempdate = str((driver.find_element(By.CLASS_NAME,'mqX5ad')).text).rsplit("-",1)
                 visitdate = re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
-                print ('Visited: ',visitdate)
+                print ('  Visited: ',visitdate)
             # Check to see if it has a sub div, which represents the label with the video length
             # displayed, this will be done
             # because videos are represented by pictures in the main dialogue, so we need to click
@@ -827,7 +825,6 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
     Returns:
         str: The media ID of the posted content.
     """
-
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     # Replace the following strings with your own keys and secrets
     CONSUMER_KEY = env.x_consumer_key
@@ -838,50 +835,37 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
     auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
     # Create an API object to use the Twitter API
-    api = tweepy.API(auth)
+    #api = tweepy.API(auth)
     img_list = pics
     imgs_vid = []
     imgs_pic = []
-    #imgs_id = []
     client_v1 = get_twitter_conn_v1(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
     client_v2 = get_twitter_conn_v2(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
-    # media_path = "C:\\YourPath"
     for img in img_list:
         if 'montage.mp4' in img:
             imgs_vid.append(img.strip())
         else:
             imgs_pic.append(img.strip())
     if imgs_vid:
-        # print ("loop")
         try:
-            # post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, content,
-            #     date, rating, address)
-            # imgs_id.append(post_id['id'])
             video_path = imgs_vid[0]
-            # Path to the video you want to upload
-            #video_path = 'path_to_video.mp4'
             # Message to post along with the video
             business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
             business_url = business_url_list[0].business_url_list
             wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
             wpurl = wpurllist[0].wpurl
-            status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ business_url
+            status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
+                business_url
             status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
             status_message_short = status_message2[:279]
-            # if len(status_message) > 279:
-            #     print ('   Count of twitter message: ',len(status_message))
             # Upload video
             media = client_v1.media_upload(filename=video_path)
-        #      media_id = media.media_id
-            #media = api.media_upload(video_path, media_category='tweet_video')
             # Post tweet with video
             client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
-            #client_v2.create_tweet(text=status_message_short, media_ids=[media_id])
-            #api.update_status(status=status_message, media_ids=[media.media_id_string])
         except AttributeError  as error:
             print("AttributeError     An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
-    return (media.media_id)
+    return True
 
 ##################################################################################################
 
