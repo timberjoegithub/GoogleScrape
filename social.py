@@ -1,4 +1,3 @@
-#data
 import time
 import os
 import re
@@ -9,8 +8,6 @@ from openpyxl import load_workbook
 import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-
-#instagram
 import ast
 import base64
 import requests
@@ -539,12 +536,12 @@ def get_google_data(driver,outputs ):
 ##################################################################################################
 
 # Do the google_scroll
-def google_scroll(counter_google,driver):
+def google_scroll(counter_google_scroll,driver):
     """
     Scrolls down a Google search results page a specified number of times.
 
     Args:
-        counter_google (int): The number of times to scroll down the page.
+        counter_google_scroll (int): The number of times to scroll down the page.
         driver: The Selenium WebDriver instance.
 
     Returns:
@@ -558,7 +555,7 @@ def google_scroll(counter_google,driver):
     scrollable_div = driver.find_element(By.XPATH,
         '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[5]/div[2]')
 #        '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[2]/div[10]/div')
-    for _i in range(counter_google):
+    for _i in range(counter_google_scroll):
         try:
             google_scroll = driver.execute_script(
                 'document.getElementsByClassName("dS8AEf")[0].\
