@@ -1304,6 +1304,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             #contentpics += r'<img src="'+ piclink['link'] + r' alt="' + title +r'">' +'\n\n'
         except AttributeError  as error:
             print("An error occurred:", type(error).__name__) # An error occurred:
+            return False
     try:
 #        print ('featured_media = ',linkslist[0]['file_id'])
         if linkslist[0]['file_id']:
@@ -1315,15 +1316,17 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         business_url = business_url_list[0].businessurl
         # wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
         # wpurl = wpurllist[0].wpurl
-        status_message = str(title) + ': Business website: '+ business_url
-        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-            data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+rating  + contentpics,\
-            "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
-            timeout=30)
-        print ('  ',response_piclinks)
+        if business_url:
+            status_message = str(title) + ': Business website: '+ business_url
+            response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+                data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+rating  + contentpics,\
+                "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
+                timeout=30)
+            print ('  ',response_piclinks)
     except AttributeError  as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', \
             type(error).__name__) # An error occurred')
+        return False
     return newPost
 
 ##################################################################################################
@@ -1391,7 +1394,10 @@ def process_reviews(outputs):
                     #if writtento["web"] == 0 :
                     try:
                         post_id, post_link = get_wordpress_post_id_and_link(processrow[1].value,outputs['web'] )
-                        database_update_row(processrow[1].value,"wpurl",post_link,"forceall",outputs)
+                        if post_link:
+                            database_update_row(processrow[1].value,"wpurl",post_link,"forceall",outputs)
+                        else:
+                            print ('  Error getting wordpress links to update databse')
                     except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
