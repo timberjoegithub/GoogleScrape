@@ -5,8 +5,9 @@ from pathlib import Path
 #from selenium.webdriver.chrome.service import Service
 
 import re
-import urllib3
 from urllib.request import urlretrieve
+import urllib3
+
 #from openpyxl import Workbook, load_workbook
 from openpyxl import load_workbook
 import pandas as pd
@@ -36,7 +37,7 @@ from selenium.webdriver.common.by import By
 #twitter
 import tweepy
 
-#Thread    
+
 #import asyncio
 #import aiohttp
 
@@ -45,7 +46,7 @@ import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import null
-from selenium import webdriver
+#from selenium import webdriver
 from selenium.webdriver.common.by import By
 import googlemaps
 #import mysqlclient
@@ -167,10 +168,10 @@ def get_auth_connect():
         dbuser = usersession[0]
         #for userloop in usersession:
         print("- " + dbuser.user + ' ' + dbuser.googleurl)
-        connections.update({'user':dbuser})
+        connections['user'] =dbuser
         posts = session.query(Posts).all()
-        connections.update({'posts':posts})
-        connections.update({'postssession':session})
+        connections['posts'] = posts
+        connections['postssession'] = session
     if env.data:
         print('  loading XLS content data source ...')
         if os.path.exists(env.xls):
@@ -332,7 +333,7 @@ def make_montage_video_from_google(inphotos):
                     clip.duration = 2
                 try:
                     video = concatenate_videoclips([video, clip], method="compose")
-                except Exception as error:
+                except AttributeError as error:
                     print("  An error occurred :", type(error).__name__) # An error occurred:
             # Load the audio file
         #    audio = AudioFileClip("audio.mp3")
@@ -391,7 +392,7 @@ def post_facebook_video(group_id, video_path, auth_token, title, content, date, 
     }
     try:
         r = requests.post(url, files=files, data=data,timeout=40).json()
-    except Exception as error:
+    except AttributeError as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
     time.sleep(env.facebooksleep)
@@ -425,17 +426,17 @@ def get_google_data(driver,outputs ):
         name = data.find_element(By.CSS_SELECTOR, 'div.d4r55.YJxk2d').text
         try:
             address = data.find_element(By.CSS_SELECTOR, 'div.RfnDt.xJVozb').text
-        except Exception:
+        except AttributeError :
             address = 'Unknonwn'
         print ('Name of location: ',name, '   Address:',address)
         try:
             visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
-        except Exception:
+        except AttributeError :
             visitdate = "Unknown"
         print('  Visited: ',visitdate)
         try:
             text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
-        except Exception:
+        except AttributeError :
             text = ''
         try:
             score = data.find_element(By.CSS_SELECTOR, 'span.kvMYJc').get_attribute("aria-label")
@@ -443,7 +444,7 @@ def get_google_data(driver,outputs ):
         #  div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf
         #  > div.m6QErb > div:nth-child(3) > div:nth-child(2) > div > div:nth-child(4) > div.DU9Pgb
         #  > span.kvMYJc
-        except Exception as error:
+        except AttributeError  as error:
             score = "Unknown"
             print ('Error: ',error)
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
@@ -471,7 +472,7 @@ def get_google_data(driver,outputs ):
                     database_update_row(name,"place_id",place_id,"onlyempty",outputs)
                     database_update_row(name,"googledetails",details,"onlyempty",outputs)
                     database_update_row(name,"google","1","onlyempty",outputs)
-                except Exception as error:
+                except AttributeError  as error:
                     print('Error writing business details from google maps : ',error)
         else:
             print ('  Post was already in database, skipping update unless you activate override')
@@ -554,7 +555,7 @@ def google_scroll(counter_google_scroll,driver):
         int: The result of the last scroll operation.
 
     Raises:
-        Exception: If an error occurs during scrolling.
+        AttributeError: If an error occurs during scrolling.
     """
     print('google_scroll...')
     time.sleep(3)
@@ -569,7 +570,7 @@ def google_scroll(counter_google_scroll,driver):
                     scrollable_div
             )
             time.sleep(3)
-        except Exception as e:
+        except AttributeError  as e:
             print(f"Error while google_scroll: {e}")
             break
     return google_scroll
@@ -619,7 +620,7 @@ def write_to_xlsx2(data, outputs):
                 outputs['postssession'].add(d2_row)
                 outputs['postssession'].commit()
                 print ('  Row ',processrow[0],' ', processrow[1],'  added to Database')
-        except Exception as error:
+        except AttributeError as error:
             print('    Not able to write to post data table: ' , type(error))
             outputs['postssession'].rollback()
             raise
@@ -669,7 +670,7 @@ def write_to_database(data, outputs):
                 outputs['postssession'].add(d2_row)
                 outputs['postssession'].commit()
                 print ('  Row ',processrow[0],' ', processrow[1],'  added to Database')
-        except Exception as error:
+        except AttributeError as error:
             print('    Not able to write to post data table: ' , type(error))
             outputs['postssession'].rollback()
             raise
@@ -698,7 +699,7 @@ def database_update_row(review_name,column_name,column_value,update_style,output
                     ({column_name : "1"})
             print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',\
                 column_value)
-    except Exception as error:
+    except AttributeError as error:
         print("    Not able to write to post data table to update ",review_name," ",column_name,"\
             to: ",column_value , type(error), error)
         outputs['postssession'].rollback()
@@ -718,7 +719,7 @@ def check_wordpress_media(filename,headers):
         file_id = int(result[0]['id'])
         link = result[0]['guid']['rendered']
         return file_id, link
-    except Exception as error:
+    except AttributeError  as error:
         print('    No existing media with same name in Wordpress media folder: '+filename)
         return (False, False)
 
@@ -729,7 +730,7 @@ def check_is_port_open(host, port):
         is_web_up = urllib3.request("GET", host)
         if is_web_up.status == 200:
             return True
-    except Exception as error:
+    except AttributeError as error:
         print ('Could not open port to website: ', host,  type(error))
         return False
 
@@ -768,7 +769,7 @@ def check_wordpress_post(postname,postdate,headers2):
         post_link = result[0]['link']
         if postdate == post_date:
             return post_id, post_link
-        else: #  Exception as error:
+        else: #  AttributeError as error:
             print('No existing post with same name: ' + postname)
             return False, False
     else:
@@ -877,8 +878,8 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
             client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
             #client_v2.create_tweet(text=status_message_short, media_ids=[media_id])
             #api.update_status(status=status_message, media_ids=[media.media_id_string])
-        except Exception as error:
-            print("    An error occurred:",error) # An error occurred:
+        except AttributeError  as error:
+            print("AttributeError     An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
     return (media.media_id)
 
@@ -919,7 +920,7 @@ def post_facebook3(title, content, date, rating, address, picslist, instasession
             post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, content,
                 date, rating, address)
             imgs_id.append(post_id['id'])
-        except Exception as error:
+        except AttributeError  as error:
             print("    An error occurred:",error)
     time.sleep(env.facebooksleep)
     print('    Facebook response: ',post_id)
@@ -941,7 +942,7 @@ def post_to_threads (title, content, date, rating, address, picslist, instasessi
                 "\n\nhttps://www.joeeatswhat.com "+"\n\n"
             instasession.video_upload(outputmontage, data)
 #           video2 = instasession.video_upload(outputmontage, data)
-        except Exception as error:
+        except AttributeError  as error:
             print("  An error occurred uploading video to Threads:", type(error).__name__) 
             return False
         return True
@@ -958,14 +959,14 @@ def post_to_threads2 (title, content, date, rating, address, picslist, instasess
             data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
             instasession.video_upload(outputmontage, data)
 #           video2 = instasession.video_upload(outputmontage, data)
-        except Exception as error:
+        except AttributeError  as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__)
             return False
         #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
         #media_path = instasession.video_download(media_pk)
         # joeeatswhat = instasession.user_info_by_username('timberjoe')
         # try: buildout = instagrapi.story.StoryBuilder(outputmontage,'Credits @timberjoe',[StoryMention(user=joeeatswhat)]).video(40)  # seconds
-        # except Exception as error:
+        # except AttributeError as error:
         #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
         # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
 #         try:
@@ -986,7 +987,7 @@ def post_to_threads2 (title, content, date, rating, address, picslist, instasess
 #             #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: get_hastags )
 #             # temp = dict()
 #             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=get_hastags)
-#         except Exception as error:
+#         except AttributeError as error:
 #             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
 #             return False
         return True
@@ -1051,14 +1052,14 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
             data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
             instasession.video_upload(outputmontage, data)
 #           video2 = instasession.video_upload(outputmontage, data)
-        except Exception as error:
+        except AttributeError  as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__)
             return False
         #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
         #media_path = instasession.video_download(media_pk)
         # joeeatswhat = instasession.user_info_by_username('timberjoe')
         # try: buildout = instagrapi.story.StoryBuilder(outputmontage,'Credits @timberjoe',[StoryMention(user=joeeatswhat)]).video(40)  # seconds
-        # except Exception as error:
+        # except AttributeError as error:
         #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
         # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
 #         try:
@@ -1079,7 +1080,7 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
 #             #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: get_hastags )
 #             # temp = dict()
 #             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=get_hastags)
-#         except Exception as error:
+#         except AttributeError as error:
 #             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
 #             return False
         return True
@@ -1170,7 +1171,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
 #                                       date = dt.timedelta( years= tempdate)
 #                                    newdate = dt.datetime.strptime(date_string).date()
                                         newdate = datetime.today() + relativedelta(years= tempdate)
-                                    except Exception as error:
+                                    except AttributeError  as error:
                                         print("    An error getting date occurred:",error)
                                 else:
                                     formatting = '%Y-%b-%d' #specifify the formatting of the date_string.
@@ -1180,11 +1181,11 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                                     date_string = year+'-'+ month+'-'+day
                                     try:
                                         newdate = dt.datetime.strptime(date_string, formatting).date()
-                                    except Exception as error:
+                                    except AttributeError  as error:
                                         print("    An error getting date occurred:",error)
 #                                    try:
 #                                        newdate = dt.datetime.strptime(date_string, formatting).date()
-#                                    except Exception as error:
+#                                    except AttributeError as error:
 #                                        print("    An error getting date occurred:", error)
                                     newdate = str(newdate)
     #formatting = '%b/%Y/%d' #specifify the formatting of the date_string.
@@ -1199,7 +1200,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
     try:
         post_id, post_link = check_wordpress_post(title,newdate2,headers)
         database_update_row(title,"wpurl",post_link,"forceall",outputs)
-    except  Exception as error :
+    except  AttributeError  as error :
         print ('Could not check to see post already exists',error)
     if not post_id:
         googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml\
@@ -1223,7 +1224,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                 post_id_json = response.json()
                 post_id = post_id_json.get('id')
                 print ('    New post is has post_id = ',post_id)
-        except Exception as error:
+        except AttributeError  as error:
             print("An error occurred:", type(error).__name__) # An error occurred:
         #postneedsupdate = True
     else:
@@ -1249,7 +1250,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             try:
                 image_response = requests.post(env.wpAPI + "/media", headers=headers, \
                     files=image,timeout=30)
-            except Exception as error:
+            except AttributeError  as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", \
                     type(error).__name__)
             if image_response.status_code != 201 :
@@ -1264,7 +1265,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             try:
                 linksDict = {'file_id' : file_id , 'link' : link}
                 linkslist.append(linksDict)
-            except Exception as error:
+            except AttributeError  as error:
                 print("    An error adding to dictionary " , file_id , link , " occurred:", \
                     type(error).__name__) # An error occurred:
         else:
@@ -1273,7 +1274,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             try:
                 image_response = requests.post(env.wpAPI + "/media/" + str(file_id), \
                     headers=headers, data={"post" : post_id},timeout=30)
-            except Exception as error:
+            except AttributeError  as error:
                 print ('    Error- Image ',picname,' was not attached to post.  response: ',\
                     image_response+' '+type(error).__name__)
             try:
@@ -1285,7 +1286,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                 else:
                     linkslist.append({'file_id' : file_id , 'link' : link})
 #                   countreview = True
-            except BaseException as error:
+            except AttributeError  as error:
                 print("    An error loading the metadata from the post " + post_response.title + \
                     ' occurred: '+type(error).__name__)
     #ratinghtml = post_response.text
@@ -1310,7 +1311,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
 #               fmedia.append = piclink{'file_id' }
 #            contentpics += '\n '+r'<img src="'+ piclink['link'] + '> \n'
             #contentpics += r'<img src="'+ piclink['link'] + r' alt="' + title +r'">' +'\n\n'
-        except Exception as error:
+        except AttributeError  as error:
             print("An error occurred:", type(error).__name__) # An error occurred:
     try:
 #        print ('featured_media = ',linkslist[0]['file_id'])
@@ -1329,7 +1330,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
             timeout=30)
         print ('  ',response_piclinks)
-    except Exception as error:
+    except AttributeError  as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', \
             type(error).__name__) # An error occurred')
     return newPost
@@ -1400,7 +1401,7 @@ def process_reviews(outputs):
                     try:
                         post_id, post_link = get_wordpress_post_id_and_link(processrow[1].value,outputs['web'] )
                         database_update_row(processrow[1].value,"wpurl",post_link,"forceall",outputs)
-                    except  Exception as error :
+                    except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
                     if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
                             value,Posts.web != 1):
@@ -1416,16 +1417,16 @@ def process_reviews(outputs):
                                     print('  write to xls for web')
                                     outputs['datawb'].save(env.xls)
                                     print('  Successfully updated spreadsheet')
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__)
                                 try:
                                     print('  write to DB for web')
                                     outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"web" : 1})
                                     outputs['postssession'].commit()
                                     print('  Successfully wrote to database')
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred writing database", type(error).__name__)
-                            except Exception as error:
+                            except AttributeError  as error:
                                 print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"],' ',error)
                                 print (error)
                         else:
@@ -1442,7 +1443,7 @@ def process_reviews(outputs):
                                     print ('  Start generating content to post to Instagram')
                                     writtento["instagram"] = 1
                                     processrow[9].value = str(writtento)
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__)
                                 print ('  Success Posting to Instagram: '+processrow[1].value)
                                 if NewInstagramPost:
@@ -1451,16 +1452,16 @@ def process_reviews(outputs):
                                     print('  write to xls for instagram')
                                     outputs['datawb'].save(env.xls)
                                     print('  write to mariadb for instagram')
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__)
                                 try:
                                     print('  write to DB for instagram')
                                     outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"instagram" : 1})
                                     outputs['postssession'].commit()
                                     print('  Successfully wrote to database')
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred writing database", type(error).__name__)
-                            except Exception as error:
+                            except AttributeError  as error:
                                 print ('  Error writing Instagram post : ',processrow[1].value, processrow[2].value, outputs['instagram'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["instagram"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of Instagram posts per run, skipping', processrow[1].value)
@@ -1476,7 +1477,7 @@ def process_reviews(outputs):
                                     print ('  Start generating content to post to facebook')
                                     writtento["facebook"] = 1
                                     processrow[9].value = str(writtento)
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__)
                                 print ('  Success Posting to facebook: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
                                 if NewFacebookPost:
@@ -1485,16 +1486,16 @@ def process_reviews(outputs):
                                     print('  write to xls for facebook')
                                     outputs['datawb'].save(env.xls)
                                     print('  write to mariadb for facebook')
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__)
                                 try:
                                     print('  write to DB for facebook')
                                     outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"facebook" : 1})
                                     outputs['postssession'].commit()
                                     print('  Successfully wrote to database')
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred writing database", type(error).__name__)
-                            except Exception as error:
+                            except AttributeError  as error:
                                 print ('  Error writing facebook post : ',processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["facebook"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of facebook posts per run, skipping', processrow[1].value)
@@ -1512,7 +1513,7 @@ def process_reviews(outputs):
                                     print ('  Start generating content to post to xtwitter')
                                     writtento["xtwitter"] = 1
                                     processrow[9].value = str(writtento)
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
                                 print ('  Success Posting to xtwitter: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
                                 if NewxtwitterPost:
@@ -1523,16 +1524,16 @@ def process_reviews(outputs):
                                     print('  write to mariadb for xtwitter')
                                     # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
                                     # outputs['postssession'].commit()
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
                                 try:
                                     print('  write to DB for xtwitter')
                                     outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"xtwitter" : 1})
                                     outputs['postssession'].commit()
                                     print('  Successfully wrote to database')
-                                except Exception as error:
+                                except AttributeError  as error:
                                     print("  An error occurred writing database", type(error).__name__)
-                            except Exception as error:
+                            except AttributeError as error:
                                 print ('  Error writing xtwitter post : ',error,processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
                         else:
                             print ('  Exceeded the number of xtwitter posts per run, skipping', processrow[1].value)
