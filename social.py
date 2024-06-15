@@ -161,9 +161,9 @@ def get_auth_connect():
         #from sqlalchemy import create_engine
         engine = sqlalchemy.create_engine("mysql+mysqldb://"+env.mariadbuser+":"+env.mariadbpass+
             "@"+env.mariadbserver+"/"+env.mariadbdb+"?charset=utf8mb4", echo=False)
-        Session = sqlalchemy.orm.sessionmaker()
-        Session.configure(bind=engine)
-        session = Session()
+        session = sqlalchemy.orm.sessionmaker()
+        session.configure(bind=engine)
+#        session = Session()
         usersession = session.query(Users).filter(Users.user=='joesteele')
         dbuser = usersession[0]
         #for userloop in usersession:
@@ -185,9 +185,9 @@ def get_auth_connect():
                 input("Not able to find xls file Press any key to continue...")
         ws = wb['Sheet1']
         #xlswbDF = pd.read_excel(xls)
-        connections.update({'xlsdf':xlswbDF})
-        connections.update({'data':ws})
-        connections.update({'datawb':wb})
+        connections.update({'xlsdf':xlswbDF,'data':ws,'datawb':wb})
+#        connections.update({'data':ws})
+#        connections.update({'datawb':wb})
     if env.instagram :
         print('  Connecting to Instagram ...')
         instasessionclient = instagrapi.Client()
@@ -242,13 +242,12 @@ def get_twitter_conn_v1(api_key, api_secret, access_token, access_token_secret) 
 
 def get_twitter_conn_v2(api_key, api_secret, access_token, access_token_secret) -> tweepy.Client:
     """Get twitter conn 2.0"""
-    client = tweepy.Client(
+    return tweepy.Client(
         consumer_key=api_key,
         consumer_secret=api_secret,
         access_token=access_token,
         access_token_secret=access_token_secret,
     )
-    return client
 
 ##################################################################################################
 
@@ -279,10 +278,7 @@ def get_hastags(address, name, hashtype):
     ziptag = "#"+zip_code
     if statetag == 'FL':
         statetag += ' #Florida'
-    fulltag = defaulttags+" "+citytag+" "+statetag+" "+ziptag+" "
-    # 153 Sugar Belle Dr, Winter Garden, FL 34787
-    # inphotos[0].rsplit(r'/', 1)
-    return (fulltag)
+    return defaulttags+" "+citytag+" "+statetag+" "+ziptag+" "
 
 ##################################################################################################
 
@@ -302,7 +298,7 @@ def counter_google(driver):
     result = result.replace(',', '')
     result = result.split(' ')
     result = result[0].split('\n')
-    return int(int(result[0])/10)+1
+    return int(result[0]) // 10 + 1
 
 ##################################################################################################
 
@@ -319,32 +315,32 @@ def make_montage_video_from_google(inphotos):
 
 # Load the photos from the folder
 # Set the duration of each photo to 2 seconds
-    if inphotos:
-        directory = inphotos[0].rsplit(r'/', 1)
-        folder = directory[0]
-        output = folder+"/montage.mp4"
-        if not os.path.exists(output) and len(inphotos) >1:
-            video = VideoFileClip(inphotos[0])
-            for photo in inphotos :
-                #clip = VideoFileClip("myHolidays.mp4").subclip(50,60)
-                clip = VideoFileClip(photo)
-                # Concatenate the photos into a clip
-                if ".jpg" in photo:
-                    clip.duration = 2
-                try:
-                    video = concatenate_videoclips([video, clip], method="compose")
-                except AttributeError as error:
-                    print("  An error occurred :", type(error).__name__) # An error occurred:
-            # Load the audio file
+    if not inphotos:
+        return False, False
+    directory = inphotos[0].rsplit(r'/', 1)
+    folder = directory[0]
+    output = folder+"/montage.mp4"
+    if not os.path.exists(output) and len(inphotos) >1:
+        video = VideoFileClip(inphotos[0])
+        for photo in inphotos :
+            #clip = VideoFileClip("myHolidays.mp4").subclip(50,60)
+            clip = VideoFileClip(photo)
+            # Concatenate the photos into a clip
+            if ".jpg" in photo:
+                clip.duration = 2
+            try:
+                video = concatenate_videoclips([video, clip], method="compose")
+            except AttributeError as error:
+                print("  An error occurred :", type(error).__name__) # An error occurred:
+        # Load the audio file
         #    audio = AudioFileClip("audio.mp3")
-            # Set the audio as the soundtrack of the montage
+        # Set the audio as the soundtrack of the montage
         #    montage = montage.set_audio(audio)
-            # Write the final montage to a file
-            outputvideo = video.write_videofile(folder+"/montage.mp4", fps=24)
-        else:
-            outputvideo = False
-        return outputvideo, output
-    return False, False
+        # Write the final montage to a file
+        outputvideo = video.write_videofile(folder+"/montage.mp4", fps=24)
+    else:
+        outputvideo = False
+    return outputvideo, output
 
 ##################################################################################################
 
@@ -380,10 +376,8 @@ def post_facebook_video(group_id, video_path, auth_token, title, content, date, 
     """
 
     url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
-    files={}
     addresshtml = re.sub(" ", ".",address)
-    for eachfile in video_path:
-        files.update({eachfile: open(eachfile, 'rb')})
+    files = {eachfile: open(eachfile, 'rb') for eachfile in video_path}
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
             r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
             "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title, 'long')+
@@ -449,7 +443,7 @@ def get_google_data(driver,outputs ):
             print ('Error: ',error)
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
     #  Grab more info from google maps entry on this particular review
-        if outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google != True) or env.forcegoogleupdate:
+        if outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google is not True) or env.forcegoogleupdate:
             gmaps = googlemaps.Client(env.googleapipass)
             place_ids = gmaps.find_place(name+address, input_type = 'textquery', fields='')
             if len(place_ids['candidates']) == 1 :
@@ -497,7 +491,7 @@ def get_google_data(driver,outputs ):
                 #iframe = driver.find_element(By.TAG_NAME, "iframe")
                 tempdate = str((driver.find_element(By.CLASS_NAME,'mqX5ad')).text).rsplit("-",1)
                 visitdate = re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
-                print ('  Visited: ',visitdate)
+                #print ('  Visited: ',visitdate)
             # Check to see if it has a sub div, which represents the label with the video length
             # displayed, this will be done
             # because videos are represented by pictures in the main dialogue, so we need to click
@@ -594,21 +588,20 @@ def write_to_xlsx2(data, outputs):
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
     for processrow in df2.values:
-        if  (processrow[1] in df.values):
+        if (processrow[1] in df.values):
             print ('  Row ',processrow[0],' ', processrow[1],'  already in XLS sheet')
             d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
                 picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
                 date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-        else:
-            if processrow[1] is not None:
+        elif processrow[1] is not None:
             # Create a Python dictionary object with all the column values
             # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
             #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
             #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
-                d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
-                    picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
-                    date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-                print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
+            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
+                picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
+                date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
+            print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
@@ -644,21 +637,20 @@ def write_to_database(data, outputs):
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
     for processrow in outputs['postssession']:
-        if  (processrow[1] in df.values):
+        if (processrow[1] in df.values):
             print ('  Row ',processrow[0],' ', processrow[1],'  already in database')
             d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
                 picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
                 date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-        else:
-            if processrow[1] is not None:
+        elif processrow[1] is not None:
             # Create a Python dictionary object with all the column values
             # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
             #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
             #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
-                d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
-                    picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
-                    date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-                print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
+            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
+                picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
+                date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
+            print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
@@ -717,13 +709,22 @@ def check_wordpress_media(filename,headers):
         file_id = int(result[0]['id'])
         link = result[0]['guid']['rendered']
         return file_id, link
-    except AttributeError  as error:
+    except AttributeError:
         print('    No existing media with same name in Wordpress media folder: '+filename)
         return (False, False)
 
 ##################################################################################################
 
 def check_is_port_open(host, port):
+    """_summary_
+
+    Args:
+        host (_type_): _description_
+        port (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     try:
         is_web_up = urllib3.request("GET", host)
         if is_web_up.status == 200:
@@ -735,16 +736,21 @@ def check_is_port_open(host, port):
 ##################################################################################################
 
 def get_wordpress_post_id_and_link(postname,headers2):
+    """_summary_
+
+    Args:
+        postname (_type_): _description_
+        headers2 (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
-    if len(result) > 0 :
-        post_id = int(result[0]['id'])
-#        post_date = result[0]['date']
-        post_link = result[0]['link']
-        return post_id, post_link
-    else:
-        print('No existing post with same name: ' + postname)
-        return False, False
+    if len(result) > 0:
+        return int(result[0]['id']), result[0]['link']
+    print('No existing post with same name: ' + postname)
+    return False, False
 
 ##################################################################################################
 
@@ -761,18 +767,10 @@ def check_wordpress_post(postname,postdate,headers2):
     """
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
-    if len(result) > 0 :
-        post_id = int(result[0]['id'])
-        post_date = result[0]['date']
-        post_link = result[0]['link']
-        if postdate == post_date:
-            return post_id, post_link
-        else: #  AttributeError as error:
-            print('No existing post with same name: ' + postname)
-            return False, False
-    else:
-        print('No existing post with same name: ' + postname)
-        return False, False
+    if len(result) > 0 and postdate == result[0]['date']:
+        return int(result[0]['id']), result[0]['link']
+    print('No existing post with same name: ' + postname)
+    return False, False
 
 ##################################################################################################
 
@@ -1035,7 +1033,7 @@ def post_to_tiktok(title, content, date, rating, address, picslist, instasession
 
 #######################################################################################################
 
-def post_to_instagram2 (title, content, date, rating, address, picslist, instasession):
+def post_to_instagram2 (title, content, date, rating, address, picslist, instasession,outputs):
     #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value,processrow[3].
     #   value, processrow[8].value, processrow[5].value,outputs['instagram'])
     #montageexists = "montage.mp4" in picslist
@@ -1045,13 +1043,17 @@ def post_to_instagram2 (title, content, date, rating, address, picslist, instase
         #content = content + get_hastags(address, title)
         pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
         video, outputmontage = make_montage_video_from_google(pics)
-        try:
-            data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
-            instasession.video_upload(outputmontage, data)
-#           video2 = instasession.video_upload(outputmontage, data)
-        except AttributeError  as error:
-            print("  An error occurred uploading video to Instagram:", type(error).__name__)
-            return False
+        attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+        business_url = attrib_list[0].businessurl
+        if business_url:
+            wpurl = attrib_list[0].wpurl
+            try:
+                data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n"+business_url+"\n"+"Review: "+wpurl+"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
+                instasession.video_upload(outputmontage, data)
+    #           video2 = instasession.video_upload(outputmontage, data)
+            except AttributeError  as error:
+                print("  An error occurred uploading video to Instagram:", type(error).__name__)
+                return False
         #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
         #media_path = instasession.video_download(media_pk)
         # joeeatswhat = instasession.user_info_by_username('timberjoe')
@@ -1408,7 +1410,7 @@ def process_reviews(outputs):
                     except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
                     if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
-                            value,Posts.web != False).all()) == 0:
+                            value,Posts.web is not False).all()) == 0:
                         if webcount < env.postsperrun:
                             try:
                                 new_web_post=post_to_wordpress(processrow[1].value,processrow[2].\
@@ -1438,11 +1440,11 @@ def process_reviews(outputs):
                     else:
                         print ('  Website: Skipping posting for ',processrow[1].value,' previously written')
                 if env.instagram:
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.instagram != False).all()) == 0:
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.instagram is not False).all()) == 0:
                         if instagramcount < env.postsperrun:
                             try:
                                 print('  Starting to generate Instagram post')
-                                NewInstagramPost = post_to_instagram2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'] )
+                                NewInstagramPost = post_to_instagram2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'],outputs )
                                 try:
                                     print ('  Start generating content to post to Instagram')
                                     writtento["instagram"] = 1
@@ -1472,7 +1474,7 @@ def process_reviews(outputs):
                     else:
                         print ('  Instagram: Skipping posting for ',processrow[1].value,' previously written')
                 if env.facebook:
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.facebook != False).all())==0:
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.facebook is not False).all())==0:
                         if facebookcount < env.postsperrun:
                             try:
                                 print('  Starting to generate Facebook post')
@@ -1508,9 +1510,9 @@ def process_reviews(outputs):
                 if env.xtwitter:
                     #if writtento["xtwitter"] == 0:
                     #               # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
-                    tempval = len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != False).all())
+                    tempval = len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter is not False).all())
                     print ('tempval: ',tempval)
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != False).all())==0:
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter is not False).all())==0:
                         if xtwittercount < env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
