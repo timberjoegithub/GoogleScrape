@@ -426,12 +426,12 @@ def get_google_data(driver,outputs ):
         name = data.find_element(By.CSS_SELECTOR, 'div.d4r55.YJxk2d').text
         try:
             address = data.find_element(By.CSS_SELECTOR, 'div.RfnDt.xJVozb').text
-        except AttributeError :
+        except NoSuchElementException :
             address = 'Unknonwn'
         print ('Name of location: ',name, '   Address:',address)
         try:
             visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
-        except AttributeError :
+        except NoSuchElementException :
             visitdate = "Unknown"
         print('  Visited: ',visitdate)
         try:
@@ -444,12 +444,12 @@ def get_google_data(driver,outputs ):
         #  div:nth-child(2) > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf
         #  > div.m6QErb > div:nth-child(3) > div:nth-child(2) > div > div:nth-child(4) > div.DU9Pgb
         #  > span.kvMYJc
-        except AttributeError  as error:
+        except NoSuchElementException  as error:
             score = "Unknown"
             print ('Error: ',error)
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
     #  Grab more info from google maps entry on this particular review
-        if outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google != 1) or env.forcegoogleupdate:
+        if outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google != True) or env.forcegoogleupdate:
             gmaps = googlemaps.Client(env.googleapipass)
             place_ids = gmaps.find_place(name+address, input_type = 'textquery', fields='')
             if len(place_ids['candidates']) == 1 :
@@ -855,14 +855,17 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
             if business_url:
                 wpurl = attrib_list[0].wpurl
                 status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
-                    business_url
+                    business_url + '  s\n'
                 status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
                 status_message_short = status_message2[:279]
                 # Upload video
                 media = client_v1.media_upload(filename=video_path)
                 # Post tweet with video
+                tweetlat = (outputs['postssession'].query(Posts).filter(Posts.name == title).all())[0].latitude
+                tweetlong = (outputs['postssession'].query(Posts).filter(Posts.name == title).all())[0].longitude
                 if media.processing_info['state'] != 'failed':
-                    client_v2.create_tweet(text=status_message_short, media_ids=[media.media_id])
+                    client_v2.create_tweet(text=status_message_short,media_ids=[media.media_id])
+#                    client_v2.create_tweet(text=status_message_short, lat=tweetlat , long=tweetlong ,media_ids=[media.media_id])
                 else:
                     print ('Problem uploading video to twitter: ',media.processing_info['error'])
                     return False
@@ -1404,8 +1407,8 @@ def process_reviews(outputs):
                                 print ('  Error getting wordpress links to update databse')
                     except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
-                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
-                            value,Posts.web != 1):
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
+                            value,Posts.web != False).all()) == 0:
                         if webcount < env.postsperrun:
                             try:
                                 new_web_post=post_to_wordpress(processrow[1].value,processrow[2].\
@@ -1435,7 +1438,7 @@ def process_reviews(outputs):
                     else:
                         print ('  Website: Skipping posting for ',processrow[1].value,' previously written')
                 if env.instagram:
-                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.instagram != 1):
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.instagram != False).all()) == 0:
                         if instagramcount < env.postsperrun:
                             try:
                                 print('  Starting to generate Instagram post')
@@ -1469,7 +1472,7 @@ def process_reviews(outputs):
                     else:
                         print ('  Instagram: Skipping posting for ',processrow[1].value,' previously written')
                 if env.facebook:
-                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.facebook != 1):
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.facebook != False).all())==0:
                         if facebookcount < env.postsperrun:
                             try:
                                 print('  Starting to generate Facebook post')
@@ -1505,13 +1508,15 @@ def process_reviews(outputs):
                 if env.xtwitter:
                     #if writtento["xtwitter"] == 0:
                     #               # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
-                    if outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != 1):
+                    tempval = len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != False).all())
+                    print ('tempval: ',tempval)
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter != False).all())==0:
                         if xtwittercount < env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
                                 NewxtwitterPost = post_to_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'],outputs )
                                 try:
-                                    print ('  Start generating content to post to xtwitter')
+                                    print ('    Start generating content to post to xtwitter')
                                     writtento["xtwitter"] = 1
                                     processrow[9].value = str(writtento)
                                 except AttributeError  as error:
@@ -1522,7 +1527,7 @@ def process_reviews(outputs):
                                     try:
                                         print('  write to xls for xtwitter')
                                         outputs['datawb'].save(env.xls)
-                                        print('  write to mariadb for xtwitter')
+                                        print('  Successfully wrote to xls for xtwitter')
                                         # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
                                         # outputs['postssession'].commit()
                                     except AttributeError  as error:
