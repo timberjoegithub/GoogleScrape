@@ -52,6 +52,7 @@ import googlemaps
 #import mysqlclient
 #import mysql-connector-python
 import env
+#from social import Posts
 Base = declarative_base()
 
 ##################################################################################################
@@ -161,9 +162,9 @@ def get_auth_connect():
         #from sqlalchemy import create_engine
         engine = sqlalchemy.create_engine("mysql+mysqldb://"+env.mariadbuser+":"+env.mariadbpass+
             "@"+env.mariadbserver+"/"+env.mariadbdb+"?charset=utf8mb4", echo=False)
-        session = sqlalchemy.orm.sessionmaker()
-        session.configure(bind=engine)
-#        session = Session()
+        Session = sqlalchemy.orm.sessionmaker()
+        Session.configure(bind=engine)
+        session = Session()
         usersession = session.query(Users).filter(Users.user=='joesteele')
         dbuser = usersession[0]
         #for userloop in usersession:
@@ -443,7 +444,7 @@ def get_google_data(driver,outputs ):
             print ('Error: ',error)
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
     #  Grab more info from google maps entry on this particular review
-        if outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google is not True) or env.forcegoogleupdate:
+        if len(outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google is not True).all()) == 0 or env.forcegoogleupdate:
             gmaps = googlemaps.Client(env.googleapipass)
             place_ids = gmaps.find_place(name+address, input_type = 'textquery', fields='')
             if len(place_ids['candidates']) == 1 :
@@ -589,28 +590,28 @@ def write_to_xlsx2(data, outputs):
     jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
     for processrow in df2.values:
         if (processrow[1] in df.values):
-            print ('  Row ',processrow[0],' ', processrow[1],'  already in XLS sheet')
-            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
-                picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
-                date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-        elif processrow[1] is not None:
+            print ('  Row ',processrow.id,' ', processrow.name ,'  already in XLS sheet')
+            d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.rating,
+                picsURL=processrow.picsURL,picsLocalpath=processrow.picsLocalpath,source=processrow.source,
+                date=processrow.date,address=processrow.address,dictPostComplete=processrow.dictPostComplete)
+        elif processrow.name is not None:
             # Create a Python dictionary object with all the column values
-            # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
-            #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
-            #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
-            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
-                picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
-                date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-            print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
+            # d_row = {'name':processrow.name ,'comment':processrow.comment,'rating':processrow.rating,
+            #     'picsURL':processrow.picsURL,'picsLocalpath':processrow.picsLocalpath, 'source':processrow.source,
+            #     'date':processrow.date,'address':processrow.address,'dictPostComplete':processrow.dictPostComplete}
+            d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.rating,
+                picsURL=processrow.picsURL,picsLocalpath=processrow.picsLocalpath,source=processrow.source,
+                date=processrow.date,address=processrow.address,dictPostComplete=processrow.dictPostComplete)
+            print ('  Row ',processrow[0],' ', processrow.name ,'  added to XLS sheet')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
-            if processrow[1] in jsonposts : #outputs['posts']):
-                print ('  Row ',processrow[0],' ', processrow[1],'  already in Database')
+            if processrow.name in jsonposts : #outputs['posts']):
+                print ('  Row ',processrow[0],' ', processrow.name ,'  already in Database')
             else:
                 outputs['postssession'].add(d2_row)
                 outputs['postssession'].commit()
-                print ('  Row ',processrow[0],' ', processrow[1],'  added to Database')
+                print ('  Row ',processrow[0],' ', processrow.name ,'  added to Database')
         except AttributeError as error:
             print('    Not able to write to post data table: ' , type(error))
             outputs['postssession'].rollback()
@@ -637,29 +638,29 @@ def write_to_database(data, outputs):
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
     for processrow in outputs['postssession']:
-        if (processrow[1] in df.values):
-            print ('  Row ',processrow[0],' ', processrow[1],'  already in database')
-            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
-                picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
-                date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-        elif processrow[1] is not None:
+        if (processrow.name in df.values):
+            print ('  Row ',processrow.id,' ', processrow.name ,'  already in database')
+            d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.rating,
+                picsURL=processrow.picsURL,picsLocalpath=processrow.picsLocalpath,source=processrow.source,
+                date=processrow.date,address=processrow.address,dictPostComplete=processrow.dictPostComplete)
+        elif processrow.name is not None:
             # Create a Python dictionary object with all the column values
-            # d_row = {'name':processrow[1],'comment':processrow[2],'rating':processrow[3],
-            #     'picsURL':processrow[4],'picsLocalpath':processrow[5], 'source':processrow[6],
-            #     'date':processrow[7],'address':processrow[8],'dictPostComplete':processrow[9]}
-            d2_row = Posts(name=processrow[1],comment=processrow[2],rating=processrow[3],
-                picsURL=processrow[4],picsLocalpath=processrow[5],source=processrow[6],
-                date=processrow[7],address=processrow[8],dictPostComplete=processrow[9])
-            print ('  Row ',processrow[0],' ', processrow[1],'  added to XLS sheet')
+            # d_row = {'name':processrow.name ,'comment':processrow.comment,'rating':processrow.rating,
+            #     'picsURL':processrow.picsURL,'picsLocalpath':processrow.picsLocalpath, 'source':processrow.source,
+            #     'date':processrow.date,'address':processrow.address,'dictPostComplete':processrow.dictPostComplete}
+            d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.rating,
+                picsURL=processrow.picsURL,picsLocalpath=processrow.picsLocalpath,source=processrow.source,
+                date=processrow.date,address=processrow.address,dictPostComplete=processrow.dictPostComplete)
+            print ('  Row ',processrow[0],' ', processrow.name ,'  added to XLS sheet')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
-            if processrow[1] in jsonposts : #outputs['posts']):
-                print ('  Row ',processrow[0],' ', processrow[1],'  already in Database')
+            if processrow.name in jsonposts : #outputs['posts']):
+                print ('  Row ',processrow[0],' ', processrow.name ,'  already in Database')
             else:
                 outputs['postssession'].add(d2_row)
                 outputs['postssession'].commit()
-                print ('  Row ',processrow[0],' ', processrow[1],'  added to Database')
+                print ('  Row ',processrow[0],' ', processrow.name ,'  added to Database')
         except AttributeError as error:
             print('    Not able to write to post data table: ' , type(error))
             outputs['postssession'].rollback()
@@ -706,9 +707,12 @@ def check_wordpress_media(filename,headers):
                         headers=headers,timeout=40)
     try:
         result = response.json()
-        file_id = int(result[0]['id'])
-        link = result[0]['guid']['rendered']
-        return file_id, link
+        if result:
+            file_id = int(result[0]['id'])
+            link = result[0]['guid']['rendered']
+            return file_id, link
+        else:
+            return False,False
     except AttributeError:
         print('    No existing media with same name in Wordpress media folder: '+filename)
         return (False, False)
@@ -1033,9 +1037,9 @@ def post_to_tiktok(title, content, date, rating, address, picslist, instasession
 
 #######################################################################################################
 
-def post_to_instagram2 (title, content, date, rating, address, picslist, instasession,outputs):
-    #post_to_instagram2(processrow[1].value, processrow[2].value ,processrow[7].value,processrow[3].
-    #   value, processrow[8].value, processrow[5].value,outputs['instagram'])
+def post_to_instagram2(title, content, date, rating, address, picslist, instasession,outputs):
+    #post_to_instagram2(processrow.name, processrow.comment ,processrow.address,processrow.rating.
+    #   value, processrow.dictPostComplete, processrow.picsLocalpath,outputs['instagram'])
     #montageexists = "montage.mp4" in picslist
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
@@ -1137,7 +1141,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             if "a week" in date:
 #               date = dt.timedelta(weeks= -1)
 #                newdate = dt.datetime.strptime(date_string, formatting).date()
-                newdate = datetime.today() - relativedelta(weeks= -1)
+                newdate = datetime.today() - relativedelta(weeks= 1)
             else:
                 if "week" in date:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
@@ -1149,7 +1153,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                     if "a month" in date:
 #                       date = dt.timedelta(months= -1)
 #                        newdate = dt.datetime.strptime(date_string, formatting).date()
-                        newdate = datetime.today() - relativedelta(months = -1)
+                        newdate = datetime.today() - relativedelta(months = 1)
                     else:
                         if "month" in date:
                             tempdate = -int(re.sub( r'[^0-9]','',date_string))
@@ -1161,7 +1165,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
                             if "a year" in date:
 #                               date = dt.timedelta(years= -1)
 #                                newdate = dt.datetime.strptime(date_string, formatting).date()
-                                newdate = datetime.today() - relativedelta(years= -1)
+                                newdate = datetime.today() - relativedelta(years= 1)
                             else:
                                 if "year" in date:
                                     try:
@@ -1343,7 +1347,21 @@ def process_reviews(outputs):
     # Process
     webcount = xtwittercount = instagramcount = facebookcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
-    rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
+    if env.datasource == 'xls':
+        rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
+       # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
+    else:
+        rows_orig = (outputs['posts'])
+  #      rows = [{(p.name), ( p.comment), ( p.rating), (p.picsURL), (p.picsLocalpath),(p.source),(p.date),(p.address),(p.dictPostComplete)} for p in rows_orig]
+  #      rows = [{1: p.name, 2: p.comment, 3: p.rating, 4:p.picsURL, 5:p.picsLocalpath,6:p.source,7:p.date,8:p.address,9:p.dictPostComplete} for p in rows_orig]
+        rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL}, {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete}) for p in rows_orig]
+        #rows = list ((outputs['postsession'].name))
+        # ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
+    print ('xls rows: ',list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))))
+    print ('Database rows: ', list(outputs['posts']))
+ #   print("Press Enter to continue...")
+ #   input()
+    print("Keypress detected! Program continues.")
     if env.google:
         print('Configuration says to update google Reviews prior to processing them')
         options = webdriver.ChromeOptions()
@@ -1388,35 +1406,35 @@ def process_reviews(outputs):
         rows = reversed(rows)
     print('Processing Reviews')
     for processrow in rows:
-        if processrow[1].value != "name":  # Skip header line of xls sheet
-            print ("Processing : ",processrow[1].value)
-            writtento = (ast.literal_eval(processrow[9].value))
+        if processrow.name != "name":  # Skip header line of xls sheet
+            print ("Processing : ",processrow.name)
+            writtento = (ast.literal_eval(processrow.dictPostComplete))
             # Check to see if the website has already been written to according to the xls sheet,\
             # if it has not... then process
             if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or \
                 writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or \
                 writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
                 or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
-                env.threads or env.google)and (processrow[2].value is not None) :
+                env.threads or env.google)and (processrow.comment is not None) :
                 if env.web :
                     #if writtento["web"] == 0 :
                     try:
                         if env.forcegoogleupdate:
-                            post_id, post_link = get_wordpress_post_id_and_link(processrow[1].value,outputs['web'] )
+                            post_id, post_link = get_wordpress_post_id_and_link(processrow.name,outputs['web'] )
                             if post_link:
-                                database_update_row(processrow[1].value,"wpurl",post_link,"forceall",outputs)
+                                database_update_row(processrow.name,"wpurl",post_link,"forceall",outputs)
                             else:
                                 print ('  Error getting wordpress links to update databse')
                     except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].\
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name .\
                             value,Posts.web is not False).all()) == 0:
                         if webcount < env.postsperrun:
                             try:
-                                new_web_post=post_to_wordpress(processrow[1].value,processrow[2].\
-                                    value,outputs['web'] ,processrow[7].value, processrow[3].value\
-                                    , processrow[8].value, processrow[5].value,outputs)
-                                print ('  Success Posting to Wordpress: '+processrow[1].value)
+                                new_web_post=post_to_wordpress(processrow.name,processrow.comment.\
+                                    value,outputs['web'] ,processrow.date, processrow.rating\
+                                    , processrow.address, processrow.picsLocalpath,outputs)
+                                print ('  Success Posting to Wordpress: '+processrow.name)
                                 if new_web_post:
                                     webcount +=1
                                     try:
@@ -1427,31 +1445,31 @@ def process_reviews(outputs):
                                         print("  An error occurred writing Excel file:", type(error).__name__)
                                     try:
                                         print('  write to DB for web')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"web" : 1})
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"web" : 1})
                                         outputs['postssession'].commit()
                                         print('  Successfully wrote to database')
                                     except AttributeError  as error:
                                         print("  An error occurred writing database", type(error).__name__)
                             except AttributeError  as error:
-                                print ('  Error writing web post : ',processrow[1].value, processrow[2].value,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["web"],' ',error)
+                                print ('  Error writing web post : ',processrow.name, processrow.comment,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, writtento["web"],' ',error)
                                 print (error)
                         else:
-                            print ('  Exceeded the number of web posts per run, skipping', processrow[1].value)
+                            print ('  Exceeded the number of web posts per run, skipping', processrow.name)
                     else:
-                        print ('  Website: Skipping posting for ',processrow[1].value,' previously written')
+                        print ('  Website: Skipping posting for ',processrow.name,' previously written')
                 if env.instagram:
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.instagram is not False).all()) == 0:
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.instagram is not False).all()) == 0:
                         if instagramcount < env.postsperrun:
                             try:
                                 print('  Starting to generate Instagram post')
-                                NewInstagramPost = post_to_instagram2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['instagram'],outputs )
+                                NewInstagramPost = post_to_instagram2(processrow.name, processrow.comment, processrow.address, processrow.rating, processrow.dictPostComplete, processrow.picsLocalpath,outputs['instagram'],outputs )
                                 try:
                                     print ('  Start generating content to post to Instagram')
                                     writtento["instagram"] = 1
-                                    processrow[9].value = str(writtento)
+                                    processrow.dictPostComplete = str(writtento)
                                 except AttributeError  as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__)
-                                print ('  Success Posting to Instagram: '+processrow[1].value)
+                                print ('  Success Posting to Instagram: '+processrow.name)
                                 if NewInstagramPost:
                                     instagramcount +=1
                                     try:
@@ -1462,30 +1480,30 @@ def process_reviews(outputs):
                                         print("  An error occurred writing Excel file:", type(error).__name__)
                                     try:
                                         print('  write to DB for instagram')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"instagram" : 1})
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"instagram" : 1})
                                         outputs['postssession'].commit()
                                         print('  Successfully wrote to database')
                                     except AttributeError  as error:
                                         print("  An error occurred writing database", type(error).__name__)
                             except AttributeError  as error:
-                                print ('  Error writing Instagram post : ',processrow[1].value, processrow[2].value, outputs['instagram'],processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["instagram"], type(error).__name__ )
+                                print ('  Error writing Instagram post : ',processrow.name, processrow.comment, outputs['instagram'],processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, writtento["instagram"], type(error).__name__ )
                         else:
-                            print ('  Exceeded the number of Instagram posts per run, skipping', processrow[1].value)
+                            print ('  Exceeded the number of Instagram posts per run, skipping', processrow.name)
                     else:
-                        print ('  Instagram: Skipping posting for ',processrow[1].value,' previously written')
+                        print ('  Instagram: Skipping posting for ',processrow.name,' previously written')
                 if env.facebook:
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.facebook is not False).all())==0:
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.facebook is not False).all())==0:
                         if facebookcount < env.postsperrun:
                             try:
                                 print('  Starting to generate Facebook post')
-                                NewFacebookPost = post_facebook3(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['facebook'] )
+                                NewFacebookPost = post_facebook3(processrow.name, processrow.comment, processrow.address, processrow.rating, processrow.dictPostComplete, processrow.picsLocalpath,outputs['facebook'] )
                                 try:
                                     print ('  Start generating content to post to facebook')
                                     writtento["facebook"] = 1
-                                    processrow[9].value = str(writtento)
+                                    processrow.dictPostComplete = str(writtento)
                                 except AttributeError  as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__)
-                                print ('  Success Posting to facebook: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
+                                print ('  Success Posting to facebook: '+processrow.name)# ',processrow.name, processrow.comment, headers,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, temp3["web"] )
                                 if NewFacebookPost:
                                     facebookcount +=1
                                     try:
@@ -1496,57 +1514,291 @@ def process_reviews(outputs):
                                         print("  An error occurred writing Excel file:", type(error).__name__)
                                     try:
                                         print('  write to DB for facebook')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"facebook" : 1})
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"facebook" : 1})
                                         outputs['postssession'].commit()
                                         print('  Successfully wrote to database')
                                     except AttributeError  as error:
                                         print("  An error occurred writing database", type(error).__name__)
                             except AttributeError  as error:
-                                print ('  Error writing facebook post : ',processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["facebook"], type(error).__name__ )
+                                print ('  Error writing facebook post : ',processrow.name, processrow.comment, outputs,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, writtento["facebook"], type(error).__name__ )
                         else:
-                            print ('  Exceeded the number of facebook posts per run, skipping', processrow[1].value)
+                            print ('  Exceeded the number of facebook posts per run, skipping', processrow.name)
                     else:
-                        print ('  Facebook: Skipping posting for ',processrow[1].value,' previously written')
+                        print ('  Facebook: Skipping posting for ',processrow.name,' previously written')
                 if env.xtwitter:
                     #if writtento["xtwitter"] == 0:
                     #               # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
-                    tempval = len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter is not False).all())
+                    tempval = len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.xtwitter is not False).all())
                     print ('tempval: ',tempval)
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value,Posts.xtwitter is not False).all())==0:
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.xtwitter is not False).all())==0:
                         if xtwittercount < env.postsperrun:
                             try:
                                 print('  Starting to generate xtwitter post')
-                                NewxtwitterPost = post_to_x2(processrow[1].value, processrow[2].value, processrow[7].value, processrow[3].value, processrow[8].value, processrow[5].value,outputs['posts'],outputs )
+                                NewxtwitterPost = post_to_x2(processrow.name, processrow.comment, processrow.address, processrow.rating, processrow.dictPostComplete, processrow.picsLocalpath,outputs['posts'],outputs )
                                 try:
                                     print ('    Start generating content to post to xtwitter')
                                     writtento["xtwitter"] = 1
-                                    processrow[9].value = str(writtento)
+                                    processrow.dictPostComplete = str(writtento)
                                 except AttributeError  as error:
                                     print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
-                                    print ('  Success Posting to xtwitter: '+processrow[1].value)# ',processrow[1].value, processrow[2].value, headers,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, temp3["web"] )
+                                    print ('  Success Posting to xtwitter: '+processrow.name)# ',processrow.name, processrow.comment, headers,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, temp3["web"] )
                                 if NewxtwitterPost:
                                     xtwittercount +=1
                                     try:
                                         print('  write to xls for xtwitter')
                                         outputs['datawb'].save(env.xls)
                                         print('  Successfully wrote to xls for xtwitter')
-                                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow[1].value)
+                                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow.name)
                                         # outputs['postssession'].commit()
                                     except AttributeError  as error:
                                         print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
                                     try:
                                         print('  write to DB for xtwitter')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow[1].value).update({"xtwitter" : 1})
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"xtwitter" : 1})
                                         outputs['postssession'].commit()
                                         print('  Successfully wrote to database')
                                     except AttributeError  as error:
                                         print("  An error occurred writing database", type(error).__name__)
                             except AttributeError as error:
-                                print ('  Error writing xtwitter post : ',error,processrow[1].value, processrow[2].value, outputs,processrow[7].value, processrow[3].value,processrow[8].value, processrow[5].value, writtento["xtwitter"], type(error).__name__ )
+                                print ('  Error writing xtwitter post : ',error,processrow.name, processrow.comment, outputs,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, writtento["xtwitter"], type(error).__name__ )
                         else:
-                            print ('  Exceeded the number of xtwitter posts per run, skipping', processrow[1].value)
+                            print ('  Exceeded the number of xtwitter posts per run, skipping', processrow.name)
                     else:
-                        print ('  Xtwitter: Skipping posting for ',processrow[1].value,' previously written')
+                        print ('  Xtwitter: Skipping posting for ',processrow.name,' previously written')
+    #post_to_x_example(title, content, date, rating, address, picslist, instasession)
+    # else:
+    #     print ('Exceeded the number of posts per run, exiting')
+                # if xtwitter:
+                #     namedict = {'name':'xtwitter', 'namecount':xtwittercount, 'namepost':'NewxtwitterPost', 'subroutine':post_to_x_example}
+                #    # junction('xtwitter',xtwittercount,'NewxtwitterPost','post_to_x_example', outputs, writtento, processrow)
+                #     socials('xtwitter',namedict,outputs,writtento, processrow,post_to_x_example)
+    return #(outputs['web'])
+
+##################################################################################################
+
+def process_reviews2(outputs):
+    # Process
+    webcount = xtwittercount = instagramcount = facebookcount = 0
+#    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
+    if env.datasource == 'xls':
+        rows_orig = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
+        rows_orig2 = (outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
+        rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL}, {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete}) for p in rows_orig]
+        # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
+    else:
+        rows_orig = (outputs['posts'])#      rows = [{(p.name), ( p.comment), ( p.rating), (p.picsURL), (p.picsLocalpath),(p.source),(p.date),(p.address),(p.dictPostComplete)} for p in rows_orig]#      rows = [{1: p.name, 2: p.comment, 3: p.rating, 4:p.picsURL, 5:p.picsLocalpath,6:p.source,7:p.date,8:p.address,9:p.dictPostComplete} for p in rows_orig]
+        rows = rows_orig
+#        rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL}, {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete}) for p in rows_orig]
+        #rows = list ((outputs['postsession'].name))
+        # ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
+    # print ('xls rows: ',list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))))
+    # print ('Database rows: ', list(outputs['posts']))
+#   print("Press Enter to continue...")
+#   input()
+    print("Keypress detected! Program continues.")
+    if env.google:
+        print('Configuration says to update google Reviews prior to processing them')
+        options = webdriver.ChromeOptions()
+        options.add_argument("--log-level=3")
+        options.add_argument("--ignore-certificate-error")
+        options.add_argument("--ignore-ssl-errors")
+        if not env.showchrome:
+            options.add_argument("--headless")
+            # show browser or not ||| HEAD =>  43.03 ||| No Head => 39 seg
+        options.add_argument("--lang=en-US")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--remote-debugging-pipe")
+        # Exclude the collection of enable-automation switches
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        # Turn-off userAutomationExtension
+        options.add_experimental_option("useAutomationExtension", False)
+        # Setting the driver path and requesting a page
+        caps = webdriver.DesiredCapabilities.CHROME.copy()
+        caps['acceptInsecureCerts'] = True
+        caps['acceptSslCerts'] = True
+        options.set_capability('cloud:options', caps)
+        #driver = webdriver.Chrome(desired_capabilities=caps)
+        if is_docker() :
+            driver = webdriver.Remote("http://192.168.10.9:4444/wd/hub", options=options)
+            print ("IN A DOCKER CONTAINER, USING REMOTE CHROME")
+        else:
+            driver = webdriver.Chrome(options=options) # Firefox(options=options)
+        # Changing the property of the navigator value for webdriver to undefined
+        driver.execute_script("Object.defineProperty(navigator,'webdriver',\
+                            {get:()=> undefined})")
+        driver.get(env.URL)
+        time.sleep(5)
+        google_scroll(counter_google(driver), driver)
+        webdata = get_google_data(driver,outputs)
+        write_to_xlsx2(webdata, outputs)
+        driver.close()
+        # outputs['data'].save(xls)
+        print('Done getting google reviews and writing them to xls file !')
+    else:
+        print ('Configuration says to skip creation of new reviews from google for this run')
+    if env.needreversed:
+        rows = reversed(rows)
+    print('Processing Reviews')
+    for processrow in rows:
+        if processrow.name != "name":  # Skip header line of xls sheet
+            print ("Processing : ",processrow.name)
+            writtento = (ast.literal_eval(processrow.dictPostComplete))
+            # Check to see if the website has already been written to according to the xls sheet,\
+            # if it has not... then process
+            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or \
+                writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or \
+                writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
+                or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
+                env.threads or env.google)and (processrow.comment is not None) :
+                if env.web :
+                    #if writtento["web"] == 0 :
+                    try:
+                        if env.forcegoogleupdate:
+                            post_id, post_link = get_wordpress_post_id_and_link(processrow.name,outputs['web'] )
+                            if post_link:
+                                database_update_row(processrow.name,"wpurl",post_link,"forceall",outputs)
+                            else:
+                                print ('  Error getting wordpress links to update databse')
+                    except  AttributeError  as error :
+                        print ('Could not check to see post already exists',error)
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name\
+                            ,Posts.web is True).all()) == 0:
+                        if webcount < env.postsperrun:
+                            try:
+                                new_web_post=post_to_wordpress(processrow.name,processrow.comment\
+                                    ,outputs['web'] ,processrow.date, processrow.rating\
+                                    , processrow.address, processrow.picsLocalpath,outputs)
+                                print ('  Success Posting to Wordpress: '+processrow.name)
+                                if new_web_post:
+                                    webcount +=1
+                                    try:
+                                        print('  write to xls for web')
+                                        outputs['datawb'].save(env.xls)
+                                        print('  Successfully updated spreadsheet')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing Excel file:", type(error).__name__)
+                                    try:
+                                        print('  write to DB for web')
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"web" : True})
+                                        outputs['postssession'].commit()
+                                        print('  Successfully wrote to database')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing database", type(error).__name__)
+                            except AttributeError  as error:
+                                print ('  Error writing web post : ',processrow.name, processrow.comment,processrow.date, processrow.rating,processrow.address, processrow.picsLocalpath, writtento["web"],' ',error)
+                                print (error)
+                        else:
+                            print ('  Exceeded the number of web posts per run, skipping', processrow.name)
+                    else:
+                        print ('  Website: Skipping posting for ',processrow.name,' previously written')
+                if env.instagram:
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.instagram is not False).all()) == 0:
+                        if instagramcount < env.postsperrun:
+                            try:
+                                print('  Starting to generate Instagram post')
+                                NewInstagramPost = post_to_instagram2(processrow.name, processrow.comment, processrow.date, processrow.rating, processrow.address, processrow.picsLocalpath,outputs['instagram'],outputs )
+                                try:
+                                    print ('  Start generating content to post to Instagram')
+                                    writtento["instagram"] = 1
+                                    processrow.dictPostComplete = str(writtento)
+                                except AttributeError  as error:
+                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
+                                print ('  Success Posting to Instagram: '+processrow.name)
+                                if NewInstagramPost:
+                                    instagramcount +=1
+                                    try:
+                                        print('  write to xls for instagram')
+                                        outputs['datawb'].save(env.xls)
+                                        print('  write to mariadb for instagram')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing Excel file:", type(error).__name__)
+                                    try:
+                                        print('  write to DB for instagram')
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"instagram" : True})
+                                        outputs['postssession'].commit()
+                                        print('  Successfully wrote to database')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing database", type(error).__name__)
+                            except AttributeError  as error:
+                                print ('  Error writing Instagram post : ',processrow.name, processrow.comment, outputs['instagram'],processrow.date, processrow.rating,processrow.address, processrow.picsLocalpath, writtento["instagram"], type(error).__name__ )
+                        else:
+                            print ('  Exceeded the number of Instagram posts per run, skipping', processrow.name)
+                    else:
+                        print ('  Instagram: Skipping posting for ',processrow.name,' previously written')
+                if env.facebook:
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.facebook is not False).all())==0:
+                        if facebookcount < env.postsperrun:
+                            try:
+                                print('  Starting to generate Facebook post')
+                                NewFacebookPost = post_facebook3(processrow.name, processrow.comment, processrow.date, processrow.rating, processrow.address, processrow.picsLocalpath,outputs['facebook'] )
+                                try:
+                                    print ('  Start generating content to post to facebook')
+                                    writtento["facebook"] = 1
+                                    processrow.dictPostComplete = str(writtento)
+                                except AttributeError  as error:
+                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
+                                print ('  Success Posting to facebook: '+processrow.name)# ',processrow.name, processrow.comment, headers,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, temp3["web"] )
+                                if NewFacebookPost:
+                                    facebookcount +=1
+                                    try:
+                                        print('  write to xls for facebook')
+                                        outputs['datawb'].save(env.xls)
+                                        print('  write to mariadb for facebook')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing Excel file:", type(error).__name__)
+                                    try:
+                                        print('  write to DB for facebook')
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"facebook" : True})
+                                        outputs['postssession'].commit()
+                                        print('  Successfully wrote to database')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing database", type(error).__name__)
+                            except AttributeError  as error:
+                                print ('  Error writing facebook post : ',processrow.name, processrow.comment, outputs,processrow.date, processrow.rating,processrow.address, processrow.picsLocalpath, writtento["facebook"], type(error).__name__ )
+                        else:
+                            print ('  Exceeded the number of facebook posts per run, skipping', processrow.name)
+                    else:
+                        print ('  Facebook: Skipping posting for ',processrow.name,' previously written')
+                if env.xtwitter:
+                    #if writtento["xtwitter"] == 0:
+                    #               # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
+                    tempval = len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.xtwitter is True).all())
+                    print ('tempval: ',tempval)
+                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.xtwitter is True).all())==0:
+                        if xtwittercount < env.postsperrun:
+                            try:
+                                print('  Starting to generate xtwitter post')
+                                NewxtwitterPost = post_to_x2(processrow.name, processrow.comment, processrow.date, processrow.rating, processrow.address, processrow.picsLocalpath,outputs['posts'],outputs )
+                                try:
+                                    print ('    Start generating content to post to xtwitter')
+                                    writtento["xtwitter"] = 1
+                                    processrow.dictPostComplete = str(writtento)
+                                except AttributeError  as error:
+                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
+                                    print ('  Success Posting to xtwitter: '+processrow.name)# ',processrow.name, processrow.comment, headers,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, temp3["web"] )
+                                if NewxtwitterPost:
+                                    xtwittercount +=1
+                                    try:
+                                        print('  write to xls for xtwitter')
+                                        outputs['datawb'].save(env.xls)
+                                        print('  Successfully wrote to xls for xtwitter')
+                                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow.name)
+                                        # outputs['postssession'].commit()
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                                    try:
+                                        print('  write to DB for xtwitter')
+                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"xtwitter" : True})
+                                        outputs['postssession'].commit()
+                                        print('  Successfully wrote to database')
+                                    except AttributeError  as error:
+                                        print("  An error occurred writing database", type(error).__name__)
+                            except AttributeError as error:
+                                print ('  Error writing xtwitter post : ',error,processrow.name, processrow.comment, outputs,processrow.date, processrow.rating,processrow.address, processrow.picsLocalpath, writtento["xtwitter"], type(error).__name__ )
+                        else:
+                            print ('  Exceeded the number of xtwitter posts per run, skipping', processrow.name)
+                    else:
+                        print ('  Xtwitter: Skipping posting for ',processrow.name,' previously written')
     #post_to_x_example(title, content, date, rating, address, picslist, instasession)
     # else:
     #     print ('Exceeded the number of posts per run, exiting')
@@ -1563,7 +1815,10 @@ if __name__ == "__main__":
     preload()
     print('making connections ...')
     outputs = get_auth_connect()
-    process_reviews(outputs)
+    if env.datasource == 'db':
+        process_reviews2(outputs)
+    else:
+        process_reviews(outputs)
     print('Done!')
 
 ##################################################################################################
