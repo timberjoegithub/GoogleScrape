@@ -444,7 +444,7 @@ def get_google_data(driver,outputs ):
             print ('Error: ',error)
         more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
     #  Grab more info from google maps entry on this particular review
-        if len(outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google is not True).all()) == 0 or env.forcegoogleupdate:
+        if len(outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google is not True).all()) == 0 or env.forcegoogleupdate or env.block_google_maps is not True:
             gmaps = googlemaps.Client(env.googleapipass)
             place_ids = gmaps.find_place(name+address, input_type = 'textquery', fields='')
             if len(place_ids['candidates']) == 1 :
@@ -469,6 +469,7 @@ def get_google_data(driver,outputs ):
                     print('Error writing business details from google maps : ',error)
         else:
             print ('  Post was already in database, skipping update unless you activate override')
+        database_update_row(name,"google",True,"forceall",outputs)
         pics= []
         pics2 = []
         # check to see if folder for pictures and videos already exists, if not, create it
@@ -623,7 +624,6 @@ def write_to_xlsx2(data, outputs):
 
 def write_to_database(data, outputs):
     print('write to database ...')
-    sqlalchemy.null()
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
         'dictPostComplete']
     # cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
@@ -632,12 +632,12 @@ def write_to_database(data, outputs):
     # df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2)
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
     rows = list(data)
-    if env.needreversed:
-        rows = reversed(rows)
+    # if env.needreversed:
+    #     rows = reversed(rows)
     #jsonposts = json.dumps(outputs['posts'], default=Posts)
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
-    for processrow in outputs['postssession']:
+    for processrow in data:
         if (processrow.name in df.values):
             print ('  Row ',processrow.id,' ', processrow.name ,'  already in database')
             d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.rating,
@@ -1200,11 +1200,12 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
     newdate2 = dateparts[0]+'-'+dateparts[1]+'-'+dateparts2[0]+'T22:00:00'
     #newdate2 = str(re.sub(r'-','/',str(newdate.date())))+'T22:00:00'
     print ('    Got Date: ', newdate2, newdate)
-    try:
-        post_id, post_link = check_wordpress_post(title,newdate2,headers)
-        database_update_row(title,"wpurl",post_link,"forceall",outputs)
-    except  AttributeError  as error :
-        print ('Could not check to see post already exists',error)
+    post_id, post_link = check_wordpress_post(title,newdate2,headers)
+    if env.block_google_maps is not True:
+        try:
+            database_update_row(title,"wpurl",post_link,"forceall",outputs)
+        except  AttributeError  as error :
+            print ('Could not check to see post already exists',error)
     if not post_id:
         googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml\
             + r">"+address+r"</a>"
@@ -1295,6 +1296,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
     #ratinghtml = post_response.text
     first_mp4 = True
     fmedia = {}
+    contentpics = ""
     for piclink in linkslist:
         #for loop in linkslist:
         print ('    Adding ', piclink['link'], ' to posting')
@@ -1325,21 +1327,21 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
             fmedia = file_id
 #            print ('featured_media2 = ',file_id)
         business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
-        business_url = business_url_list[0].businessurl
+        business_url = str(business_url_list[0].businessurl)
         # wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
         # wpurl = wpurllist[0].wpurl
-        if business_url:
-            status_message = str(title) + ': Business website: '+ business_url
-            response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-                data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+rating  + contentpics,\
-                "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
-                timeout=30)
-            print ('  ',response_piclinks)
+#        if business_url or business_url is False:
+        status_message = str(title) + ': Business website: '+ business_url
+        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+            data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+rating  + contentpics,\
+            "featured_media" : fmedia,"rank_math_focus_keyword" : title }, headers=headers,\
+            timeout=30)
+        print ('  ',response_piclinks)
     except AttributeError  as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:', \
             type(error).__name__) # An error occurred')
         return False
-    return newPost
+    return True
 
 ##################################################################################################
 
@@ -1396,7 +1398,10 @@ def process_reviews(outputs):
         time.sleep(5)
         google_scroll(counter_google(driver), driver)
         webdata = get_google_data(driver,outputs)
-        write_to_xlsx2(webdata, outputs)
+        if env.datasource == 'db':
+            write_to_database(webdata, outputs)
+        else:
+            write_to_xlsx2(webdata, outputs)
         driver.close()
         # outputs['data'].save(xls)
         print('Done getting google reviews and writing them to xls file !')
@@ -1419,7 +1424,7 @@ def process_reviews(outputs):
                 if env.web :
                     #if writtento["web"] == 0 :
                     try:
-                        if env.forcegoogleupdate:
+                        if env.forcegoogleupdate and env.block_google_maps is not True :
                             post_id, post_link = get_wordpress_post_id_and_link(processrow.name,outputs['web'] )
                             if post_link:
                                 database_update_row(processrow.name,"wpurl",post_link,"forceall",outputs)
@@ -1630,17 +1635,21 @@ def process_reviews2(outputs):
         time.sleep(5)
         google_scroll(counter_google(driver), driver)
         webdata = get_google_data(driver,outputs)
-        write_to_xlsx2(webdata, outputs)
+        if env.datasource == 'db':
+            write_to_database(webdata, outputs)
+        else:
+            write_to_xlsx2(webdata, outputs)        
         driver.close()
         # outputs['data'].save(xls)
         print('Done getting google reviews and writing them to xls file !')
     else:
         print ('Configuration says to skip creation of new reviews from google for this run')
-    if env.needreversed:
-        rows = reversed(rows)
+    # if env.needreversed:
+    #     rows = reversed(rows)
     print('Processing Reviews')
     for processrow in rows:
         if processrow.name != "name":  # Skip header line of xls sheet
+            outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"google" : 1})
             print ("Processing : ",processrow.name)
             writtento = (ast.literal_eval(processrow.dictPostComplete))
             # Check to see if the website has already been written to according to the xls sheet,\
@@ -1653,8 +1662,8 @@ def process_reviews2(outputs):
                 if env.web :
                     #if writtento["web"] == 0 :
                     try:
-                        if env.forcegoogleupdate:
-                            post_id, post_link = get_wordpress_post_id_and_link(processrow.name,outputs['web'] )
+                        post_id, post_link = get_wordpress_post_id_and_link(processrow.name,outputs['web'] )
+                        if env.forcegoogleupdate is True and env.block_google_maps is not True:
                             if post_link:
                                 database_update_row(processrow.name,"wpurl",post_link,"forceall",outputs)
                             else:
