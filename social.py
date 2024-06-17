@@ -224,9 +224,11 @@ def get_auth_connect():
         token = base64.b64encode(data_string.encode()).decode("utf-8")
         headers = {"Authorization": f"Basic {token}"}
         connections.update({'web' : headers})
+    else:
+        headers = ""
     if env.tiktok :
         print('  Connecting to Instagram ...')
-    return connections
+    return connections,headers
 
 ##################################################################################################
 
@@ -311,7 +313,7 @@ def make_montage_video_from_google(inphotos):
         inphotos (list): List of paths to input photo files.
 
     Returns:
-        tuple: A tuple containing the path to the output video file and a boolean indicating success.
+        tuple: A tuple containing the path to the output video file and a boolean indicating succes
     """
 
 # Load the photos from the folder
@@ -415,7 +417,6 @@ def get_google_data(driver,outputs ):
             print('    Found extra pics')
             list_more_pics.click()
     elements = driver.find_elements(By.CLASS_NAME, 'jftiEf')
-
     lst_data = []
     for data in elements:
         name = data.find_element(By.CSS_SELECTOR, 'div.d4r55.YJxk2d').text
@@ -809,7 +810,7 @@ def get_wordpress_featured_photo_id(post_id):
 
 ##################################################################################################
 
-def post_to_x2(title, content, date, rating, address, picslist, instasession,outputs): 
+def post_to_x2(title, content, headers,date, rating, address, picslist,outputs): 
     """
     Post to x2.
 
@@ -878,7 +879,7 @@ def post_to_x2(title, content, date, rating, address, picslist, instasession,out
 
 ##################################################################################################
 
-def post_facebook3(title, content, date, rating, address, picslist, outputs):
+def post_facebook3(title, content,headers, date, rating, address, picslist, outputs):
     """
     Post to Facebook3.
 
@@ -906,28 +907,32 @@ def post_facebook3(title, content, date, rating, address, picslist, outputs):
     attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
     business_url = attrib_list[0].businessurl
     wpurl = attrib_list[0].wpurl
-    status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
-        business_url+' \n\n'+ content
-    for img in img_list:
-        if 'montage.mp4' in img:
-            imgs_vid.append(img.strip())
+    if wpurl:
+        if business_url:
+            status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
+                business_url+' \n\n'+ content
         else:
-            imgs_pic.append(img.strip())
-    if imgs_vid:
-        try:
-            post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, status_message,
-                date, rating, address)
-            imgs_id.append(post_id['id'])
-        except AttributeError  as error:
-            print("    An error occurred:",error)
-            return False
-    time.sleep(env.facebooksleep)
-    print('    Facebook response: ',post_id)
+            status_message = str(title) + ': My Review - '+ wpurl +' \n\n'+ content
+        for img in img_list:
+            if 'montage.mp4' in img:
+                imgs_vid.append(img.strip())
+            else:
+                imgs_pic.append(img.strip())
+        if imgs_vid:
+            try:
+                post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, status_message,
+                    date, rating, address)
+                imgs_id.append(post_id['id'])
+            except AttributeError  as error:
+                print("    An error occurred:",error)
+                return False
+        time.sleep(env.facebooksleep)
+        print('    Facebook response: ',post_id)
     return  (True)
 
 ##################################################################################################
 
-def post_to_threads (title, content, date, rating, address, picslist, instasession):
+def post_to_threads (title, content, headers,date, rating, address, picslist,outputs):
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
         addresshtml = re.sub(" ", ".",address)
@@ -948,7 +953,7 @@ def post_to_threads (title, content, date, rating, address, picslist, instasessi
     else:
         return False
 
-def post_to_threads2 (title, content, date, rating, address, picslist, instasession):
+def post_to_threads2 (title, content, headers,date, rating, address, picslist,outputs):
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
         addresshtml = re.sub(" ", ".",address)
@@ -995,7 +1000,7 @@ def post_to_threads2 (title, content, date, rating, address, picslist, instasess
 
 #######################################################################################################
 
-def post_to_tiktok(title, content, date, rating, address, picslist, instasession):
+def post_to_tiktok(title, content, headers,date, rating, address, picslist,outputs):
 
     # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
     session_id = 'your_sessionid_cookie'
@@ -1037,10 +1042,11 @@ def post_to_tiktok(title, content, date, rating, address, picslist, instasession
 
 #######################################################################################################
 
-def post_to_instagram2(title, content, date, rating, address, picslist, instasession,outputs):
+def post_to_instagram2(title, content, headers,date, rating, address, picslist,outputs):
     #post_to_instagram2(processrow.name, processrow.comment ,processrow.address,processrow.rating.
     #   value, processrow.dictPostComplete, processrow.picsLocalpath,outputs['instagram'])
     #montageexists = "montage.mp4" in picslist
+    instasession = outputs['instagram']
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
         addresshtml = re.sub(" ", ".",address)
@@ -1345,7 +1351,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
 
 ##################################################################################################
 
-def process_reviews(outputs):
+def process_reviews(outputs,headerss):
     # Process
     webcount = xtwittercount = instagramcount = facebookcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
@@ -1581,7 +1587,7 @@ def process_reviews(outputs):
 
 ##################################################################################################
 
-def process_reviews2(outputs):
+def process_reviews2(outputs,headers):
     # Process
     webcount = xtwittercount = instagramcount = facebookcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
@@ -1668,22 +1674,22 @@ def process_reviews2(outputs):
                                 print ('  Error getting wordpress links to update databse')
                     except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
-                    webcount = process_socials("web",processrow,"post_to_wordpress",\
-                                                    webcount, outputs)     
+                    webcount = process_socials("web",processrow,headers,"post_to_wordpress",\
+                                                    webcount, outputs)
                 if env.instagram:
-                    instagramcount = process_socials("instagram",processrow,"post_to_instagram2",\
+                    instagramcount = process_socials("instagram",processrow,headers,"post_to_instagram2",\
                                                     instagramcount, outputs)     
                 if env.facebook:
-                    facebookcount = process_socials("facebook",processrow,"post_facebook3",\
+                    facebookcount = process_socials("facebook",processrow,headers,"post_facebook3",\
                                                     facebookcount, outputs)                    
                 if env.xtwitter:
-                    xtwittercount = process_socials("xtwitter",processrow,"post_to_x2",\
+                    xtwittercount = process_socials("xtwitter",processrow,headers,"post_to_x2",\
                                                     xtwittercount, outputs)
     return
 
 ##################################################################################################
 
-def process_socials(social_name,social_post,sub_process,social_count, outputs):
+def process_socials(social_name,social_post,headers,sub_process,social_count, outputs):
     """Summary:
     Function to process social media posts.
 
@@ -1701,14 +1707,16 @@ def process_socials(social_name,social_post,sub_process,social_count, outputs):
     Count of the social that was selected
     """
     writtento = (ast.literal_eval(social_post.dictPostComplete))
-    if len(outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
-            (Posts, social_name) is True).all())==0:
+    # if len(outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
+    #         (Posts, social_name) is True).all())==0:
+    if (len(outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
+            (Posts, social_name) is True).all())==0) and ((outputs['postssession'].query(Posts).filter(Posts.name == social_post.name).all()[0].wpurl != None)or social_name == 'web'):
         if social_count < env.postsperrun:
             try:
                 print('  Starting to generate ',social_name,' post')
                 new_social_post = eval(sub_process)(social_post.name, social_post.comment,\
-                        social_post.date, social_post.rating, social_post.address, social_post.\
-                        picsLocalpath,outputs['posts'],outputs )
+                        headers, social_post.date, social_post.rating, social_post.address, social_post.\
+                        picsLocalpath,outputs )
                 try:
                     print ('    Start generating content to post to xtwitter')
                     writtento[social_name] = 1
@@ -1754,11 +1762,11 @@ if __name__ == "__main__":
     print('starting ...')
     preload()
     print('making connections ...')
-    outputs = get_auth_connect()
+    outputs,headers = get_auth_connect()
     if env.datasource == 'db':
-        process_reviews2(outputs)
+        process_reviews2(outputs,headers)
     else:
-        process_reviews(outputs)
+        process_reviews(outputs,headers)
     print('Done!')
 
 ##################################################################################################
