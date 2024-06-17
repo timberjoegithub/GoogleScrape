@@ -1644,8 +1644,6 @@ def process_reviews2(outputs):
         print('Done getting google reviews and writing them to xls file !')
     else:
         print ('Configuration says to skip creation of new reviews from google for this run')
-    # if env.needreversed:
-    #     rows = reversed(rows)
     print('Processing Reviews')
     for processrow in rows:
         if processrow.name != "name":  # Skip header line of xls sheet
@@ -1670,70 +1668,11 @@ def process_reviews2(outputs):
                                 print ('  Error getting wordpress links to update databse')
                     except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name\
-                            ,Posts.web ==1).all()) == 0:
-                        if webcount < env.postsperrun:
-                            try:
-                                new_web_post=post_to_wordpress(processrow.name,processrow.comment\
-                                    ,outputs['web'] ,processrow.date, processrow.rating\
-                                    , processrow.address, processrow.picsLocalpath,outputs)
-                                print ('  Success Posting to Wordpress: '+processrow.name)
-                                if new_web_post:
-                                    webcount +=1
-                                    try:
-                                        print('  write to xls for web')
-                                        outputs['datawb'].save(env.xls)
-                                        print('  Successfully updated spreadsheet')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing Excel file:", type(error).__name__)
-                                    try:
-                                        print('  write to DB for web')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"web" : True})
-                                        outputs['postssession'].commit()
-                                        print('  Successfully wrote to database')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing database", type(error).__name__)
-                            except AttributeError  as error:
-                                print ('  Error writing web post : ',processrow.name, processrow.comment,processrow.date, processrow.rating,processrow.address, processrow.picsLocalpath, writtento["web"],' ',error)
-                                print (error)
-                        else:
-                            print ('  Exceeded the number of web posts per run, skipping', processrow.name)
-                    else:
-                        print ('  Website: Skipping posting for ',processrow.name,' previously written')
+                    webcount = process_socials("web",processrow,"post_to_wordpress",\
+                                                    webcount, outputs)     
                 if env.instagram:
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.instagram is not False).all()) == 0:
-                        if instagramcount < env.postsperrun:
-                            try:
-                                print('  Starting to generate Instagram post')
-                                NewInstagramPost = post_to_instagram2(processrow.name, processrow.comment, processrow.date, processrow.rating, processrow.address, processrow.picsLocalpath,outputs['instagram'],outputs )
-                                try:
-                                    print ('  Start generating content to post to Instagram')
-                                    writtento["instagram"] = 1
-                                    processrow.dictPostComplete = str(writtento)
-                                except AttributeError  as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
-                                print ('  Success Posting to Instagram: '+processrow.name)
-                                if NewInstagramPost:
-                                    instagramcount +=1
-                                    try:
-                                        print('  write to xls for instagram')
-                                        outputs['datawb'].save(env.xls)
-                                        print('  write to mariadb for instagram')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing Excel file:", type(error).__name__)
-                                    try:
-                                        print('  write to DB for instagram')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"instagram" : True})
-                                        outputs['postssession'].commit()
-                                        print('  Successfully wrote to database')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing database", type(error).__name__)
-                            except AttributeError  as error:
-                                print ('  Error writing Instagram post : ',processrow.name, processrow.comment, outputs['instagram'],processrow.date, processrow.rating,processrow.address, processrow.picsLocalpath, writtento["instagram"], type(error).__name__ )
-                        else:
-                            print ('  Exceeded the number of Instagram posts per run, skipping', processrow.name)
-                    else:
-                        print ('  Instagram: Skipping posting for ',processrow.name,' previously written')
+                    instagramcount = process_socials("instagram",processrow,"post_to_instagram2",\
+                                                    instagramcount, outputs)     
                 if env.facebook:
                     facebookcount = process_socials("facebook",processrow,"post_facebook3",\
                                                     facebookcount, outputs)                    
