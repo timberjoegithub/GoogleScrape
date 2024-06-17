@@ -6,21 +6,21 @@ import pathlib
 #from selenium.webdriver.chrome.service import Service
 import re
 #from openpyxl import Workbook, load_workbook
-import pandas as pd
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 import ast
 import base64
-import requests
 import datetime as dt
+from urllib.request import urlretrieve
+import requests
 #import json
 import jsonpickle
-from urllib.request import urlretrieve
 import urllib3
 #Instgram
 #from instapy import InstaPy
 #import instapy
 #from instabot import Bot
+import pandas as pd
+from dateutil.relativedelta import relativedelta
 from openpyxl import load_workbook
 import instagrapi
 #from instagrapi.types import StoryMention, StoryMedia, StoryLink, StoryHashtag
@@ -34,11 +34,8 @@ from selenium.common.exceptions import NoSuchElementException
 #from selenium.webdriver.chrome.service import Service
 #twitter
 import tweepy
-
 #import asyncio
 #import aiohttp
-
-
 import sqlalchemy
 #from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -605,7 +602,7 @@ def write_to_xlsx2(data, local_outputs):
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(local_outputs['posts'], unpicklable=False)
     for processrow in df2.values:
-        if (processrow[1] in df.values):
+        if processrow[1] in df.values:
             print ('  Row ',processrow.id,' ', processrow.name ,'  already in XLS sheet')
             d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=\
                 processrow.rating,picsURL=processrow.picsURL,pics_local_path=processrow.\
@@ -875,7 +872,7 @@ def get_wordpress_featured_photo_id(post_id):
 
 ##################################################################################################
 
-def post_to_x2(title, content, headers,date, rating, address, picslist,local_outputs): 
+def post_to_x2(title, content, headers,date, rating, address, picslist,local_outputs):
     """
     Post to x2.
 
@@ -918,12 +915,13 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,local_out
         try:
             video_path = imgs_vid[0]
             # Message to post along with the video
-            attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+            attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
+                    .all()
             business_url = attrib_list[0].businessurl
             wpurl = attrib_list[0].wpurl
             if wpurl:  # Don't post of website URL does not exist yet
                 if business_url:  #Sometimes Business URL does not exist, so account for it
-                    status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
+                    status_message=str(title)+': My Review - '+wpurl+'\n Business website: '+\
                         business_url + '\n'
                 else:
                     status_message = str(title) + ': My Review - '+ wpurl +  '\n'
@@ -1001,7 +999,7 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, loca
                 return False
         time.sleep(env.facebooksleep)
         print('    Facebook response: ',post_id)
-    return  (True)
+    return True
 
 ##################################################################################################
 
@@ -1043,7 +1041,7 @@ def post_to_threads2(title, content, headers, date, rating, address, picslist, l
         return False
     
 
-#######################################################################################################
+###################################################################################################
 
 def post_to_tiktok(title, content, headers, date, rating, address, picslist, local_outputs):
     """
@@ -1126,41 +1124,11 @@ def post_to_instagram2(title, content, headers,date, rating, address, picslist,l
         if picslist != '[]' and "montage.mp4" in picslist:
             #content = content + get_hastags(address, title)
             pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-            video, outputmontage = make_montage_video_from_google(pics)
             try:
                 instasession.video_upload(outputmontage, data)
-    #           video2 = instasession.video_upload(outputmontage, data)
             except AttributeError  as error:
                 print("  An error occurred uploading video to Instagram:", type(error).__name__)
                 return False
-            #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
-            #media_path = instasession.video_download(media_pk)
-            # joeeatswhat = instasession.user_info_by_username('timberjoe')
-            # try: buildout = instagrapi.story.StoryBuilder(outputmontage,'Credits @timberjoe',[StoryMention(user=joeeatswhat)]).video(40)  # seconds
-            # except AttributeError as error:
-            #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
-            # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
-    #         try:
-    #             instasession.video_upload_to_story(
-    #             outputmontage,
-    #             "Credits @joeeatswhat",
-    #  #           mentions=[StoryMention(user='timberjoe', x=0.49892962, y=0.703125, width=0.8333333333333334, height=0.125)],
-    #             links=[StoryLink(webUri='https://www.joeeatswhat.com')],
-    #   #          hashtags=[StoryHashtag(hashtag=get_hastags(address,title), x=0.23, y=0.32, width=0.5, height=0.22)],
-    #             #medias=[StoryMedia(media_pk=media_pk, x=0.5, y=0.5, width=0.6, height=0.8)],
-    #         )
-    #             story = instasession.story_photo("path/to/photo.jpg")
-    #             instasession.video_elements.add_link("https://www.joeeatswhat.com")
-    #             #story.add_link("https://www.joeeatswhat.com")
-    #             instasession.video_elements.add_hashtags(get_hastags)
-    #             story = instasession.video_upload_to_story(outputmontage)
-    #             story.upload()
-    #             #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: get_hastags )
-    #             # temp = dict()
-    #             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=get_hastags)
-    #         except AttributeError as error:
-    #             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
-    #             return False
             return True
     else:
         print ('    Missing wordpress post for instagram : ',title)
@@ -1188,7 +1156,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         None
 """
     # post
-    newPost = False
+    new_post = False
     #countreview = False
     addresshtml = re.sub(" ", ".",address)
     googleadress = r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
@@ -1202,7 +1170,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     linkslist=[]
     print ('    Figuring out date of Post : ',title)
     #specifify the formatting of the date_string.
-    # formatting = '%b/%Y/%d' 
+    # formatting = '%b/%Y/%d'
     date_string = date
     if "a day" in date_string:
         date = dt.timedelta(days=-1)
@@ -1256,7 +1224,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
                                         print("    An error getting date occurred:",error)
                                 else:
                                     #specifify the formatting of the date_string.
-                                    formatting = '%Y-%b-%d' 
+                                    formatting = '%Y-%b-%d'
                                     month = date[:3]
                                     year = date[3:]
                                     day = '01'
@@ -1305,7 +1273,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             if response.status_code != 201:
                 print ('Error: ',response, response.text)
             else:
-                newPost = True
+                new_post = True
                 post_id_json = response.json()
                 post_id = post_id_json.get('id')
                 print ('    New post is has post_id = ',post_id)
@@ -1339,7 +1307,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
                 print("    An error uploading picture ' + picname+ ' occurred:", \
                     type(error).__name__)
             if image_response.status_code != 201 :
-                print ('      Error- Image ',picname,' was not successfully uploaded.  response: ',\
+                print ('      Error:Image ',picname,' was not successfully uploaded.  response: ',\
                     image_response)
             else:
                 pic_dic=image_response.json()
@@ -1432,15 +1400,15 @@ def process_reviews2(outputs,headers):
     webcount = xtwittercount = instagramcount = facebookcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
     if env.datasource == 'xls':
-        rows_orig = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
-        rows_orig2 = (outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
+        rows_orig = list(outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
+        rows_orig2 = outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)
 # rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL},\
 #   {5:p.pics_local_path},{6:p.source},{7:p.date},{8:p.address},{9:p.dict_post_complete})\
 #   for p in rows_orig]
         # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
         rows = outputs['data']
     else:
-        rows_orig = (outputs['posts'])
+        rows_orig = outputs['posts']
         rows = rows_orig
     if env.google:
         print('Configuration says to update google Reviews prior to processing them')
@@ -1488,7 +1456,8 @@ def process_reviews2(outputs,headers):
     print('Processing Reviews')
     for processrow in rows:
         if processrow.name != "name":  # Skip header line of xls sheet
-            outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"google" : 1})
+            outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).\
+                    update({"google" : 1})
             print ("Processing : ",processrow.name)
             writtento = (ast.literal_eval(processrow.dict_post_complete))
             # Check to see if the website has already been written to according to the xls sheet,\
@@ -1501,10 +1470,12 @@ def process_reviews2(outputs,headers):
                 if env.web :
                     #if writtento["web"] == 0 :
                     try:
-                        post_id, post_link = get_wordpress_post_id_and_link(processrow.name,outputs['web'] )
+                        post_id, post_link = get_wordpress_post_id_and_link(processrow.name,\
+                                outputs['web'] )
                         if env.forcegoogleupdate is True and env.block_google_maps is not True:
                             if post_link:
-                                database_update_row(processrow.name,"wpurl",post_link,"forceall",outputs)
+                                database_update_row(processrow.name,"wpurl",post_link,"forceall"\
+                                        ,outputs)
                             else:
                                 print ('  Error getting wordpress links to update databse')
                     except  AttributeError  as error :
@@ -1542,10 +1513,10 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
     Count of the social that was selected
     """
     writtento = (ast.literal_eval(social_post.dict_post_complete))
-    if (len(local_outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
-            (Posts, social_name) is True).all())==0) and ((local_outputs['postssession'].query(Posts).\
-                    filter(Posts.name == social_post.name).all()[0].wpurl != None)or social_name \
-                    == 'web'):
+    if (len(local_outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,\
+            getattr(Posts, social_name) is True).all())==0) and ((local_outputs['postssession'].\
+                    query(Posts).filter(Posts.name == social_post.name).all()[0].wpurl != \
+                    None)or social_name == 'web'):
         if social_count < env.postsperrun:
             try:
                 print('  Starting to generate ',social_name,' post')
@@ -1566,7 +1537,8 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
                         print('  write to xls for :',social_name)
                         local_outputs['datawb'].save(env.xls)
                         print('  Successfully wrote to xls for social - ',social_name)
-                        # local_outputs['postssession'].update('dict_post_complete = '+str(writtento)+\
+                        # local_outputs['postssession'].update('dict_post_complete = '+\
+                        #           str(writtento)+\
                         #   ' where name == '+social_post.name)
                         # local_outputs['postssession'].commit()
                     except AttributeError  as error:
