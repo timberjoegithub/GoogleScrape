@@ -177,24 +177,23 @@ def get_auth_connect():
         print('  loading XLS content data source ...')
         if os.path.exists(env.xls):
             wb = load_workbook(filename = env.xls)
-            xlswbDF = pd.read_excel(env.xls)
+            xls_wb_df = pd.read_excel(env.xls)
+        elif os.path.exists('./GoogleScrape/'+ env.xls):
+            wb = load_workbook(filename = './GoogleScrape/'+ env.xls)
+            xls_wb_df = pd.read_excel('./GoogleScrape/'+ env.xls)
         else:
-            if os.path.exists('./GoogleScrape/'+ env.xls):
-                wb = load_workbook(filename = './GoogleScrape/'+ env.xls)
-                xlswbDF = pd.read_excel('./GoogleScrape/'+ env.xls)
-            else:
-                input("Not able to find xls file Press any key to continue...")
+            input("Not able to find xls file Press any key to continue...")
         ws = wb['Sheet1']
-        #xlswbDF = pd.read_excel(xls)
-        connections.update({'xlsdf':xlswbDF,'data':ws,'datawb':wb})
+        #xls_wb_df = pd.read_excel(xls)
+        connections |= {'xlsdf':xls_wb_df,'data':ws,'datawb':wb}
 #        connections.update({'data':ws})
 #        connections.update({'datawb':wb})
-    if env.instagram :
+    if env.instagram:
         print('  Connecting to Instagram ...')
         instasessionclient = instagrapi.Client()
         instasessionclient.login(env.instagramuser, env.instagrampass)
-        connections.update({'instagram':instasessionclient})
-    if env.facebook :
+        connections['instagram'] = instasessionclient
+    if env.facebook:
         print('  Connecting to facebook ...')
         # page_id_1 = facebookpageID
         # facebook_access_token = 'paste-your-page-access-token-here'
@@ -208,22 +207,22 @@ def get_auth_connect():
         # #Send the POST request
         # r = requests.post(image_url, data=img_payload)
         # print(r.text)
-        connections.update({'facebook':posts})
-    if env.yelp :
+        connections['facebook'] = posts
+    if env.yelp:
         print('  Connecting to yelp ...')
-    if env.xtwitter :
+    if env.xtwitter:
         print('  Connecting to xtwitter ...')
-    if env.threads :
+    if env.threads:
         print('  Connecting to threads ...')
         threadssessionclient = instagrapi.Client()
         threadssessionclient.login(env.instagramuser, env.instagrampass)
-        connections.update({'threads':threadssessionclient})
-    if env.web :
+        connections |= {'threads':threadssessionclient}
+    if env.web:
         print('  Connecting to joeeatswhat.com ...')
         data_string = f"{env.user}:{env.password}"
         token = base64.b64encode(data_string.encode()).decode("utf-8")
         headers = {"Authorization": f"Basic {token}"}
-        connections.update({'web' : headers})
+        connections['web'] = headers
     else:
         headers = ""
     if env.tiktok :
@@ -623,21 +622,21 @@ def write_to_xlsx2(data, outputs):
 
 ##################################################################################################
 
-def write_to_database(data, outputs):
+def write_to_database(data, local_outputs):
     print('write to database ...')
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
         'dictPostComplete']
     # cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
     #     'address','dictPostComplete']
     df = pd.DataFrame(data, columns=cols)
-    # df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2)
+    # df2 = pd.DataFrame(local_outputs['xlsdf'].values, columns=cols2)
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
     rows = list(data)
     # if env.needreversed:
     #     rows = reversed(rows)
-    #jsonposts = json.dumps(outputs['posts'], default=Posts)
+    #jsonposts = json.dumps(local_outputs['posts'], default=Posts)
     print("Encode Object into JSON formatted Data using jsonpickle")
-    jsonposts = jsonpickle.encode(outputs['posts'], unpicklable=False)
+    jsonposts = jsonpickle.encode(local_outputs['posts'], unpicklable=False)
     for processrow in data:
         if (processrow.name in df.values):
             print ('  Row ',processrow.id,' ', processrow.name ,'  already in database')
@@ -656,48 +655,48 @@ def write_to_database(data, outputs):
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
-            if processrow.name in jsonposts : #outputs['posts']):
+            if processrow.name in jsonposts : #local_outputs['posts']):
                 print ('  Row ',processrow[0],' ', processrow.name ,'  already in Database')
             else:
-                outputs['postssession'].add(d2_row)
-                outputs['postssession'].commit()
+                local_outputs['postssession'].add(d2_row)
+                local_outputs['postssession'].commit()
                 print ('  Row ',processrow[0],' ', processrow.name ,'  added to Database')
         except AttributeError as error:
             print('    Not able to write to post data table: ' , type(error))
-            outputs['postssession'].rollback()
+            local_outputs['postssession'].rollback()
             raise
     df.to_excel(env.xls)
     return data
 
 ##################################################################################################
 
-def database_update_row(review_name,column_name,column_value,update_style,outputs):
+def database_update_row(review_name,column_name,column_value,update_style,local_outputs):
     try:
         if update_style == "forceall" and column_value != False:
-            outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+            local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
                         ({column_name : column_value})
             print ('    Force Updated ',column_name, ' to: ',column_value)
         elif update_style == "onlyempty"  and column_value != False:
-            postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
+            postval = local_outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(null())).all()
             if len(postval) == 0 :
-                outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+                local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
                     ({column_name : column_value})
                 print ('    Updated blank ',postval ,' on value',column_name, ' to: ',column_value)
         elif update_style == "toggletrue":
-            postval = outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
+            postval = local_outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(1)).all()
-            outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+            local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
                     ({column_name : "1"})
             print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',\
                 column_value)
     except AttributeError as error:
         print("    Not able to write to post data table to update ",review_name," ",column_name,"\
             to: ",column_value , type(error), error)
-        outputs['postssession'].rollback()
+        local_outputs['postssession'].rollback()
         raise
     else:
-        outputs['postssession'].commit()
+        local_outputs['postssession'].commit()
     return True
 
 ##################################################################################################
@@ -810,7 +809,7 @@ def get_wordpress_featured_photo_id(post_id):
 
 ##################################################################################################
 
-def post_to_x2(title, content, headers,date, rating, address, picslist,outputs): 
+def post_to_x2(title, content, headers,date, rating, address, picslist,local_outputs): 
     """
     Post to x2.
 
@@ -853,25 +852,30 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,outputs):
         try:
             video_path = imgs_vid[0]
             # Message to post along with the video
-            attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+            attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
             business_url = attrib_list[0].businessurl
-            if business_url:
-                wpurl = attrib_list[0].wpurl
-                status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
-                    business_url + '  s\n'
+            wpurl = attrib_list[0].wpurl
+            if wpurl:  # Don't post of website URL does not exist yet
+                if business_url:  #Sometimes Business URL does not exist, so account for it
+                    status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
+                        business_url + '\n'
+                else:
+                    status_message = str(title) + ': My Review - '+ wpurl +  '\n'
                 status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
                 status_message_short = status_message2[:279]
                 # Upload video
                 media = client_v1.media_upload(filename=video_path)
                 # Post tweet with video
-                tweetlat = (outputs['postssession'].query(Posts).filter(Posts.name == title).all())[0].latitude
-                tweetlong = (outputs['postssession'].query(Posts).filter(Posts.name == title).all())[0].longitude
+                tweetlat = (local_outputs['postssession'].query(Posts).filter(Posts.name == title).all())[0].latitude
+                tweetlong = (local_outputs['postssession'].query(Posts).filter(Posts.name == title).all())[0].longitude
                 if media.processing_info['state'] != 'failed':
                     client_v2.create_tweet(text=status_message_short,media_ids=[media.media_id])
 #                    client_v2.create_tweet(text=status_message_short, lat=tweetlat , long=tweetlong ,media_ids=[media.media_id])
                 else:
                     print ('Problem uploading video to twitter: ',media.processing_info['error'])
                     return False
+            else:
+                print ('  Skipping xtwitter post because wordpress URL is missing')
         except AttributeError  as error:
             print("AttributeError     An error occurred:",error) # An error occurred:
     time.sleep(env.facebooksleep)
@@ -879,7 +883,7 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,outputs):
 
 ##################################################################################################
 
-def post_facebook3(title, content,headers, date, rating, address, picslist, outputs):
+def post_facebook3(title, content,headers, date, rating, address, picslist, local_outputs):
     """
     Post to Facebook3.
 
@@ -904,7 +908,7 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, outp
     imgs_vid = []
     imgs_pic = []
     img_list = pics
-    attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+    attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
     business_url = attrib_list[0].businessurl
     wpurl = attrib_list[0].wpurl
     if wpurl:
@@ -932,7 +936,7 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, outp
 
 ##################################################################################################
 
-def post_to_threads (title, content, headers,date, rating, address, picslist,outputs):
+def post_to_threads (title, content, headers,date, rating, address, picslist,local_outputs):
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
         addresshtml = re.sub(" ", ".",address)
@@ -944,8 +948,7 @@ def post_to_threads (title, content, headers,date, rating, address, picslist,out
                 r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n" \
                 + content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+ \
                 "\n\nhttps://www.joeeatswhat.com "+"\n\n"
-            instasession.video_upload(outputmontage, data)
-#           video2 = instasession.video_upload(outputmontage, data)
+            local_outputs['instasession'].video_upload(outputmontage, data)
         except AttributeError  as error:
             print("  An error occurred uploading video to Threads:", type(error).__name__) 
             return False
@@ -953,7 +956,7 @@ def post_to_threads (title, content, headers,date, rating, address, picslist,out
     else:
         return False
 
-def post_to_threads2 (title, content, headers,date, rating, address, picslist,outputs):
+def post_to_threads2 (title, content, headers,date, rating, address, picslist,local_outputs):
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
         addresshtml = re.sub(" ", ".",address)
@@ -961,8 +964,7 @@ def post_to_threads2 (title, content, headers,date, rating, address, picslist,ou
         video, outputmontage = make_montage_video_from_google(pics)
         try:
             data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
-            instasession.video_upload(outputmontage, data)
-#           video2 = instasession.video_upload(outputmontage, data)
+            local_outputs['instasession'].video_upload(outputmontage, data)
         except AttributeError  as error:
             print("  An error occurred uploading video to Instagram:", type(error).__name__)
             return False
@@ -1000,7 +1002,7 @@ def post_to_threads2 (title, content, headers,date, rating, address, picslist,ou
 
 #######################################################################################################
 
-def post_to_tiktok(title, content, headers,date, rating, address, picslist,outputs):
+def post_to_tiktok(title, content, headers,date, rating, address, picslist,local_outputs):
 
     # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
     session_id = 'your_sessionid_cookie'
@@ -1042,63 +1044,65 @@ def post_to_tiktok(title, content, headers,date, rating, address, picslist,outpu
 
 #######################################################################################################
 
-def post_to_instagram2(title, content, headers,date, rating, address, picslist,outputs):
-    #post_to_instagram2(processrow.name, processrow.comment ,processrow.address,processrow.rating.
-    #   value, processrow.dictPostComplete, processrow.picsLocalpath,outputs['instagram'])
-    #montageexists = "montage.mp4" in picslist
-    instasession = outputs['instagram']
-    if picslist != '[]' and "montage.mp4" in picslist:
-        outputmontage = ''
-        addresshtml = re.sub(" ", ".",address)
-        #content = content + get_hastags(address, title)
-        pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-        video, outputmontage = make_montage_video_from_google(pics)
-        attrib_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
-        business_url = attrib_list[0].businessurl
+def post_to_instagram2(title, content, headers,date, rating, address, picslist,local_outputs):
+    outputmontage = ''
+    addresshtml = re.sub(" ", ".",address)
+    attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+    business_url = attrib_list[0].businessurl
+    wpurl = attrib_list[0].wpurl
+    if wpurl:
         if business_url:
-            wpurl = attrib_list[0].wpurl
+            data =  title + "\n"+ address+"\n"+business_url+"\n"+"Review: "+wpurl+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n"+"Review: "+wpurl+"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
+        else:
+            print ("    Missing business url for : "+title+" not using it in intagram post")
+            data =  title + "\n"+ address+"\n"+"Review: "+wpurl+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\nReview: "+wpurl+"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
+        instasession = local_outputs['instagram']
+        if picslist != '[]' and "montage.mp4" in picslist:
+            #content = content + get_hastags(address, title)
+            pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+            video, outputmontage = make_montage_video_from_google(pics)
             try:
-                data =  title + "\n"+ address+"\nGoogle map to destination: " r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n"+business_url+"\n"+"Review: "+wpurl+"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
                 instasession.video_upload(outputmontage, data)
     #           video2 = instasession.video_upload(outputmontage, data)
             except AttributeError  as error:
                 print("  An error occurred uploading video to Instagram:", type(error).__name__)
                 return False
-        #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
-        #media_path = instasession.video_download(media_pk)
-        # joeeatswhat = instasession.user_info_by_username('timberjoe')
-        # try: buildout = instagrapi.story.StoryBuilder(outputmontage,'Credits @timberjoe',[StoryMention(user=joeeatswhat)]).video(40)  # seconds
-        # except AttributeError as error:
-        #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
-        # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
-#         try:
-#             instasession.video_upload_to_story(
-#             outputmontage,
-#             "Credits @joeeatswhat",
-#  #           mentions=[StoryMention(user='timberjoe', x=0.49892962, y=0.703125, width=0.8333333333333334, height=0.125)],
-#             links=[StoryLink(webUri='https://www.joeeatswhat.com')],
-#   #          hashtags=[StoryHashtag(hashtag=get_hastags(address,title), x=0.23, y=0.32, width=0.5, height=0.22)],
-#             #medias=[StoryMedia(media_pk=media_pk, x=0.5, y=0.5, width=0.6, height=0.8)],
-#         )
-#             story = instasession.story_photo("path/to/photo.jpg")
-#             instasession.video_elements.add_link("https://www.joeeatswhat.com")
-#             #story.add_link("https://www.joeeatswhat.com")
-#             instasession.video_elements.add_hashtags(get_hastags)
-#             story = instasession.video_upload_to_story(outputmontage)
-#             story.upload()
-#             #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: get_hastags )
-#             # temp = dict()
-#             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=get_hastags)
-#         except AttributeError as error:
-#             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
-#             return False
-        return True
+            #media_pk = instasession.media_pk_from_url('https://www.instagram.com/p/CGgDsi7JQdS/')
+            #media_path = instasession.video_download(media_pk)
+            # joeeatswhat = instasession.user_info_by_username('timberjoe')
+            # try: buildout = instagrapi.story.StoryBuilder(outputmontage,'Credits @timberjoe',[StoryMention(user=joeeatswhat)]).video(40)  # seconds
+            # except AttributeError as error:
+            #     print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+            # try: instasession.video_upload_to_story(buildout.path,"Credits @example",mentions=buildout.mentions,links=[StoryLink(webUri='https://www.joeeatswhat.com')],medias=[StoryMedia(media_pk=outputmontage)])
+    #         try:
+    #             instasession.video_upload_to_story(
+    #             outputmontage,
+    #             "Credits @joeeatswhat",
+    #  #           mentions=[StoryMention(user='timberjoe', x=0.49892962, y=0.703125, width=0.8333333333333334, height=0.125)],
+    #             links=[StoryLink(webUri='https://www.joeeatswhat.com')],
+    #   #          hashtags=[StoryHashtag(hashtag=get_hastags(address,title), x=0.23, y=0.32, width=0.5, height=0.22)],
+    #             #medias=[StoryMedia(media_pk=media_pk, x=0.5, y=0.5, width=0.6, height=0.8)],
+    #         )
+    #             story = instasession.story_photo("path/to/photo.jpg")
+    #             instasession.video_elements.add_link("https://www.joeeatswhat.com")
+    #             #story.add_link("https://www.joeeatswhat.com")
+    #             instasession.video_elements.add_hashtags(get_hastags)
+    #             story = instasession.video_upload_to_story(outputmontage)
+    #             story.upload()
+    #             #instasession.video_upload_to_story(path:outputmontage,caption:content, mentions:r'@timberjoe',links:'https://www.joeeatswhat.com',hashtags: hastag) ( path: outputmontage, caption: content, mentions:['@timberjoe'], links: ['https://www.joeeatswhat.com'], hashtags: get_hastags )
+    #             # temp = dict()
+    #             # temp = instasession.video_upload_to_story(path=outputmontage,caption=content,mentions=r'@timberjoe',links='https://www.joeeatswhat.com',hashtags=get_hastags)
+    #         except AttributeError as error:
+    #             print("  An error occurred uploading video to Instagram:", type(error).__name__) # An error occurred:
+    #             return False
+            return True
     else:
+        print ('    Missing wordpress post for instagram : ',title)
         return False
 
 ##################################################################################################
 
-def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs):
+def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_outputs):
     """
     Post to WordPress.
 
@@ -1112,7 +1116,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         rating (str): The rating of the post.
         address (str): The address associated with the post.
         picslist (list): A list of pictures for the post.
-        outputs: Outputs for the post.
+        local_outputs: Outputs for the post.
 
     Returns:
         None
@@ -1209,7 +1213,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
     post_id, post_link = check_wordpress_post(title,newdate2,headers)
     if env.block_google_maps is not True:
         try:
-            database_update_row(title,"wpurl",post_link,"forceall",outputs)
+            database_update_row(title,"wpurl",post_link,"forceall",local_outputs)
         except  AttributeError  as error :
             print ('Could not check to see post already exists',error)
     if not post_id:
@@ -1332,9 +1336,9 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
         else:
             fmedia = file_id
 #            print ('featured_media2 = ',file_id)
-        business_url_list = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+        business_url_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
         business_url = str(business_url_list[0].businessurl)
-        # wpurllist = outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+        # wpurllist = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
         # wpurl = wpurllist[0].wpurl
 #        if business_url or business_url is False:
         status_message = str(title) + ': Business website: '+ business_url
@@ -1351,242 +1355,6 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,outputs
 
 ##################################################################################################
 
-def process_reviews(outputs,headerss):
-    # Process
-    webcount = xtwittercount = instagramcount = facebookcount = 0
-#    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
-    if env.datasource == 'xls':
-        rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
-       # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
-    else:
-        rows_orig = (outputs['posts'])
-  #      rows = [{(p.name), ( p.comment), ( p.rating), (p.picsURL), (p.picsLocalpath),(p.source),(p.date),(p.address),(p.dictPostComplete)} for p in rows_orig]
-  #      rows = [{1: p.name, 2: p.comment, 3: p.rating, 4:p.picsURL, 5:p.picsLocalpath,6:p.source,7:p.date,8:p.address,9:p.dictPostComplete} for p in rows_orig]
-        rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL}, {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete}) for p in rows_orig]
-        #rows = list ((outputs['postsession'].name))
-        # ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
-    print ('xls rows: ',list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))))
-    print ('Database rows: ', list(outputs['posts']))
- #   print("Press Enter to continue...")
- #   input()
-    print("Keypress detected! Program continues.")
-    if env.google:
-        print('Configuration says to update google Reviews prior to processing them')
-        options = webdriver.ChromeOptions()
-        options.add_argument("--log-level=3")
-        options.add_argument("--ignore-certificate-error")
-        options.add_argument("--ignore-ssl-errors")
-        if not env.showchrome:
-            options.add_argument("--headless")
-            # show browser or not ||| HEAD =>  43.03 ||| No Head => 39 seg
-        options.add_argument("--lang=en-US")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--remote-debugging-pipe")
-        # Exclude the collection of enable-automation switches
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        # Turn-off userAutomationExtension
-        options.add_experimental_option("useAutomationExtension", False)
-        # Setting the driver path and requesting a page
-        caps = webdriver.DesiredCapabilities.CHROME.copy()
-        caps['acceptInsecureCerts'] = True
-        caps['acceptSslCerts'] = True
-        options.set_capability('cloud:options', caps)
-        #driver = webdriver.Chrome(desired_capabilities=caps)
-        if is_docker() :
-            driver = webdriver.Remote("http://192.168.10.9:4444/wd/hub", options=options)
-            print ("IN A DOCKER CONTAINER, USING REMOTE CHROME")
-        else:
-            driver = webdriver.Chrome(options=options) # Firefox(options=options)
-        # Changing the property of the navigator value for webdriver to undefined
-        driver.execute_script("Object.defineProperty(navigator,'webdriver',\
-                            {get:()=> undefined})")
-        driver.get(env.URL)
-        time.sleep(5)
-        google_scroll(counter_google(driver), driver)
-        webdata = get_google_data(driver,outputs)
-        if env.datasource == 'db':
-            write_to_database(webdata, outputs)
-        else:
-            write_to_xlsx2(webdata, outputs)
-        driver.close()
-        # outputs['data'].save(xls)
-        print('Done getting google reviews and writing them to xls file !')
-    else:
-        print ('Configuration says to skip creation of new reviews from google for this run')
-    if env.needreversed:
-        rows = reversed(rows)
-    print('Processing Reviews')
-    for processrow in rows:
-        if processrow.name != "name":  # Skip header line of xls sheet
-            print ("Processing : ",processrow.name)
-            writtento = (ast.literal_eval(processrow.dictPostComplete))
-            # Check to see if the website has already been written to according to the xls sheet,\
-            # if it has not... then process
-            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or \
-                writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or \
-                writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
-                or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
-                env.threads or env.google)and (processrow.comment is not None) :
-                if env.web :
-                    #if writtento["web"] == 0 :
-                    try:
-                        if env.forcegoogleupdate and env.block_google_maps is not True :
-                            post_id, post_link = get_wordpress_post_id_and_link(processrow.name,outputs['web'] )
-                            if post_link:
-                                database_update_row(processrow.name,"wpurl",post_link,"forceall",outputs)
-                            else:
-                                print ('  Error getting wordpress links to update databse')
-                    except  AttributeError  as error :
-                        print ('Could not check to see post already exists',error)
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name .\
-                            value,Posts.web is not False).all()) == 0:
-                        if webcount < env.postsperrun:
-                            try:
-                                new_web_post=post_to_wordpress(processrow.name,processrow.comment.\
-                                    value,outputs['web'] ,processrow.date, processrow.rating\
-                                    , processrow.address, processrow.picsLocalpath,outputs)
-                                print ('  Success Posting to Wordpress: '+processrow.name)
-                                if new_web_post:
-                                    webcount +=1
-                                    try:
-                                        print('  write to xls for web')
-                                        outputs['datawb'].save(env.xls)
-                                        print('  Successfully updated spreadsheet')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing Excel file:", type(error).__name__)
-                                    try:
-                                        print('  write to DB for web')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"web" : 1})
-                                        outputs['postssession'].commit()
-                                        print('  Successfully wrote to database')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing database", type(error).__name__)
-                            except AttributeError  as error:
-                                print ('  Error writing web post : ',processrow.name, processrow.comment,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, writtento["web"],' ',error)
-                                print (error)
-                        else:
-                            print ('  Exceeded the number of web posts per run, skipping', processrow.name)
-                    else:
-                        print ('  Website: Skipping posting for ',processrow.name,' previously written')
-                if env.instagram:
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.instagram is not False).all()) == 0:
-                        if instagramcount < env.postsperrun:
-                            try:
-                                print('  Starting to generate Instagram post')
-                                NewInstagramPost = post_to_instagram2(processrow.name, processrow.comment, processrow.address, processrow.rating, processrow.dictPostComplete, processrow.picsLocalpath,outputs['instagram'],outputs )
-                                try:
-                                    print ('  Start generating content to post to Instagram')
-                                    writtento["instagram"] = 1
-                                    processrow.dictPostComplete = str(writtento)
-                                except AttributeError  as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
-                                print ('  Success Posting to Instagram: '+processrow.name)
-                                if NewInstagramPost:
-                                    instagramcount +=1
-                                    try:
-                                        print('  write to xls for instagram')
-                                        outputs['datawb'].save(env.xls)
-                                        print('  write to mariadb for instagram')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing Excel file:", type(error).__name__)
-                                    try:
-                                        print('  write to DB for instagram')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"instagram" : 1})
-                                        outputs['postssession'].commit()
-                                        print('  Successfully wrote to database')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing database", type(error).__name__)
-                            except AttributeError  as error:
-                                print ('  Error writing Instagram post : ',processrow.name, processrow.comment, outputs['instagram'],processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, writtento["instagram"], type(error).__name__ )
-                        else:
-                            print ('  Exceeded the number of Instagram posts per run, skipping', processrow.name)
-                    else:
-                        print ('  Instagram: Skipping posting for ',processrow.name,' previously written')
-                if env.facebook:
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.facebook is not False).all())==0:
-                        if facebookcount < env.postsperrun:
-                            try:
-                                print('  Starting to generate Facebook post')
-                                NewFacebookPost = post_facebook3(processrow.name, processrow.comment, processrow.address, processrow.rating, processrow.dictPostComplete, processrow.picsLocalpath,outputs['facebook'] )
-                                try:
-                                    print ('  Start generating content to post to facebook')
-                                    writtento["facebook"] = 1
-                                    processrow.dictPostComplete = str(writtento)
-                                except AttributeError  as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
-                                print ('  Success Posting to facebook: '+processrow.name)# ',processrow.name, processrow.comment, headers,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, temp3["web"] )
-                                if NewFacebookPost:
-                                    facebookcount +=1
-                                    try:
-                                        print('  write to xls for facebook')
-                                        outputs['datawb'].save(env.xls)
-                                        print('  write to mariadb for facebook')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing Excel file:", type(error).__name__)
-                                    try:
-                                        print('  write to DB for facebook')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"facebook" : 1})
-                                        outputs['postssession'].commit()
-                                        print('  Successfully wrote to database')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing database", type(error).__name__)
-                            except AttributeError  as error:
-                                print ('  Error writing facebook post : ',processrow.name, processrow.comment, outputs,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, writtento["facebook"], type(error).__name__ )
-                        else:
-                            print ('  Exceeded the number of facebook posts per run, skipping', processrow.name)
-                    else:
-                        print ('  Facebook: Skipping posting for ',processrow.name,' previously written')
-                if env.xtwitter:
-                    #if writtento["xtwitter"] == 0:
-                    #               # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
-                    tempval = len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.xtwitter is not False).all())
-                    print ('tempval: ',tempval)
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.xtwitter is not False).all())==0:
-                        if xtwittercount < env.postsperrun:
-                            try:
-                                print('  Starting to generate xtwitter post')
-                                NewxtwitterPost = post_to_x2(processrow.name, processrow.comment, processrow.address, processrow.rating, processrow.dictPostComplete, processrow.picsLocalpath,outputs['posts'],outputs )
-                                try:
-                                    print ('    Start generating content to post to xtwitter')
-                                    writtento["xtwitter"] = 1
-                                    processrow.dictPostComplete = str(writtento)
-                                except AttributeError  as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
-                                    print ('  Success Posting to xtwitter: '+processrow.name)# ',processrow.name, processrow.comment, headers,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, temp3["web"] )
-                                if NewxtwitterPost:
-                                    xtwittercount +=1
-                                    try:
-                                        print('  write to xls for xtwitter')
-                                        outputs['datawb'].save(env.xls)
-                                        print('  Successfully wrote to xls for xtwitter')
-                                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow.name)
-                                        # outputs['postssession'].commit()
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                                    try:
-                                        print('  write to DB for xtwitter')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"xtwitter" : 1})
-                                        outputs['postssession'].commit()
-                                        print('  Successfully wrote to database')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing database", type(error).__name__)
-                            except AttributeError as error:
-                                print ('  Error writing xtwitter post : ',error,processrow.name, processrow.comment, outputs,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, writtento["xtwitter"], type(error).__name__ )
-                        else:
-                            print ('  Exceeded the number of xtwitter posts per run, skipping', processrow.name)
-                    else:
-                        print ('  Xtwitter: Skipping posting for ',processrow.name,' previously written')
-    #post_to_x_example(title, content, date, rating, address, picslist, instasession)
-    # else:
-    #     print ('Exceeded the number of posts per run, exiting')
-                # if xtwitter:
-                #     namedict = {'name':'xtwitter', 'namecount':xtwittercount, 'namepost':'NewxtwitterPost', 'subroutine':post_to_x_example}
-                #    # junction('xtwitter',xtwittercount,'NewxtwitterPost','post_to_x_example', outputs, writtento, processrow)
-                #     socials('xtwitter',namedict,outputs,writtento, processrow,post_to_x_example)
-    return #(outputs['web'])
-
-##################################################################################################
-
 def process_reviews2(outputs,headers):
     # Process
     webcount = xtwittercount = instagramcount = facebookcount = 0
@@ -1594,8 +1362,9 @@ def process_reviews2(outputs,headers):
     if env.datasource == 'xls':
         rows_orig = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
         rows_orig2 = (outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
-        rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL}, {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete}) for p in rows_orig]
+    #    rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL}, {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete}) for p in rows_orig]
         # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
+        rows = outputs['data']
     else:
         rows_orig = (outputs['posts'])#      rows = [{(p.name), ( p.comment), ( p.rating), (p.picsURL), (p.picsLocalpath),(p.source),(p.date),(p.address),(p.dictPostComplete)} for p in rows_orig]#      rows = [{1: p.name, 2: p.comment, 3: p.rating, 4:p.picsURL, 5:p.picsLocalpath,6:p.source,7:p.date,8:p.address,9:p.dictPostComplete} for p in rows_orig]
         rows = rows_orig
@@ -1604,9 +1373,6 @@ def process_reviews2(outputs,headers):
         # ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address','dictPostComplete']
     # print ('xls rows: ',list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))))
     # print ('Database rows: ', list(outputs['posts']))
-#   print("Press Enter to continue...")
-#   input()
-    print("Keypress detected! Program continues.")
     if env.google:
         print('Configuration says to update google Reviews prior to processing them')
         options = webdriver.ChromeOptions()
@@ -1689,7 +1455,7 @@ def process_reviews2(outputs,headers):
 
 ##################################################################################################
 
-def process_socials(social_name,social_post,headers,sub_process,social_count, outputs):
+def process_socials(social_name,social_post,headers,sub_process,social_count, local_outputs):
     """Summary:
     Function to process social media posts.
 
@@ -1701,24 +1467,26 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, ou
     - social_post: The post content for the social media platform.
     - sub_process: The sub-process for posting.
     - social_count: The count of social media posts.
-    - outputs: Dictionary containing outputs from the process.
+    - local_outputs: Dictionary containing outputs from the process.
 
     Returns:
     Count of the social that was selected
     """
     writtento = (ast.literal_eval(social_post.dictPostComplete))
-    # if len(outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
+    # if len(local_outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
     #         (Posts, social_name) is True).all())==0:
-    if (len(outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
-            (Posts, social_name) is True).all())==0) and ((outputs['postssession'].query(Posts).filter(Posts.name == social_post.name).all()[0].wpurl != None)or social_name == 'web'):
+    if (len(local_outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
+            (Posts, social_name) is True).all())==0) and ((local_outputs['postssession'].query(Posts).\
+                    filter(Posts.name == social_post.name).all()[0].wpurl != None)or social_name \
+                    == 'web'):
         if social_count < env.postsperrun:
             try:
                 print('  Starting to generate ',social_name,' post')
                 new_social_post = eval(sub_process)(social_post.name, social_post.comment,\
-                        headers, social_post.date, social_post.rating, social_post.address, social_post.\
-                        picsLocalpath,outputs )
+                        headers, social_post.date, social_post.rating, social_post.address,\
+                        social_post.picsLocalpath,local_outputs )
                 try:
-                    print ('    Start generating content to post to xtwitter')
+                    print ('    Start generating content to post to : ',social_post.name)
                     writtento[social_name] = 1
                     social_post.dictPostComplete = str(writtento)
                 except AttributeError  as error:
@@ -1729,24 +1497,24 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, ou
                     social_count +=1
                     try:
                         print('  write to xls for :',social_name)
-                        outputs['datawb'].save(env.xls)
+                        local_outputs['datawb'].save(env.xls)
                         print('  Successfully wrote to xls for social - ',social_name)
-                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+\
+                        # local_outputs['postssession'].update('dictPostComplete = '+str(writtento)+\
                         #   ' where name == '+social_post.name)
-                        # outputs['postssession'].commit()
+                        # local_outputs['postssession'].commit()
                     except AttributeError  as error:
                         print("  An error occurred writing Excel file:", type(error).__name__)
                     try:
                         print('  write to DB for Social - ',social_name)
-                        outputs['postssession'].query(Posts).filter(Posts.name == \
+                        local_outputs['postssession'].query(Posts).filter(Posts.name == \
                             social_post.name).update({social_name : True})
-                        outputs['postssession'].commit()
+                        local_outputs['postssession'].commit()
                         print('  Successfully wrote to database')
                     except AttributeError  as error:
                         print("  An error occurred writing database", type(error).__name__)
             except AttributeError as error:
                 print('  Error writing social - ',social_name,'  post : ',error,social_post.name,\
-                    social_post.comment, outputs,social_post.date, social_post.rating,\
+                    social_post.comment, local_outputs,social_post.date, social_post.rating,\
                     social_post.address, social_post.picsLocalpath, writtento[social_name],\
                     type(error).__name__ )
         else:
@@ -1766,7 +1534,7 @@ if __name__ == "__main__":
     if env.datasource == 'db':
         process_reviews2(outputs,headers)
     else:
-        process_reviews(outputs,headers)
+        process_reviews2(outputs,headers)
     print('Done!')
 
 ##################################################################################################
