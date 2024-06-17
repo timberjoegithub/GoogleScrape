@@ -396,7 +396,18 @@ def post_facebook_video(group_id, video_path, auth_token, title, content, date, 
 
 ##################################################################################################
 
-def get_google_data(driver,outputs ):
+def get_google_data(driver, outputs):
+    """
+    Retrieves data from Google Maps including name, address, and review details.
+
+    Args:
+        driver: The Selenium WebDriver instance.
+        outputs: Output information.
+
+    Returns:
+        list: A list of data extracted from Google Maps.
+    """
+
 # curl -X GET -H 'Content-Type: application/json' -H "X-Goog-Api-Key: API_KEY" -H
 #   "X-Goog-FieldMask: id,displayName,formattingtedAddress,plusCode"
 #   https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw #placeId #websiteUri
@@ -572,6 +583,17 @@ def google_scroll(counter_google_scroll,driver):
 ##################################################################################################
 
 def write_to_xlsx2(data, outputs):
+    """
+    Writes data to an Excel file and updates the database with new entries.
+
+    Args:
+        data: Data to be written to the Excel file.
+        outputs: Output information.
+
+    Returns:
+        Data: The data that was written to the Excel file.
+    """
+
     print('write to excel...')
     sqlalchemy.null()
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
@@ -623,6 +645,17 @@ def write_to_xlsx2(data, outputs):
 ##################################################################################################
 
 def write_to_database(data, local_outputs):
+    """
+    Writes data to the database and updates the database with new entries.
+
+    Args:
+        data: Data to be written to the database.
+        local_outputs: Local output information.
+
+    Returns:
+        Data: The data that was written to the database.
+    """
+
     print('write to database ...')
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
         'dictPostComplete']
@@ -670,7 +703,21 @@ def write_to_database(data, local_outputs):
 
 ##################################################################################################
 
-def database_update_row(review_name,column_name,column_value,update_style,local_outputs):
+def database_update_row(review_name, column_name, column_value, update_style, local_outputs):
+    """
+    Updates a row in the database based on the specified review name, column name, value, and update style.
+
+    Args:
+        review_name (str): The name of the review to update.
+        column_name (str): The name of the column to update.
+        column_value: The value to update the column with.
+        update_style (str): The style of update to perform.
+        local_outputs: Local output information.
+
+    Returns:
+        bool: True if the row was successfully updated, False otherwise.
+    """
+
     try:
         if update_style == "forceall" and column_value != False:
             local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
@@ -701,7 +748,18 @@ def database_update_row(review_name,column_name,column_value,update_style,local_
 
 ##################################################################################################
 
-def check_wordpress_media(filename,headers):
+def check_wordpress_media(filename, headers):
+    """
+    Checks if a media file exists in the WordPress media folder.
+
+    Args:
+        filename (str): The name of the media file to check.
+        headers: Additional headers for the request.
+
+    Returns:
+        tuple: A tuple containing the ID and link of the media file if found, otherwise (False, False).
+    """
+
     file_name_minus_extension = filename
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
                         headers=headers,timeout=40)
@@ -720,15 +778,17 @@ def check_wordpress_media(filename,headers):
 ##################################################################################################
 
 def check_is_port_open(host, port):
-    """_summary_
+    """
+    Checks if a port on a host is open.
 
     Args:
-        host (_type_): _description_
-        port (_type_): _description_
+        host (str): The host to check for an open port.
+        port (int): The port number to check.
 
     Returns:
-        _type_: _description_
+        bool: True if the port is open, False otherwise.
     """
+
     try:
         is_web_up = urllib3.request("GET", host)
         if is_web_up.status == 200:
@@ -739,16 +799,18 @@ def check_is_port_open(host, port):
 
 ##################################################################################################
 
-def get_wordpress_post_id_and_link(postname,headers2):
-    """_summary_
+def get_wordpress_post_id_and_link(postname, headers2):
+    """
+    Retrieves the ID and link of a WordPress post based on the post name.
 
     Args:
-        postname (_type_): _description_
-        headers2 (_type_): _description_
+        postname (str): The name of the WordPress post to retrieve.
+        headers2: Additional headers for the request.
 
     Returns:
-        _type_: _description_
+        tuple: A tuple containing the ID and link of the WordPress post.
     """
+
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
     if len(result) > 0:
@@ -758,17 +820,19 @@ def get_wordpress_post_id_and_link(postname,headers2):
 
 ##################################################################################################
 
-def check_wordpress_post(postname,postdate,headers2):
-    """ Checks workpress website to see if a post already exists
+def check_wordpress_post(postname, postdate, headers2):
+    """
+    Checks if a WordPress post with the given name and date exists.
 
     Args:
-        postname (_type_): _description_
-        postdate (_type_): _description_
-        headers2 (_type_): _description_
+        postname (str): The name of the WordPress post to check.
+        postdate: The date of the WordPress post to check.
+        headers2: Additional headers for the request.
 
     Returns:
-        _type_: _description_
+        tuple: A tuple containing the ID and link of the existing post if found, otherwise (False, False).
     """
+
     response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
     result = response.json()
     if len(result) > 0 and postdate == result[0]['date']:
@@ -936,7 +1000,24 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, loca
 
 ##################################################################################################
 
-def post_to_threads (title, content, headers,date, rating, address, picslist,local_outputs):
+def post_to_threads2(title, content, headers, date, rating, address, picslist, local_outputs):
+    """
+    Posts content to threads if picslist is not empty and contains 'montage.mp4'.
+
+    Args:
+        title (str): The title of the post.
+        content (str): The content of the post.
+        headers: Headers information.
+        date: Date information.
+        rating: Rating information.
+        address: Address information.
+        picslist: List of pictures.
+        local_outputs: Local output information.
+
+    Returns:
+        bool: True if the post was successfully uploaded to Instagram, False otherwise.
+    """
+
     if picslist != '[]' and "montage.mp4" in picslist:
         outputmontage = ''
         addresshtml = re.sub(" ", ".",address)
@@ -955,6 +1036,8 @@ def post_to_threads (title, content, headers,date, rating, address, picslist,loc
         return True
     else:
         return False
+    
+##################################################################################################
 
 def post_to_threads2 (title, content, headers,date, rating, address, picslist,local_outputs):
     if picslist != '[]' and "montage.mp4" in picslist:
@@ -1002,8 +1085,23 @@ def post_to_threads2 (title, content, headers,date, rating, address, picslist,lo
 
 #######################################################################################################
 
-def post_to_tiktok(title, content, headers,date, rating, address, picslist,local_outputs):
+def post_to_tiktok(title, content, headers, date, rating, address, picslist, local_outputs):
+    """
+    Posts content to TikTok with specified session ID, video file, title, hashtags, and optional scheduling.
 
+    Args:
+        title (str): The title of the video.
+        content (str): The content of the video.
+        headers: Headers information.
+        date: Date information.
+        rating: Rating information.
+        address: Address information.
+        picslist: List of pictures.
+        local_outputs: Local output information.
+
+    Returns:
+        None
+    """
     # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
     session_id = 'your_sessionid_cookie'
 
@@ -1473,8 +1571,6 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
     Count of the social that was selected
     """
     writtento = (ast.literal_eval(social_post.dictPostComplete))
-    # if len(local_outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
-    #         (Posts, social_name) is True).all())==0:
     if (len(local_outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
             (Posts, social_name) is True).all())==0) and ((local_outputs['postssession'].query(Posts).\
                     filter(Posts.name == social_post.name).all()[0].wpurl != None)or social_name \
