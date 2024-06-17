@@ -1735,125 +1735,76 @@ def process_reviews2(outputs):
                     else:
                         print ('  Instagram: Skipping posting for ',processrow.name,' previously written')
                 if env.facebook:
-                    if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.facebook is not False).all())==0:
-                        if facebookcount < env.postsperrun:
-                            try:
-                                print('  Starting to generate Facebook post')
-                                NewFacebookPost = post_facebook3(processrow.name, processrow.comment, processrow.date, processrow.rating, processrow.address, processrow.picsLocalpath,outputs['facebook'] )
-                                try:
-                                    print ('  Start generating content to post to facebook')
-                                    writtento["facebook"] = 1
-                                    processrow.dictPostComplete = str(writtento)
-                                except AttributeError  as error:
-                                    print("  An error occurred setting value to go into Excel file:", type(error).__name__)
-                                print ('  Success Posting to facebook: '+processrow.name)# ',processrow.name, processrow.comment, headers,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, temp3["web"] )
-                                if NewFacebookPost:
-                                    facebookcount +=1
-                                    try:
-                                        print('  write to xls for facebook')
-                                        outputs['datawb'].save(env.xls)
-                                        print('  write to mariadb for facebook')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing Excel file:", type(error).__name__)
-                                    try:
-                                        print('  write to DB for facebook')
-                                        outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"facebook" : True})
-                                        outputs['postssession'].commit()
-                                        print('  Successfully wrote to database')
-                                    except AttributeError  as error:
-                                        print("  An error occurred writing database", type(error).__name__)
-                            except AttributeError  as error:
-                                print ('  Error writing facebook post : ',processrow.name, processrow.comment, outputs,processrow.date, processrow.rating,processrow.address, processrow.picsLocalpath, writtento["facebook"], type(error).__name__ )
-                        else:
-                            print ('  Exceeded the number of facebook posts per run, skipping', processrow.name)
-                    else:
-                        print ('  Facebook: Skipping posting for ',processrow.name,' previously written')
+                    facebookcount = process_socials("facebook",processrow,"post_facebook3",\
+                                                    facebookcount, outputs)                    
                 if env.xtwitter:
-                    xtwittercount = process_socials("xtwitter",processrow,"post_to_x2",xtwittercount, outputs)
-                    # #if writtento["xtwitter"] == 0:
-                    # #               # if Posts.query.filter(Posts.name.xtwitter.op('!=')(1)).first()
-                    # tempval = len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.xtwitter is True).all())
-                    # print ('tempval: ',tempval)
-                    # if len(outputs['postssession'].query(Posts).filter(Posts.name == processrow.name,Posts.xtwitter is True).all())==0:
-                    #     if xtwittercount < env.postsperrun:
-                    #         try:
-                    #             print('  Starting to generate xtwitter post')
-                    #             NewxtwitterPost = post_to_x2(processrow.name, processrow.comment, processrow.date, processrow.rating, processrow.address, processrow.picsLocalpath,outputs['posts'],outputs )
-                    #             try:
-                    #                 print ('    Start generating content to post to xtwitter')
-                    #                 writtento["xtwitter"] = 1
-                    #                 processrow.dictPostComplete = str(writtento)
-                    #             except AttributeError  as error:
-                    #                 print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
-                    #                 print ('  Success Posting to xtwitter: '+processrow.name)# ',processrow.name, processrow.comment, headers,processrow.address, processrow.rating,processrow.dictPostComplete, processrow.picsLocalpath, temp3["web"] )
-                    #             if NewxtwitterPost:
-                    #                 xtwittercount +=1
-                    #                 try:
-                    #                     print('  write to xls for xtwitter')
-                    #                     outputs['datawb'].save(env.xls)
-                    #                     print('  Successfully wrote to xls for xtwitter')
-                    #                     # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+processrow.name)
-                    #                     # outputs['postssession'].commit()
-                    #                 except AttributeError  as error:
-                    #                     print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
-                    #                 try:
-                    #                     print('  write to DB for xtwitter')
-                    #                     outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).update({"xtwitter" : True})
-                    #                     outputs['postssession'].commit()
-                    #                     print('  Successfully wrote to database')
-                    #                 except AttributeError  as error:
-                    #                     print("  An error occurred writing database", type(error).__name__)
-                    #         except AttributeError as error:
-                    #             print ('  Error writing xtwitter post : ',error,processrow.name, processrow.comment, outputs,processrow.date, processrow.rating,processrow.address, processrow.picsLocalpath, writtento["xtwitter"], type(error).__name__ )
-                    #     else:
-                    #         print ('  Exceeded the number of xtwitter posts per run, skipping', processrow.name)
-                    # else:
-                    #     print ('  Xtwitter: Skipping posting for ',processrow.name,' previously written')
-   
-    #post_to_x_example(title, content, date, rating, address, picslist, instasession)
-    # else:
-    #     print ('Exceeded the number of posts per run, exiting')
-                # if xtwitter:
-                #     namedict = {'name':'xtwitter', 'namecount':xtwittercount, 'namepost':'NewxtwitterPost', 'subroutine':post_to_x_example}
-                #    # junction('xtwitter',xtwittercount,'NewxtwitterPost','post_to_x_example', outputs, writtento, processrow)
-                #     socials('xtwitter',namedict,outputs,writtento, processrow,post_to_x_example)
-    return #(outputs['web'])
+                    xtwittercount = process_socials("xtwitter",processrow,"post_to_x2",\
+                                                    xtwittercount, outputs)
+    return
+
+##################################################################################################
 
 def process_socials(social_name,social_post,sub_process,social_count, outputs):
+    """Summary:
+    Function to process social media posts.
+
+    Explanation:
+    This function processes social media posts based on the provided parameters.
+
+    Args:
+    - social_name: The name of the social media platform.
+    - social_post: The post content for the social media platform.
+    - sub_process: The sub-process for posting.
+    - social_count: The count of social media posts.
+    - outputs: Dictionary containing outputs from the process.
+
+    Returns:
+    Count of the social that was selected
+    """
     writtento = (ast.literal_eval(social_post.dictPostComplete))
-    if len(outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr(Posts, social_name) is True).all())==0:
+    if len(outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,getattr\
+            (Posts, social_name) is True).all())==0:
         if social_count < env.postsperrun:
             try:
                 print('  Starting to generate ',social_name,' post')
-                new_social_post = eval(sub_process)(social_post.name, social_post.comment, social_post.date, social_post.rating, social_post.address, social_post.picsLocalpath,outputs['posts'],outputs )
+                new_social_post = eval(sub_process)(social_post.name, social_post.comment,\
+                        social_post.date, social_post.rating, social_post.address, social_post.\
+                        picsLocalpath,outputs['posts'],outputs )
                 try:
                     print ('    Start generating content to post to xtwitter')
                     writtento[social_name] = 1
                     social_post.dictPostComplete = str(writtento)
                 except AttributeError  as error:
-                    print("  An error occurred setting value to go into Excel file:", type(error).__name__) # An error occurred:
-                    print ('  Success Posting to xtwitter: '+social_post.name)# ',social_post.name, social_post.comment, headers,social_post.address, social_post.rating,social_post.dictPostComplete, social_post.picsLocalpath, temp3["web"] )
+                    print("  An error occurred setting value to go into Excel file:", type(error)\
+                            .__name__)
+                    print ('  Success Posting to xtwitter: '+social_post.name)
                 if new_social_post:
                     social_count +=1
                     try:
                         print('  write to xls for :',social_name)
                         outputs['datawb'].save(env.xls)
                         print('  Successfully wrote to xls for social - ',social_name)
-                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+' where name == '+social_post.name)
+                        # outputs['postssession'].update('dictPostComplete = '+str(writtento)+\
+                        #   ' where name == '+social_post.name)
                         # outputs['postssession'].commit()
                     except AttributeError  as error:
-                        print("  An error occurred writing Excel file:", type(error).__name__) # An error occurred:
+                        print("  An error occurred writing Excel file:", type(error).__name__)
                     try:
                         print('  write to DB for Social - ',social_name)
-                        outputs['postssession'].query(Posts).filter(Posts.name == social_post.name).update({social_name : True})
+                        outputs['postssession'].query(Posts).filter(Posts.name == \
+                            social_post.name).update({social_name : True})
                         outputs['postssession'].commit()
                         print('  Successfully wrote to database')
                     except AttributeError  as error:
                         print("  An error occurred writing database", type(error).__name__)
             except AttributeError as error:
-                print ('  Error writing social - ',social_name,'  post : ',error,social_post.name, social_post.comment, outputs,social_post.date, social_post.rating,social_post.address, social_post.picsLocalpath, writtento[social_name], type(error).__name__ )
+                print('  Error writing social - ',social_name,'  post : ',error,social_post.name,\
+                    social_post.comment, outputs,social_post.date, social_post.rating,\
+                    social_post.address, social_post.picsLocalpath, writtento[social_name],\
+                    type(error).__name__ )
         else:
-            print ('  Exceeded the number of social - ',social_name,' posts per run, skipping', social_post.name)
+            print ('  Exceeded the number of social - ',social_name,' posts per run, skipping',\
+                    social_post.name)
     else:
         print ('  ',social_name,': Skipping posting for ',social_post.name,' previously written')
     return social_count
