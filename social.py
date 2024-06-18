@@ -1,52 +1,34 @@
+"""  Script to download google maps reviews (that you create) and store them
+and then on a cron'd basis post them to social media connectors """
 import time
 import os
 from pathlib import Path
 import pathlib
-#from selenium.webdriver.chrome.webdriver import WebDriver
-#from selenium.webdriver.chrome.service import Service
 import re
-#from openpyxl import Workbook, load_workbook
 from datetime import datetime
 import ast
 import base64
 import datetime as dt
 from urllib.request import urlretrieve
 import requests
-#import json
 import jsonpickle
 import urllib3
-#Instgram
-#from instapy import InstaPy
-#import instapy
-#from instabot import Bot
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 from openpyxl import load_workbook
 import instagrapi
-#from instagrapi.types import StoryMention, StoryMedia, StoryLink, StoryHashtag
-#from instagrapi.story import StoryBuilder
 from moviepy.editor import VideoFileClip, concatenate_videoclips
-#import moviepy
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-#from selenium.webdriver.chrome.webdriver import WebDriver
-#from selenium.webdriver.chrome.service import Service
-#twitter
 import tweepy
 #import asyncio
 #import aiohttp
 import sqlalchemy
-#from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import null
-#from selenium import webdriver
-#from selenium.webdriver.common.by import By
 import googlemaps
-#import mysqlclient
-#import mysql-connector-python
 import env
-#from social import Posts
 Base = declarative_base()
 
 ##################################################################################################
@@ -652,16 +634,17 @@ def write_to_database(data, local_outputs):
     print('write to database ...')
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
         'dictPostComplete']
-    # cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
-    #     'address','dictPostComplete']
-    df = pd.DataFrame(data, columns=cols)
-    # df2 = pd.DataFrame(local_outputs['xlsdf'].values, columns=cols2)
+    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+        'address','dictPostComplete']
+    #df = pd.DataFrame(local_outputs["xls"], columns=cols)
+    df = pd.DataFrame(local_outputs['xlsdf'].values, columns=cols)
+    df2 = pd.DataFrame(local_outputs['posts'].values, columns=cols2)
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
-    rows = list(data)
+#    rows = list(data)
     # if env.needreversed:
     #     rows = reversed(rows)
     #jsonposts = json.dumps(local_outputs['posts'], default=Posts)
-    print("Encode Object into JSON formatted Data using jsonpickle")
+    #print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(local_outputs['posts'], unpicklable=False)
     for processrow in data:
         if processrow.name in df.values:
