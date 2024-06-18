@@ -637,8 +637,9 @@ def write_to_database(data, local_outputs):
     cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
         'address','dictPostComplete']
     #df = pd.DataFrame(local_outputs["xls"], columns=cols)
-    df = pd.DataFrame(local_outputs['xlsdf'].values, columns=cols)
-    df2 = pd.DataFrame(local_outputs['posts'].values, columns=cols2)
+    df = pd.DataFrame(local_outputs['xlsdf'])
+#    df = pd.DataFrame(local_outputs['xlsdf'].values, columns=cols2)
+    df2 = pd.DataFrame(local_outputs['posts'])
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
 #    rows = list(data)
     # if env.needreversed:
