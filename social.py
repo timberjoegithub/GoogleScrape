@@ -87,11 +87,11 @@ class Posts(Base):
     comment = sqlalchemy.Column(sqlalchemy.String(length=4096, collation="utf8"))
     rating = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
     picsURL = sqlalchemy.Column(sqlalchemy.String(length=4096, collation="utf8"))
-    pics_local_path = sqlalchemy.Column(sqlalchemy.String(length=4096, collation="utf8"))
+    picsLocalpath = sqlalchemy.Column(sqlalchemy.String(length=4096, collation="utf8"))
     source = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
     date = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
     address = sqlalchemy.Column(sqlalchemy.String(length=256, collation="utf8"))
-    dict_post_complete = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
+    dictPostComplete = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
     #googleurl = sqlalchemy.Column(sqlalchemy.String(length=128, collation="utf8"))
     wpurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
     businessurl = sqlalchemy.Column(sqlalchemy.String(length=2048, collation="utf8"))
@@ -215,13 +215,12 @@ def get_auth_connect():
         print('  Connecting to joeeatswhat.com ...')
         data_string = f"{env.user}:{env.password}"
         token = base64.b64encode(data_string.encode()).decode("utf-8")
-        headers = {"Authorization": f"Basic {token}"}
-        connections['web'] = headers
+        connections['web'] = {"Authorization": f"Basic {token}"}
     else:
-        headers = ""
+        connections['web'] = ""
     if env.tiktok :
         print('  Connecting to Instagram ...')
-    return connections,headers
+    return connections
 
 ##################################################################################################
 
@@ -350,7 +349,8 @@ def is_docker():
     """
     cgroup = Path('/proc/self/cgroup')
     #print (cgroup.read_text())
-    return Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in cgroup.read_text()
+    return Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in \
+            cgroup.read_text(encoding="utf-8")
 
 ##################################################################################################
 
@@ -559,7 +559,7 @@ def google_scroll(counter_google_scroll,driver):
 #        '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[2]/div[10]/div')
     for _i in range(counter_google_scroll):
         try:
-            google_scroll = driver.execute_script(
+            google_scroller = driver.execute_script(
                 'document.getElementsByClassName("dS8AEf")[0].\
                     scrollTop=document.getElementsByClassName("dS8AEf")[0].scrollHeight',
                     scrollable_div
@@ -568,7 +568,7 @@ def google_scroll(counter_google_scroll,driver):
         except AttributeError  as e:
             print(f"Error while google_scroll: {e}")
             break
-    return google_scroll
+    return google_scroller
 
 ##################################################################################################
 
@@ -586,10 +586,10 @@ def write_to_xlsx2(data, local_outputs):
 
     print('write to excel...')
     sqlalchemy.null()
-    cols = ["name", "comment", 'rating','picsURL','pics_local_path','source','date','address',
-        'dict_post_complete']
-    cols2 = ["num","name", "comment", 'rating','picsURL','pics_local_path','source','date',
-        'address','dict_post_complete']
+    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
+        'dictPostComplete']
+    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+        'address','dictPostComplete']
     df = pd.DataFrame(data, columns=cols)
     df2 = pd.DataFrame(local_outputs['xlsdf'].values, columns=cols2)
     #df2 = df1.where((pd.notnull(df)), None)  # take out NAN problems
@@ -606,18 +606,18 @@ def write_to_xlsx2(data, local_outputs):
             print ('  Row ',processrow.id,' ', processrow.name ,'  already in XLS sheet')
             d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=\
                 processrow.rating,picsURL=processrow.picsURL,pics_local_path=processrow.\
-                pics_local_path,source=processrow.source,date=processrow.date,address=processrow.\
-                address,dict_post_complete=processrow.dict_post_complete)
+                picsLocalpath,source=processrow.source,date=processrow.date,address=processrow.\
+                address,dict_post_complete=processrow.dictPostComplete)
         elif processrow.name is not None:
 # Create a Python dictionary object with all the column values
 # d_row = {'name':processrow.name ,'comment':processrow.comment,'rating':processrow.rating,
-#     'picsURL':processrow.picsURL,'pics_local_path':processrow.pics_local_path, 'source':\
+#     'picsURL':processrow.picsURL,'pics_local_path':processrow.picsLocalpath, 'source':\
 #      processrow.source,'date':processrow.date,'address':processrow.address,'dict_post_complete'\
-#      :processrow.dict_post_complete}
+#      :processrow.dictPostComplete}
             d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.\
-                rating,picsURL=processrow.picsURL,pics_local_path=processrow.pics_local_path,\
+                rating,picsURL=processrow.picsURL,pics_local_path=processrow.picsLocalpath,\
                 source=processrow.source,date=processrow.date,address=processrow.address,\
-                dict_post_complete=processrow.dict_post_complete)
+                dict_post_complete=processrow.dictPostComplete)
             print ('  Row ',processrow[0],' ', processrow.name ,'  added to XLS sheet')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
@@ -650,10 +650,10 @@ def write_to_database(data, local_outputs):
     """
 
     print('write to database ...')
-    cols = ["name", "comment", 'rating','picsURL','pics_local_path','source','date','address',
-        'dict_post_complete']
-    # cols2 = ["num","name", "comment", 'rating','picsURL','pics_local_path','source','date',
-    #     'address','dict_post_complete']
+    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
+        'dictPostComplete']
+    # cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+    #     'address','dictPostComplete']
     df = pd.DataFrame(data, columns=cols)
     # df2 = pd.DataFrame(local_outputs['xlsdf'].values, columns=cols2)
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
@@ -664,22 +664,22 @@ def write_to_database(data, local_outputs):
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(local_outputs['posts'], unpicklable=False)
     for processrow in data:
-        if (processrow.name in df.values):
+        if processrow.name in df.values:
             print ('  Row ',processrow.id,' ', processrow.name ,'  already in database')
             d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.\
-                rating,picsURL=processrow.picsURL,pics_local_path=processrow.pics_local_path,\
+                rating,picsURL=processrow.picsURL,pics_local_path=processrow.picsLocalpath,\
                 source=processrow.source,date=processrow.date,address=processrow.address,\
-                dict_post_complete=processrow.dict_post_complete)
+                dict_post_complete=processrow.dictPostComplete)
         elif processrow.name is not None:
 # Create a Python dictionary object with all the column values
 # d_row = {'name':processrow.name ,'comment':processrow.comment,'rating':processrow.rating,
-#     'picsURL':processrow.picsURL,'pics_local_path':processrow.pics_local_path, 'source':
+#     'picsURL':processrow.picsURL,'pics_local_path':processrow.picsLocalpath, 'source':
 #      processrow.source,'date':processrow.date,'address':processrow.address,'dict_post_complete'
-#      :processrow.dict_post_complete}
+#      :processrow.dictPostComplete}
             d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.\
-                rating,picsURL=processrow.picsURL,pics_local_path=processrow.pics_local_path,\
+                rating,picsURL=processrow.picsURL,pics_local_path=processrow.picsLocalpath,\
                 source=processrow.source,date=processrow.date,address=processrow.address,\
-                dict_post_complete=processrow.dict_post_complete)
+                dict_post_complete=processrow.dictPostComplete)
             print ('  Row ',processrow[0],' ', processrow.name ,'  added to XLS sheet')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
@@ -716,11 +716,11 @@ def database_update_row(review_name, column_name, column_value, update_style, lo
     """
 
     try:
-        if update_style == "forceall" and column_value != False:
+        if update_style == "forceall" and column_value is not False:
             local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
                         ({column_name : column_value})
             print ('    Force Updated ',column_name, ' to: ',column_value)
-        elif update_style == "onlyempty"  and column_value != False:
+        elif update_style == "onlyempty"  and column_value is not False:
             postval = local_outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(null())).all()
             if len(postval) == 0 :
@@ -1034,12 +1034,11 @@ def post_to_threads2(title, content, headers, date, rating, address, picslist, l
                 "\n\nhttps://www.joeeatswhat.com "+"\n\n"
             local_outputs['instasession'].video_upload(outputmontage, data)
         except AttributeError  as error:
-            print("  An error occurred uploading video to Threads:", type(error).__name__) 
+            print("  An error occurred uploading video to Threads:", type(error).__name__)
             return False
         return True
     else:
         return False
-    
 
 ###################################################################################################
 
@@ -1101,7 +1100,23 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
 
 ###################################################################################################
 
-def post_to_instagram2(title, content, headers,date, rating, address, picslist,local_outputs):
+def post_to_instagram2(title, content, headers, date, rating, address, picslist, local_outputs):
+    """
+    Posts content to Instagram with relevant information and media.
+
+    Args:
+        title (str): The title of the post.
+        content (str): The content of the post.
+        headers: Headers for the post.
+        date: Date of the post.
+        rating: Rating of the post.
+        address: Address related to the post.
+        picslist: List of pictures for the post.
+        local_outputs: Local outputs for the post.
+
+    Returns:
+        bool: True if the post was successfully uploaded, False otherwise.
+    """
     outputmontage = ''
     addresshtml = re.sub(" ", ".",address)
     attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
@@ -1124,6 +1139,7 @@ def post_to_instagram2(title, content, headers,date, rating, address, picslist,l
         if picslist != '[]' and "montage.mp4" in picslist:
             #content = content + get_hastags(address, title)
             pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+            video, outputmontage = make_montage_video_from_google(pics)
             try:
                 instasession.video_upload(outputmontage, data)
             except AttributeError  as error:
@@ -1156,7 +1172,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         None
 """
     # post
-    new_post = False
+    #new_post = False
     #countreview = False
     addresshtml = re.sub(" ", ".",address)
     googleadress = r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
@@ -1395,7 +1411,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 
 ##################################################################################################
 
-def process_reviews2(outputs,headers):
+def process_reviews2(outputs):
     # Process
     webcount = xtwittercount = instagramcount = facebookcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
@@ -1403,7 +1419,7 @@ def process_reviews2(outputs,headers):
         rows_orig = list(outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
         rows_orig2 = outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)
 # rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL},\
-#   {5:p.pics_local_path},{6:p.source},{7:p.date},{8:p.address},{9:p.dict_post_complete})\
+#   {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete})\
 #   for p in rows_orig]
         # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
         rows = outputs['data']
@@ -1432,7 +1448,7 @@ def process_reviews2(outputs,headers):
         caps['acceptSslCerts'] = True
         options.set_capability('cloud:options', caps)
         #driver = webdriver.Chrome(desired_capabilities=caps)
-        if is_docker() :
+        if is_docker():
             driver = webdriver.Remote("http://192.168.10.9:4444/wd/hub", options=options)
             print ("IN A DOCKER CONTAINER, USING REMOTE CHROME")
         else:
@@ -1459,7 +1475,7 @@ def process_reviews2(outputs,headers):
             outputs['postssession'].query(Posts).filter(Posts.name == processrow.name).\
                     update({"google" : 1})
             print ("Processing : ",processrow.name)
-            writtento = (ast.literal_eval(processrow.dict_post_complete))
+            writtento = ast.literal_eval(processrow.dictPostComplete)
             # Check to see if the website has already been written to according to the xls sheet,\
             # if it has not... then process
             if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or \
@@ -1467,7 +1483,7 @@ def process_reviews2(outputs,headers):
                 writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
                 or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
                 env.threads or env.google)and (processrow.comment is not None) :
-                if env.web :
+                if env.web  and processrow.web is False:
                     #if writtento["web"] == 0 :
                     try:
                         post_id, post_link = get_wordpress_post_id_and_link(processrow.name,\
@@ -1480,17 +1496,17 @@ def process_reviews2(outputs,headers):
                                 print ('  Error getting wordpress links to update databse')
                     except  AttributeError  as error :
                         print ('Could not check to see post already exists',error)
-                    webcount = process_socials("web",processrow,headers,"post_to_wordpress",\
+                    webcount=process_socials("web",processrow,outputs['web'],"post_to_wordpress",\
                             webcount, outputs)
-                if env.instagram:
-                    instagramcount = process_socials("instagram",processrow,headers,\
-                            "post_to_instagram2",instagramcount, outputs)     
-                if env.facebook:
-                    facebookcount = process_socials("facebook",processrow,headers,"post_facebook3"\
-                            ,facebookcount, outputs)                    
-                if env.xtwitter:
-                    xtwittercount = process_socials("xtwitter",processrow,headers,"post_to_x2",\
-                            xtwittercount, outputs)
+                if env.instagram and processrow.instagram is False:
+                    instagramcount = process_socials("instagram",processrow,outputs['web'],\
+                            "post_to_instagram2",instagramcount, outputs)
+                if env.facebook and processrow.facebook is False  :
+                    facebookcount = process_socials("facebook",processrow,outputs['web'],\
+                            "post_facebook3",facebookcount, outputs)            
+                if env.xtwitter and processrow.xtwitter is False:
+                    xtwittercount = process_socials("xtwitter",processrow,outputs['web'],\
+                            "post_to_x2",xtwittercount, outputs)
     return
 
 ##################################################################################################
@@ -1512,21 +1528,21 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
     Returns:
     Count of the social that was selected
     """
-    writtento = (ast.literal_eval(social_post.dict_post_complete))
+    writtento = ast.literal_eval(social_post.dictPostComplete)
     if (len(local_outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,\
             getattr(Posts, social_name) is True).all())==0) and ((local_outputs['postssession'].\
-                    query(Posts).filter(Posts.name == social_post.name).all()[0].wpurl != \
+                    query(Posts).filter(Posts.name == social_post.name).all()[0].wpurl is not \
                     None)or social_name == 'web'):
         if social_count < env.postsperrun:
             try:
                 print('  Starting to generate ',social_name,' post')
                 new_social_post = eval(sub_process)(social_post.name, social_post.comment,\
                         headers, social_post.date, social_post.rating, social_post.address,\
-                        social_post.pics_local_path,local_outputs )
+                        social_post.picsLocalpath,local_outputs )
                 try:
                     print ('    Start generating content to post to : ',social_post.name)
                     writtento[social_name] = 1
-                    social_post.dict_post_complete = str(writtento)
+                    social_post.dictPostComplete = str(writtento)
                 except AttributeError  as error:
                     print("  An error occurred setting value to go into Excel file:", type(error)\
                             .__name__)
@@ -1537,10 +1553,6 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
                         print('  write to xls for :',social_name)
                         local_outputs['datawb'].save(env.xls)
                         print('  Successfully wrote to xls for social - ',social_name)
-                        # local_outputs['postssession'].update('dict_post_complete = '+\
-                        #           str(writtento)+\
-                        #   ' where name == '+social_post.name)
-                        # local_outputs['postssession'].commit()
                     except AttributeError  as error:
                         print("  An error occurred writing Excel file:", type(error).__name__)
                     try:
@@ -1554,7 +1566,7 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
             except AttributeError as error:
                 print('  Error writing social - ',social_name,'  post : ',error,social_post.name,\
                     social_post.comment, local_outputs,social_post.date, social_post.rating,\
-                    social_post.address, social_post.pics_local_path, writtento[social_name],\
+                    social_post.address, social_post.picsLocalpath, writtento[social_name],\
                     type(error).__name__ )
         else:
             print ('  Exceeded the number of social - ',social_name,' posts per run, skipping',\
@@ -1569,8 +1581,8 @@ if __name__ == "__main__":
     print('starting ...')
     preload()
     print('making connections ...')
-    outputs,headers = get_auth_connect()
-    process_reviews2(outputs,headers)
+    outputs = get_auth_connect()
+    process_reviews2(outputs)
     print('Done!')
 
 ##################################################################################################
