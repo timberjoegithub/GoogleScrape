@@ -945,6 +945,9 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,local_out
                 print ('  Skipping xtwitter post because wordpress URL is missing')
         except AttributeError  as error:
             print("AttributeError     An error occurred:",error) # An error occurred:
+    else:
+        print ('    xtwitter: No video available, skipping twitter post for : ',title)
+        return False
     time.sleep(env.facebooksleep)
     return True
 
@@ -978,7 +981,7 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, loca
     attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
     business_url = attrib_list[0].businessurl
     wpurl = attrib_list[0].wpurl
-    if wpurl:
+    if wpurl and (attrib_list[0].picsLocalpath != '[]') :
         if business_url:
             status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
                 business_url+' \n\n'+ content
@@ -999,6 +1002,8 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, loca
                 return False
         time.sleep(env.facebooksleep)
         print('    Facebook response: ',post_id)
+    else:
+        print ('    facebook: Wordpress URL or no pictures so skipping Facebook posting')
     return True
 
 ##################################################################################################
