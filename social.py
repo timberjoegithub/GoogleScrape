@@ -1337,8 +1337,8 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
                 print ('      ',picname,' was successfully uploaded to website with ID: ',\
                     file_id, link)
             try:
-                linksDict = {'file_id' : file_id , 'link' : link}
-                linkslist.append(linksDict)
+                links_dict = {'file_id' : file_id , 'link' : link}
+                linkslist.append(links_dict)
             except AttributeError  as error:
                 print("    An error adding to dictionary " , file_id , link , " occurred:",\
                     type(error).__name__) # An error occurred:
@@ -1417,6 +1417,16 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 ##################################################################################################
 
 def process_reviews2(outputs):
+    """
+    Processes reviews data, updates social media platforms, and writes data to files.
+
+    Args:
+        outputs: Data outputs containing reviews and social media information.
+
+    Returns:
+        None
+    """
+
     # Process
     webcount = xtwittercount = instagramcount = facebookcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
@@ -1468,7 +1478,7 @@ def process_reviews2(outputs):
         if env.datasource == 'db':
             write_to_database(webdata, outputs)
         else:
-            write_to_xlsx2(webdata, outputs)        
+            write_to_xlsx2(webdata, outputs)
         driver.close()
         # outputs['data'].save(xls)
         print('Done getting google reviews and writing them to xls file !')
