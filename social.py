@@ -1416,7 +1416,11 @@ def process_reviews2(outputs):
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
     if env.datasource == 'xls':
         rows_orig = list(outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
-        rows_orig2 = outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)
+        rows_orig2 = list(outputs['xlsdf'].iter_rows(min_row=1, max_row=outputs['xlsdf'].max_row))
+        rows3 = outputs['data'].iter_rows(min_row=1, max_row=outputs['data'])
+        rows4 = pd.DataFrame(outputs['xlsdf'])
+        rows5 = pd.DataFrame(outputs['posts'])
+        rows6 = pd.DataFrame(outputs['data'])
 # rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL},\
 #   {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete})\
 #   for p in rows_orig]
