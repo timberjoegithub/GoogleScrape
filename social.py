@@ -164,6 +164,18 @@ def get_auth_connect():
         connections |= {'xlsdf':xls_wb_df,'data':ws,'datawb':wb}
 #        connections.update({'data':ws})
 #        connections.update({'datawb':wb})
+
+        sheet = wb.active
+        c_row = sheet.max_row
+        c_column = sheet.max_column
+        out_data=[]
+        local_dict={}
+        for a in range(1, c_row + 1):
+            for b in range(1, c_column + 1):
+                ob = sheet.cell(row=a, column=b)
+                local_dict[b] = ob.value
+            out_data.append(str(local_dict))
+        connections['xls_list'] = out_data
     if env.instagram:
         print('  Connecting to Instagram ...')
         instasessionclient = instagrapi.Client()
@@ -1414,13 +1426,19 @@ def process_reviews2(outputs):
     # Process
     webcount = xtwittercount = instagramcount = facebookcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
-    if env.datasource == 'xls':
+    if env.datasource == 'db':
+        cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+        'address','dictPostComplete']
         rows_orig = list(outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
-        rows_orig2 = list(outputs['xlsdf'].iter_rows(min_row=1, max_row=outputs['xlsdf'].max_row))
+        ttt = list(outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
+        ows_orig = list(outputs['data'])
+        rows_orig2 = list(outputs['xlsdf'].values)
         rows3 = outputs['data'].iter_rows(min_row=1, max_row=outputs['data'])
         rows4 = pd.DataFrame(outputs['xlsdf'])
         rows5 = pd.DataFrame(outputs['posts'])
         rows6 = pd.DataFrame(outputs['data'])
+       # df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2).iter_rows(min_row=1, max_row=outputs['data'].max_row)
+     #   df3 = pd.DataFrame(outputs['xlsdf'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
 # rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL},\
 #   {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete})\
 #   for p in rows_orig]
