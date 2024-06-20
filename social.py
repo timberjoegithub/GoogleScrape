@@ -169,8 +169,8 @@ def get_auth_connect():
         sheet = wb.active
         c_row = sheet.max_row
         c_column = sheet.max_column
-        out_data=[]
-        import inspect
+        #out_data=[]
+        #import inspect
         local_dict=Posts
         column_list = []
         my_list = []
@@ -1065,21 +1065,21 @@ def post_to_threads2(title, content, headers, date, rating, address, picslist, l
 
 ###################################################################################################
 
-def tiktok_upload_video(session_id, file_path, title, tags, schedule_time=None):
-    url = 'https://www.tiktok.com/api/upload/video/'
-    headers = {
-        'Cookie': f'sessionid={session_id}'
-    }
-    data = {
-        'title': title,
-        'tags': ','.join(tags),
-        'schedule_time': schedule_time
-    }
-    files = {
-        'video': open(file_path, 'rb')
-    }
-    response = requests.post(url, headers=headers, data=data, files=files)
-    return response.json()
+# def tiktok_upload_video(session_id, file_path, title, tags, schedule_time=None):
+#     url = 'https://www.tiktok.com/api/upload/video/'
+#     headers = {
+#         'Cookie': f'sessionid={session_id}'
+#     }
+#     data = {
+#         'title': title,
+#         'tags': ','.join(tags),
+#         'schedule_time': schedule_time
+#     }
+#     files = {
+#         'video': open(file_path, 'rb')
+#     }
+#     response = requests.post(url, headers=headers, data=data, files=files)
+#     return response.json()
 
 def post_to_tiktok(title, content, headers, date, rating, address, picslist, local_outputs):
     """
@@ -1100,21 +1100,33 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
         None
     """
     # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
-    session_id = env.tiktok_client_secret
+    #session_id = env.tiktok_client_secret
 
     # Replace 'path_to_video.mp4' with the path to your video file.
-    file_path = 'path_to_video.mp4'
+    #file_path = 'path_to_video.mp4'
 
     # Replace 'Your video title' with the title of your video.
     #title = 'Your video title'
 
     # Replace the following list with the hashtags you want to add to your post.
-    tags = ['hashtag1', 'hashtag2', 'hashtag3']
+    tags = get_hastags(address, title,'long')
 
     # If you want to schedule your video, replace 'schedule_timestamp' with the Unix timestamp.
     # Leave it as None if you want to upload immediately.
     schedule_time = None  # or Unix timestamp (e.g., 1672592400)
-
+    if picslist != '[]' and "montage.mp4" in picslist:
+        for pic in picslist:
+            if 'montage.mp4' in pic:
+                file_path = pic
+        #content = content + get_hastags(address, title)
+        #pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+#        video, outputmontage = make_montage_video_from_google(pics)
+        # try:
+        #     instasession.video_upload(outputmontage, data)
+        # except AttributeError  as error:
+        #     print("  An error occurred uploading video to Instagram:", type(error).__name__)
+        #     return False
+        # return True
     """
     client_key             string                        The unique identification key provisioned to the partner.
     client_secret         string                  The unique identification secret provisioned to the partner.
@@ -1130,12 +1142,12 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     --data-urlencode 'grant_type=authorization_code' \
     --data-urlencode 'redirect_uri=REDIRECT_URI'
     """
-    header = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
+    headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
     data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,'code=CODE','grant_type=authorization_code','redirect_uri=REDIRECT_URI']
     response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=headers, data=data)
 
     # Call the function to upload the video
-    response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
+    # response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
     print(response)
     return
 ###################################################################################################
