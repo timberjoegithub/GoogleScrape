@@ -395,7 +395,7 @@ def post_facebook_video(group_id, video_path, auth_token, title, content, date, 
             "alt_text" : title
     }
     try:
-        r = requests.post(url, files=files, data=data,timeout=40).json()
+        r = requests.post(url, files=files, data=data,timeout=env.request_timeout).json()
     except AttributeError as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
@@ -778,7 +778,7 @@ def check_wordpress_media(filename, headers):
 
     file_name_minus_extension = filename
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
-                        headers=headers,timeout=40)
+                        headers=headers,timeout=env.request_timeout)
     try:
         result = response.json()
         if result:
@@ -806,7 +806,7 @@ def check_is_port_open(host, port):
     """
 
     try:
-        is_web_up = urllib3.request("GET", host, timeout=10)
+        is_web_up = urllib3.request("GET", host, timeout=env.request_timeout)
         if is_web_up.status == 200:
             return True
     except AttributeError as error:
@@ -827,7 +827,7 @@ def get_wordpress_post_id_and_link(postname, headers2):
         tuple: A tuple containing the ID and link of the WordPress post.
     """
 
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=env.request_timeout)
     result = response.json()
     if len(result) > 0:
         return int(result[0]['id']), result[0]['link']
@@ -850,7 +850,7 @@ def check_wordpress_post(postname, postdate, headers2):
         otherwise (False, False).
     """
 
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=env.request_timeout)
     result = response.json()
     if len(result) > 0 and postdate == result[0]['date']:
         return int(result[0]['id']), result[0]['link']
@@ -870,7 +870,7 @@ def get_wordpress_featured_photo_id(post_id):
         _type_: _description_
     """
     # Make a GET request to the WordPress REST API to retrieve media details
-    response = requests.get(f"{env.wpAPI}?parent={post_id}",timeout=50)
+    response = requests.get(f"{env.wpAPI}?parent={post_id}",timeout=env.request_timeout)
     # Check if the request was successful
     if response.status_code == 200:
         # Parse the JSON response
@@ -1325,7 +1325,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         }
         try:
             headers2 = headers
-            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=30)
+            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=env.request_timeout)
             if response.status_code != 201:
                 print ('Error: ',response, response.text)
             else:
@@ -1358,7 +1358,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             }
             try:
                 image_response = requests.post(env.wpAPI + "/media", headers=headers, \
-                    files=image,timeout=30)
+                    files=image,timeout=env.request_timeout)
             except AttributeError  as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", \
                     type(error).__name__)
@@ -1382,13 +1382,13 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
                 file_id,' : ',link)
             try:
                 image_response = requests.post(env.wpAPI + "/media/" + str(file_id),\
-                    headers=headers, data={"post" : post_id},timeout=30)
+                    headers=headers, data={"post" : post_id},timeout=env.request_timeout)
             except AttributeError  as error:
                 print ('    Error- Image ',picname,' was not attached to post.  response: ',\
                     image_response+' '+type(error).__name__)
             try:
                 post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
-                    headers=headers,timeout=30)
+                    headers=headers,timeout=env.request_timeout)
                 if link in post_response.text:
                     print ('    Image link for ', picname, 'already in content of post: '\
                         ,post_id, post_response.text, link)
@@ -1441,7 +1441,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
             data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
             rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
-            headers=headers,timeout=30)
+            headers=headers,timeout=env.request_timeout)
         print ('  ',response_piclinks)
     except AttributeError  as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:',\
