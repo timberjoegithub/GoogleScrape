@@ -806,7 +806,7 @@ def check_is_port_open(host, port):
     """
 
     try:
-        is_web_up = urllib3.request("GET", host)
+        is_web_up = urllib3.request("GET", host, timeout=10)
         if is_web_up.status == 200:
             return True
     except AttributeError as error:
