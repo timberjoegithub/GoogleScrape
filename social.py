@@ -1460,7 +1460,7 @@ def process_reviews2(outputs):
 #   {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete})\
 #   for p in rows_orig]
         # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
-        rows = outputs['data']
+        rows = outputs['posts']
     else:
         rows_orig = outputs['posts']
         rows = rows_orig
