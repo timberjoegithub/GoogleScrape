@@ -1061,6 +1061,22 @@ def post_to_threads2(title, content, headers, date, rating, address, picslist, l
 
 ###################################################################################################
 
+def tiktok_upload_video(session_id, file_path, title, tags, schedule_time=None):
+    url = 'https://www.tiktok.com/api/upload/video/'
+    headers = {
+        'Cookie': f'sessionid={session_id}'
+    }
+    data = {
+        'title': title,
+        'tags': ','.join(tags),
+        'schedule_time': schedule_time
+    }
+    files = {
+        'video': open(file_path, 'rb')
+    }
+    response = requests.post(url, headers=headers, data=data, files=files)
+    return response.json()
+
 def post_to_tiktok(title, content, headers, date, rating, address, picslist, local_outputs):
     """
     Posts content to TikTok with specified session ID, video file, title, hashtags, and optional
@@ -1080,7 +1096,7 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
         None
     """
     # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
-    session_id = 'your_sessionid_cookie'
+    session_id = env.tiktok_client_secret
 
     # Replace 'path_to_video.mp4' with the path to your video file.
     file_path = 'path_to_video.mp4'
@@ -1095,28 +1111,29 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     # Leave it as None if you want to upload immediately.
     schedule_time = None  # or Unix timestamp (e.g., 1672592400)
 
+    """
+    client_key             string                        The unique identification key provisioned to the partner.
+    client_secret         string                  The unique identification secret provisioned to the partner.
+    code          string            The authorization code from the web, iOS, Android or desktop authorization callback. The value should be URL decoded.
+    grant_type         string                 Its value should always be set as authorization_code.             
+    redirect_uri    string               Its value must be the same as the redirect_uri used for requesting code.
+    curl --location --request POST 'https://open.tiktokapis.com/v2/oauth/token/' \
+    --header 'Content-Type: application/x-www-form-urlencoded' \
+    --header 'Cache-Control: no-cache' \
+    --data-urlencode 'client_key=CLIENT_KEY' \
+    --data-urlencode 'client_secret=CLIENT_SECRET' \
+    --data-urlencode 'code=CODE' \
+    --data-urlencode 'grant_type=authorization_code' \
+    --data-urlencode 'redirect_uri=REDIRECT_URI'
+    """
+    header = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
+    data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,'code=CODE','grant_type=authorization_code','redirect_uri=REDIRECT_URI']
+    response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=headers, data=data)
+
+    # Call the function to upload the video
+    response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
+    print(response)
     return
-
-# def upload_video(session_id, file_path, title, tags, schedule_time=None):
-#     url = 'https://www.tiktok.com/api/upload/video/'
-#     headers = {
-#         'Cookie': f'sessionid={session_id}'
-#     }
-#     data = {
-#         'title': title,
-#         'tags': ','.join(tags),
-#         'schedule_time': schedule_time
-#     }
-#     files = {
-#         'video': open(file_path, 'rb')
-#     }
-#     response = requests.post(url, headers=headers, data=data, files=files)
-#     return response.json()
-
-# # Call the function to upload the video
-# response = upload_video(session_id, file_path, title, tags, schedule_time)
-# print(response)
-
 ###################################################################################################
 
 def post_to_instagram2(title, content, headers, date, rating, address, picslist, local_outputs):
@@ -1461,7 +1478,7 @@ def process_reviews2(outputs):
 #   {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete})\
 #   for p in rows_orig]
         # rows = list((outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row)))
-        rows = outputs['data']
+        rows = outputs['posts']
     else:
         rows_orig = outputs['posts']
         rows = rows_orig
