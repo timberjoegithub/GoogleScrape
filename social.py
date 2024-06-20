@@ -190,8 +190,8 @@ def get_auth_connect():
 #                my_post.getattr(Posts, column_list[b]) == ob.value #my_post.(eval(b,column_list))
                 #my_dict[b] = ob.value
             my_list_data.append(str(my_list))
-            my_list = []
             print (my_list)
+            my_list = []
             #out_data.append(str(my_dict))
         connections['xls_list'] = my_list_data
 #        connections['xls_list'] = out_data
@@ -1543,7 +1543,7 @@ def process_reviews2(outputs):
                 writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
                 or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
                 env.threads or env.google)and (processrow.comment is not None) :
-                if env.web  and processrow.web is False:
+                if env.web  and processrow.web is False or env.force_web_create is True:
                     #if writtento["web"] == 0 :
                     try:
                         post_id, post_link = get_wordpress_post_id_and_link(processrow.name,\
@@ -1593,7 +1593,7 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
             getattr(Posts, social_name) is True).all())==0) and ((local_outputs['postssession'].\
                     query(Posts).filter(Posts.name == social_post.name).all()[0].wpurl is not \
                     None)or social_name == 'web'):
-        if social_count < env.postsperrun:
+        if social_count < env.postsperrun or (social_name == 'web' and env.force_web_create is True):
             try:
                 print('  Starting to generate ',social_name,' post')
                 new_social_post = eval(sub_process)(social_post.name, social_post.comment,\
