@@ -169,13 +169,31 @@ def get_auth_connect():
         c_row = sheet.max_row
         c_column = sheet.max_column
         out_data=[]
-        local_dict={}
+        import inspect
+        local_dict=Posts
+        column_list = []
+        my_list = []
+        my_list_data = []
+        my_post = Posts
+        my_dict = {}
+        for x in inspect.getmembers(Posts):
+            if not (x[0].startswith('_') or 'metadata' in x[0]):
+                column_list.append(x[0])
+        # solumn_list2[0][0]
+        #solumn_list2 = tuple(x for x in solumn_list2 if ('metadata' not in solumn_list2[0][0]) or (not solumn_list2[0][0].startswith('_')))
+#        for a in range(1, c_row + 1):
         for a in range(1, c_row + 1):
-            for b in range(1, c_column + 1):
+            for b in range(2, c_column+1):
                 ob = sheet.cell(row=a, column=b)
-                local_dict[b] = ob.value
-            out_data.append(str(local_dict))
-        connections['xls_list'] = out_data
+                my_list.append(ob.value)
+#                my_post.getattr(Posts, column_list[b]) == ob.value #my_post.(eval(b,column_list))
+                #my_dict[b] = ob.value
+            my_list_data.append(str(my_list))
+            my_list = []
+            print (my_list)
+            #out_data.append(str(my_dict))
+        connections['xls_list'] = my_list_data
+#        connections['xls_list'] = out_data
     if env.instagram:
         print('  Connecting to Instagram ...')
         instasessionclient = instagrapi.Client()
