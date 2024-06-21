@@ -1370,7 +1370,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             }
             try:
                 image_response = requests.post(env.wpAPI + "/media", headers=headers, \
-                    files=image,timeout=30)
+                    files=image,timeout=env.request_timeout)
             except AttributeError  as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", \
                     type(error).__name__)
@@ -1451,7 +1451,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 #        if business_url or business_url is False:
         status_message = str(title) + ': Business website: '+ business_url
         response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-            data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
+            data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
             rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
             headers=headers,timeout=env.request_timeout)
         print ('  ',response_piclinks)
