@@ -169,8 +169,8 @@ def get_auth_connect():
         sheet = wb.active
         c_row = sheet.max_row
         c_column = sheet.max_column
-        out_data=[]
-        import inspect
+        #out_data=[]
+        #import inspect
         local_dict=Posts
         column_list = []
         my_list = []
@@ -395,7 +395,7 @@ def post_facebook_video(group_id, video_path, auth_token, title, content, date, 
             "alt_text" : title
     }
     try:
-        r = requests.post(url, files=files, data=data,timeout=40).json()
+        r = requests.post(url, files=files, data=data,timeout=env.request_timeout).json()
     except AttributeError as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
@@ -778,7 +778,7 @@ def check_wordpress_media(filename, headers):
 
     file_name_minus_extension = filename
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
-                        headers=headers,timeout=60)
+                        headers=headers,timeout=env.request_timeout)
     try:
         result = response.json()
         if result:
@@ -806,7 +806,7 @@ def check_is_port_open(host, port):
     """
 
     try:
-        is_web_up = urllib3.request("GET", host, timeout=10)
+        is_web_up = urllib3.request("GET", host, timeout=env.request_timeout)
         if is_web_up.status == 200:
             return True
     except AttributeError as error:
@@ -827,7 +827,7 @@ def get_wordpress_post_id_and_link(postname, headers2):
         tuple: A tuple containing the ID and link of the WordPress post.
     """
 
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=env.request_timeout)
     result = response.json()
     if len(result) > 0:
         return int(result[0]['id']), result[0]['link']
@@ -850,7 +850,7 @@ def check_wordpress_post(postname, postdate, headers2):
         otherwise (False, False).
     """
 
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=40)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=env.request_timeout)
     result = response.json()
     if len(result) > 0 and postdate == result[0]['date']:
         return int(result[0]['id']), result[0]['link']
@@ -870,7 +870,7 @@ def get_wordpress_featured_photo_id(post_id):
         _type_: _description_
     """
     # Make a GET request to the WordPress REST API to retrieve media details
-    response = requests.get(f"{env.wpAPI}?parent={post_id}",timeout=50)
+    response = requests.get(f"{env.wpAPI}?parent={post_id}",timeout=env.request_timeout)
     # Check if the request was successful
     if response.status_code == 200:
         # Parse the JSON response
@@ -1065,21 +1065,21 @@ def post_to_threads2(title, content, headers, date, rating, address, picslist, l
 
 ###################################################################################################
 
-def tiktok_upload_video(session_id, file_path, title, tags, schedule_time=None):
-    url = 'https://www.tiktok.com/api/upload/video/'
-    headers = {
-        'Cookie': f'sessionid={session_id}'
-    }
-    data = {
-        'title': title,
-        'tags': ','.join(tags),
-        'schedule_time': schedule_time
-    }
-    files = {
-        'video': open(file_path, 'rb')
-    }
-    response = requests.post(url, headers=headers, data=data, files=files)
-    return response.json()
+# def tiktok_upload_video(session_id, file_path, title, tags, schedule_time=None):
+#     url = 'https://www.tiktok.com/api/upload/video/'
+#     headers = {
+#         'Cookie': f'sessionid={session_id}'
+#     }
+#     data = {
+#         'title': title,
+#         'tags': ','.join(tags),
+#         'schedule_time': schedule_time
+#     }
+#     files = {
+#         'video': open(file_path, 'rb')
+#     }
+#     response = requests.post(url, headers=headers, data=data, files=files)
+#     return response.json()
 
 def post_to_tiktok(title, content, headers, date, rating, address, picslist, local_outputs):
     """
@@ -1100,21 +1100,33 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
         None
     """
     # Replace 'your_sessionid_cookie' with your actual TikTok sessionid cookie.
-    session_id = env.tiktok_client_secret
+    #session_id = env.tiktok_client_secret
 
     # Replace 'path_to_video.mp4' with the path to your video file.
-    file_path = 'path_to_video.mp4'
+    #file_path = 'path_to_video.mp4'
 
     # Replace 'Your video title' with the title of your video.
     #title = 'Your video title'
 
     # Replace the following list with the hashtags you want to add to your post.
-    tags = ['hashtag1', 'hashtag2', 'hashtag3']
+    tags = get_hastags(address, title,'long')
 
     # If you want to schedule your video, replace 'schedule_timestamp' with the Unix timestamp.
     # Leave it as None if you want to upload immediately.
     schedule_time = None  # or Unix timestamp (e.g., 1672592400)
-
+    if picslist != '[]' and "montage.mp4" in picslist:
+        for pic in picslist:
+            if 'montage.mp4' in pic:
+                file_path = pic
+        #content = content + get_hastags(address, title)
+        #pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
+#        video, outputmontage = make_montage_video_from_google(pics)
+        # try:
+        #     instasession.video_upload(outputmontage, data)
+        # except AttributeError  as error:
+        #     print("  An error occurred uploading video to Instagram:", type(error).__name__)
+        #     return False
+        # return True
     """
     client_key             string                        The unique identification key provisioned to the partner.
     client_secret         string                  The unique identification secret provisioned to the partner.
@@ -1130,12 +1142,12 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     --data-urlencode 'grant_type=authorization_code' \
     --data-urlencode 'redirect_uri=REDIRECT_URI'
     """
-    header = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
+    headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
     data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,'code=CODE','grant_type=authorization_code','redirect_uri=REDIRECT_URI']
     response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=headers, data=data)
 
     # Call the function to upload the video
-    response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
+    # response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
     print(response)
     return
 ###################################################################################################
@@ -1325,7 +1337,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         }
         try:
             headers2 = headers
-            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=30)
+            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=env.request_timeout)
             if response.status_code != 201:
                 print ('Error: ',response, response.text)
             else:
@@ -1358,7 +1370,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             }
             try:
                 image_response = requests.post(env.wpAPI + "/media", headers=headers, \
-                    files=image,timeout=60)
+                    files=image,timeout=30)
             except AttributeError  as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", \
                     type(error).__name__)
@@ -1382,13 +1394,13 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
                 file_id,' : ',link)
             try:
                 image_response = requests.post(env.wpAPI + "/media/" + str(file_id),\
-                    headers=headers, data={"post" : post_id},timeout=30)
+                    headers=headers, data={"post" : post_id},timeout=env.request_timeout)
             except AttributeError  as error:
                 print ('    Error- Image ',picname,' was not attached to post.  response: ',\
                     image_response+' '+type(error).__name__)
             try:
                 post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
-                    headers=headers,timeout=30)
+                    headers=headers,timeout=env.request_timeout)
                 if link in post_response.text:
                     print ('    Image link for ', picname, 'already in content of post: '\
                         ,post_id, post_response.text, link)
@@ -1441,7 +1453,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
             data={"content" : title+' = '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
             rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
-            headers=headers,timeout=30)
+            headers=headers,timeout=env.request_timeout)
         print ('  ',response_piclinks)
     except AttributeError  as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:',\
