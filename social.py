@@ -778,7 +778,7 @@ def check_wordpress_media(filename, headers):
 
     file_name_minus_extension = filename
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
-                        headers=headers,timeout=40)
+                        headers=headers,timeout=60)
     try:
         result = response.json()
         if result:
@@ -1358,7 +1358,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             }
             try:
                 image_response = requests.post(env.wpAPI + "/media", headers=headers, \
-                    files=image,timeout=30)
+                    files=image,timeout=60)
             except AttributeError  as error:
                 print("    An error uploading picture ' + picname+ ' occurred:", \
                     type(error).__name__)
