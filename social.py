@@ -10,7 +10,9 @@ import ast
 import base64
 import datetime as dt
 from urllib.request import urlretrieve
+import inspect
 import requests
+#import json
 import jsonpickle
 import urllib3
 import pandas as pd
@@ -29,7 +31,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import null
 import googlemaps
 import env
-import inspect
+#import inspect
 Base = declarative_base()
 
 ##################################################################################################
@@ -286,7 +288,11 @@ def get_hastags(address, name, hashtype):
     statetag = "#"+state
     ziptag = "#"+zip_code
     if statetag == 'FL':
-        statetag += ' #Florida'
+        statetag += '#Florida'
+    if statetag == 'OR':
+        statetag += '#Oregon'
+    if statetag == 'MA':
+        statetag += '#Massachusetts'
     return defaulttags+" "+citytag+" "+statetag+" "+ziptag+" "
 
 ##################################################################################################
@@ -870,18 +876,19 @@ def get_wordpress_featured_photo_id(post_id):
         _type_: _description_
     """
     # Make a GET request to the WordPress REST API to retrieve media details
-    response = requests.get(f"{env.wpAPI}?parent={post_id}",timeout=env.request_timeout)
+    response = requests.get(f"{env.wpAPOurl}/{post_id}",timeout=env.request_timeout)
     # Check if the request was successful
     if response.status_code == 200:
         # Parse the JSON response
         media_items = response.json()
 
         # Loop through the media items associated with the post
-        for item in media_items:
-            # Check if the media item is the featured image
-            if item.get('post', None) == int(post_id):
-                # Return the ID of the featured image
-                return item['id']
+           
+        # for item in media_items:
+        #     # Check if the media item is the featured image
+        #     if item.get('post', None) == int(post_id):
+        #         # Return the ID of the featured image
+        return  media_items['featured_media']
     # If the request failed or the featured image was not found, return None
     return None
 # # Example usage
@@ -1230,12 +1237,16 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     googleadress = r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
             addresshtml + r">"+str(address)+r"</a>"
     contentpics = ''
-    picl = picslist[1:-1]
-    pic2 = picl.replace(",","")
-    #re.sub(r',','',picl) #re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
-    pic3= pic2.replace("'","")
-    pidchop = pic3.split(" ")
+    picchop = ''
     linkslist=[]
+    # picl = picslist[1:-1]
+    # pic2 = picl.replace(",","")
+    # # #re.sub(r',','',picl) #re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
+    # pic3= pic2.replace("'","")
+    # picchop = pic3.split(" ")
+    # line = re.sub('[!@#$]', '', line)
+    #picchop = re.sub(',\'','',picslist[1:-1])
+    picchop = picslist[1:-1].replace(",","").replace("'","").split(" ")
     print ('    Figuring out date of Post : ',title)
     #specifify the formatting of the date_string.
     # formatting = '%b/%Y/%d'
@@ -1318,6 +1329,8 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     #newdate2 = str(re.sub(r'-','/',str(newdate.date())))+'T22:00:00'
     print ('    Got Date: ', newdate2, newdate)
     post_id, post_link = check_wordpress_post(title,newdate2,headers)
+    featured_photo_id = get_wordpress_featured_photo_id(post_id)
+    print(f"    Featured photo ID:  for {title} post {post_id} is: {featured_photo_id}")
     if env.block_google_maps is not True:
         try:
             database_update_row(title,"wpurl",post_link,"forceall",local_outputs)
@@ -1341,7 +1354,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             if response.status_code != 201:
                 print ('Error: ',response, response.text)
             else:
-                new_post = True
+                #new_post = True
                 post_id_json = response.json()
                 post_id = post_id_json.get('id')
                 print ('    New post is has post_id = ',post_id)
@@ -1350,102 +1363,111 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         #postneedsupdate = True
     else:
         print ('    Post already existed: Post ID : ',post_id)
-    for pic in pidchop:
-        picslice2 = pic.split("/")[-1]
-        picslice = picslice2.split(".")
-        picname = picslice[0]
-        caption =title
-        description = title+"\n"+address
-        print ('    Found Picture: ',picname)
-        file_id, link = check_wordpress_media(picname, headers)
-#        link = linknew['rendered']
-        if file_id is False:
-            print ('      '+str(picname)+' was not already found in library, adding it')
-#            countreview = True
-            image = {
-                "file": open(pic, "rb"),
-                "post": post_id,
-                "caption": caption,
-                "description": description
-            }
-            try:
-                image_response = requests.post(env.wpAPI + "/media", headers=headers, \
-                    files=image,timeout=env.request_timeout)
-            except AttributeError  as error:
-                print("    An error uploading picture ' + picname+ ' occurred:", \
-                    type(error).__name__)
-            if image_response.status_code != 201 :
-                print ('      Error:Image ',picname,' was not successfully uploaded.  response: ',\
-                    image_response)
-            else:
-                pic_dic=image_response.json()
-                file_id= pic_dic.get('id')
-                link = pic_dic.get('guid').get("rendered")
-                print ('      ',picname,' was successfully uploaded to website with ID: ',\
-                    file_id, link)
-            try:
-                links_dict = {'file_id' : file_id , 'link' : link}
-                linkslist.append(links_dict)
-            except AttributeError  as error:
-                print("    An error adding to dictionary " , file_id , link , " occurred:",\
-                    type(error).__name__) # An error occurred:
-        else:
-            print ('    Photo ',picname,' was already in library and added to post with ID: ',\
-                file_id,' : ',link)
-            try:
-                image_response = requests.post(env.wpAPI + "/media/" + str(file_id),\
-                    headers=headers, data={"post" : post_id},timeout=env.request_timeout)
-            except AttributeError  as error:
-                print ('    Error- Image ',picname,' was not attached to post.  response: ',\
-                    image_response+' '+type(error).__name__)
-            try:
-                post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
-                    headers=headers,timeout=env.request_timeout)
-                if link in post_response.text:
-                    print ('    Image link for ', picname, 'already in content of post: '\
-                        ,post_id, post_response.text, link)
+    for pic in picchop:
+        if pic != '':
+            picslice2 = pic.split("/")[-1]
+            picslice = picslice2.split(".")
+            picname = picslice[0]
+            caption =title
+            description = title+"\n"+address
+            print ('    Found Picture: ',picname)
+            file_id, link = check_wordpress_media(picname, headers)
+    #        link = linknew['rendered']
+            if file_id is False:
+                print ('      '+str(picname)+' was not already found in library, adding it')
+    #            countreview = True
+                image = {
+                    "file": open(pic, "rb"),
+                    "post": post_id,
+                    "caption": caption,
+                    "description": description
+                }
+                try:
+                    image_response = requests.post(env.wpAPI + "/media", headers=headers, \
+                        files=image,timeout=env.request_timeout)
+                except AttributeError  as error:
+                    print("    An error uploading picture ' + picname+ ' occurred:", \
+                        type(error).__name__)
+                if image_response.status_code != 201 :
+                    print ('      Error:Image ',picname,' was not successfully uploaded.  response: ',\
+                        image_response)
                 else:
-                    linkslist.append({'file_id' : file_id , 'link' : link})
-#                   countreview = True
-            except AttributeError  as error:
-                print("    An error loading the metadata from the post "+post_response.title+\
-                    ' occurred: '+type(error).__name__)
+                    pic_dic=image_response.json()
+                    file_id= pic_dic.get('id')
+                    link = pic_dic.get('guid').get("rendered")
+                    print ('      ',picname,' was successfully uploaded to website with ID: ',\
+                        file_id, link)
+                try:
+                    links_dict = {'file_id' : file_id , 'link' : link}
+                    linkslist.append(links_dict)
+                except AttributeError  as error:
+                    print("    An error adding to dictionary " , file_id , link , " occurred:",\
+                        type(error).__name__) # An error occurred:
+            else:
+                print ('    Photo ',picname,' was already in library and added to post with ID: ',\
+                    file_id,' : ',link)
+                try:
+                    image_response = requests.post(env.wpAPI + "/media/" + str(file_id),\
+                        headers=headers, data={"post" : post_id},timeout=env.request_timeout)
+                except AttributeError  as error:
+                    print ('    Error- Image ',picname,' was not attached to post.  response: ',\
+                        image_response+' '+type(error).__name__)
+                try:
+                    post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
+                        headers=headers,timeout=env.request_timeout)
+                    if link in post_response.text:
+                        print ('    Image link for ', picname, 'already in content of post: '\
+                            ,post_id, post_response.text, link)
+                    else:
+                        linkslist.append({'file_id' : file_id , 'link' : link})
+    #                   countreview = True
+                except AttributeError  as error:
+                    print("    An error loading the metadata from the post "+post_response.title+\
+                        ' occurred: '+type(error).__name__)
     #ratinghtml = post_response.text
     first_mp4 = True
+    first_pic = True
     fmedia = {}
     contentpics = ""
     for piclink in linkslist:
-        #for loop in linkslist:
-        print ('    Adding ', piclink['link'], ' to posting')
-        try:
-            ext = piclink['link'].split( '.')[-1]
-            if ext == 'mp4':
-                if first_mp4:
-                    contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + \
-                        r'" autoplay="true"]'
-                    first_mp4 = False
+        if piclink != '':
+            #for loop in linkslist:
+            print ('    Adding ', piclink['link'], ' to posting')
+            try:
+                ext = piclink['link'].split( '.')[-1]
+                if ext == 'mp4':
+                    if first_mp4:
+                        contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + \
+                            r'" autoplay="true"]'
+                        first_mp4 = False
+                    else:
+                        contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
+    #[evp_embed_video url="http://example.com/wp-content/uploads/videos/vid1.mp4" autoplay="true"]
                 else:
-                    contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
-#[evp_embed_video url="http://example.com/wp-content/uploads/videos/vid1.mp4" autoplay="true"]
-            else:
-                contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+r'src="'+\
-                    piclink['link'] + r'"></div>'
-#               fmedia.append = piclink{'file_id' }
-#            contentpics += '\n '+r'<img src="'+ piclink['link'] + '> \n'
-            #contentpics += r'<img src="'+ piclink['link'] + r' alt="' + title +r'">' +'\n\n'
-        except AttributeError  as error:
-            print("An error occurred:", type(error).__name__) # An error occurred:
-            return False
+                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+r'src="'+\
+                        piclink['link'] + r'"></div>'
+                    if first_pic:
+                        fmedia = piclink['file_id']
+                        first_pic = False
+    #               fmedia.append = piclink{'file_id' }
+    #            contentpics += '\n '+r'<img src="'+ piclink['link'] + '> \n'
+                #contentpics += r'<img src="'+ piclink['link'] + r' alt="' + title +r'">' +'\n\n'
+            except AttributeError  as error:
+                print("An error occurred:", type(error).__name__) # An error occurred:
+                return False
     try:
 #        print ('featured_media = ',linkslist[0]['file_id'])
-        if linkslist[0]['file_id']:
-            print ('featuredmedia2 = ',linkslist[0]['file_id'])
+        # if linkslist[0]['file_id']:
+        #     print ('featuredmedia2 = ',linkslist[0]['file_id'])
+        if fmedia:
+            print ('Featured Media: ',fmedia)
         else:
-            fmedia = file_id
+            if linkslist:
+                fmedia = linkslist[0]['file_id']
 #            print ('featured_media2 = ',file_id)
         business_url_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
                 .all()
-        business_url = str(business_url_list[0].businessurl)
+        business_url = "<a href="+str(business_url_list[0].businessurl)+">"+str(business_url_list[0].businessurl)+"</a>"
         # wpurllist = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
         # wpurl = wpurllist[0].wpurl
 #        if business_url or business_url is False:
@@ -1455,10 +1477,313 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
             headers=headers,timeout=env.request_timeout)
         print ('  ',response_piclinks)
+        if fmedia and fmedia != 0 and featured_photo_id and featured_photo_id !=0:
+            print ("    Featured Media: "+str(featured_photo_id)+" "+str(fmedia)+"  looks OK")
+        else:
+            print ("    fmedia is still empty and need to populate")
+            if fmedia:
+                response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
+                    rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
+                    headers=headers,timeout=env.request_timeout)
+                print ('    Results of new results ID value : '+str(get_wordpress_featured_photo_id(post_id)))
+            else:
+                response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
+                    rating+contentpics,"rank_math_focus_keyword":title},\
+                    headers=headers,timeout=env.request_timeout)
+                print ('Results of new results ID  with no picture value : '+str(get_wordpress_featured_photo_id(post_id)))
     except AttributeError  as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:',\
             type(error).__name__) # An error occurred')
         return False
+    return True
+
+##################################################################################################
+
+def build_picslist(picchop,piclink):
+
+    for piclink in picchop:
+        if piclink != '':
+            print ('    Adding ', piclink['link'], ' to posting')
+            try:
+                ext = piclink['link'].split( '.')[-1]
+                if ext == 'mp4':
+                    if first_mp4:
+                        contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + \
+                            r'" autoplay="true"]'
+                        first_mp4 = False
+                    else:
+                        contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
+                else:
+                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+r'src="'+\
+                        piclink['link'] + r'"></div>'
+                    if first_pic:
+                        fmedia = piclink['file_id']
+                        first_pic = False
+            except AttributeError  as error:
+                print("An error occurred:", type(error).__name__) # An error occurred:
+                return False
+    return contentpics
+
+##################################################################################################
+
+def get_wordpress_post_date_string(date_string,date):
+
+    if "a day" in date_string:
+        date = dt.timedelta(days=-1)
+        newdate = datetime.today() - date
+    else:
+        if "day" in date:
+            tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
+            print ('Stuff - > ',tempdate)
+            newdate = datetime.today() + relativedelta(days=tempdate)
+        else:
+            if "a week" in date:
+                newdate = datetime.today() - relativedelta(weeks= 1)
+            else:
+                if "week" in date:
+                    tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
+                    print ('Stuff - > ',tempdate)
+                    newdate = datetime.today() + relativedelta(weeks= tempdate)
+                else:
+                    if "a month" in date:
+                        newdate = datetime.today() - relativedelta(months = 1)
+                    else:
+                        if "month" in date:
+                            tempdate = -int(re.sub( r'[^0-9]','',date_string))
+                            print ('Stuff - > ',tempdate)
+                            newdate = datetime.today() + relativedelta(months =  tempdate)
+                        else:
+                            if "a year" in date:
+                                newdate = datetime.today() - relativedelta(years= 1)
+                            else:
+                                if "year" in date:
+                                    try:
+                                        tempdate = -int(re.sub( r'[^0-9]','',date_string))
+                                        print ('Stuff - > ',tempdate)
+                                        newdate = datetime.today() + relativedelta(years= tempdate)
+                                    except AttributeError  as error:
+                                        print("    An error getting date occurred:",error)
+                                else:
+                                    #specifify the formatting of the date_string.
+                                    formatting = '%Y-%b-%d'
+                                    month = date[:3]
+                                    year = date[3:]
+                                    day = '01'
+                                    date_string = year+'-'+ month+'-'+day
+                                    try:
+                                        newdate = dt.datetime.strptime(date_string, formatting)\
+                                                .date()
+                                    except AttributeError  as error:
+                                        print("    An error getting date occurred:",error)
+                                    newdate = str(newdate)
+    #formatting = '%b/%Y/%d' #specifify the formatting of the date_string.
+    #newdate2 = dt.datetime.strptime(str(newdate), formatting).date()
+    dateparts = (str(newdate)).split("-")
+    dateparts2 = dateparts[2].split(" ")
+    newdate2 = dateparts[0]+'-'+dateparts[1]+'-'+dateparts2[0]+'T22:00:00'
+    print ('    Got Date: ', newdate2, newdate)
+    return (newdate,newdate2)
+
+##################################################################################################
+
+def create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,local_outputs,content,googleadress,rating,featured_photo_id):
+    if not post_id:
+        googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml\
+            + r">"+address+r"</a>"
+        post_data = {
+            "title": title,
+            "content": googleadress+'\n\n'+content+'\n'+rating ,
+            "status": "publish",  # Set to 'draft' if you want to save as a draft
+            "date": newdate2
+        }
+        try:
+            headers2 = headers
+            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=env.request_timeout)
+            if response.status_code != 201:
+                print ('Error: ',response, response.text)
+            else:
+                post_id_json = response.json()
+                post_id = post_id_json.get('id')
+                print ('    New post has post_id = ',post_id)
+        except AttributeError  as error:
+            print("An error occurred:", type(error).__name__) # An error occurred:
+    else:
+        print ('    Post already existed: Post ID : ',post_id)
+    for pic in picchop:
+        if pic != '':
+            picslice2 = pic.split("/")[-1]
+            picslice = picslice2.split(".")
+            picname = picslice[0]
+            caption =title
+            description = title+"\n"+address
+            print ('    Found Picture: ',picname)
+            file_id, link = check_wordpress_media(picname, headers)
+            if file_id is False:
+                print(f'      {str(picname)} was not already found in library, adding it')
+                image = {
+                    "file": open(pic, "rb"),
+                    "post": post_id,
+                    "caption": caption,
+                    "description": description
+                }
+                try:
+                    image_response = requests.post(env.wpAPI + "/media", headers=headers, \
+                        files=image,timeout=env.request_timeout)
+                except AttributeError  as error:
+                    print(f"    An error uploading picture {picname} occurred:", \
+                        type(error).__name__)
+                if image_response.status_code != 201 :
+                    print (f'      Error:Image {picname} was not successfully uploaded.  response: ',\
+                        image_response)
+                else:
+                    pic_dic=image_response.json()
+                    file_id= pic_dic.get('id')
+                    link = pic_dic.get('guid').get("rendered")
+                    print (f'      {picname} was successfully uploaded to website with ID: ',\
+                        file_id, link)
+                try:
+                    links_dict = {'file_id' : file_id , 'link' : link}
+                    linkslist.append(links_dict)
+                except AttributeError  as error:
+                    print(f"    An error adding to dictionary {file_id} {link} occurred:",\
+                        type(error).__name__) # An error occurred:
+            else:
+                print (f'    Photo {picname} was already in library and added to post with ID: \
+                    {file_id} : {link}')
+                try:
+                    image_response = requests.post(env.wpAPI + "/media/" + str(file_id),\
+                        headers=headers, data={"post" : post_id},timeout=env.request_timeout)
+                except AttributeError  as error:
+                    print ('    Error- Image ',picname,' was not attached to post.  response: ',\
+                        image_response+' '+type(error).__name__)
+                try:
+                    post_response = requests.post(env.wpAPI + "/posts/" + str(post_id),\
+                        headers=headers,timeout=env.request_timeout)
+                    if link in post_response.text:
+                        print ('    Image link for ', picname, 'already in content of post: '\
+                            ,post_id, post_response.text, link)
+                    else:
+                        linkslist.append({'file_id' : file_id , 'link' : link})
+                except AttributeError  as error:
+                    print("    An error loading the metadata from the post "+post_response.title+\
+                        ' occurred: '+type(error).__name__)
+    first_mp4 = True
+    first_pic = True
+    fmedia = {}
+    contentpics = ""
+    for piclink in linkslist:
+        if piclink != '':
+            print ('    Adding ', piclink['link'], ' to posting')
+            try:
+                ext = piclink['link'].split( '.')[-1]
+                if ext == 'mp4':
+                    if first_mp4:
+                        contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + \
+                            r'" autoplay="true"]'
+                        first_mp4 = False
+                    else:
+                        contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
+                else:
+                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+r'src="'+\
+                        piclink['link'] + r'"></div>'
+                    if first_pic:
+                        fmedia = piclink['file_id']
+                        first_pic = False
+            except AttributeError  as error:
+                print("An error occurred:", type(error).__name__) # An error occurred:
+                return False
+    try:
+        if fmedia:
+            print ('Featured Media: ',fmedia)
+        else:
+            if linkslist:
+                fmedia = linkslist[0]['file_id']
+        business_url_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
+                .all()
+        business_url = f"<a href={str(business_url_list[0].businessurl)}>{title}</a>"
+        status_message = f'{str(title)}: Business website: {business_url}'
+        response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+            data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
+            rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
+            headers=headers,timeout=env.request_timeout)
+        print ('  ',response_piclinks)
+        if fmedia and fmedia != 0 and featured_photo_id and featured_photo_id !=0:
+            print ("    Featured Media: "+str(featured_photo_id)+" "+str(fmedia)+"  looks OK")
+        else:
+            print ("    fmedia is still empty and need to populate")
+            if fmedia:
+                response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
+                    rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
+                    headers=headers,timeout=env.request_timeout)
+                print ('    Results of new results ID value : '+str(get_wordpress_featured_photo_id(post_id)))
+            else:
+                response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
+                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
+                    rating+contentpics,"rank_math_focus_keyword":title},\
+                    headers=headers,timeout=env.request_timeout)
+                print ('Results of new results ID  with no picture value : '+str(get_wordpress_featured_photo_id(post_id)))
+    except AttributeError  as error:
+        print("    An error writing images to the post " + post_response.title + ' occurred:',\
+            type(error).__name__) # An error occurred')
+        return False
+    return True
+
+##################################################################################################
+
+def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_outputs):
+    """
+    Post to WordPress.
+
+    This function posts content to a WordPress site using the provided data.
+
+    Args:
+        title (str): The title of the post.
+        content (str): The content of the post.
+        headers: Headers for the request.
+        date (str): The date of the post.
+        rating (str): The rating of the post.
+        address (str): The address associated with the post.
+        picslist (list): A list of pictures for the post.
+        local_outputs: Outputs for the post.
+
+    Returns:
+        None
+"""
+    linkslist = ()
+    addresshtml = re.sub(" ", ".",address)
+    googleadress = r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
+            addresshtml + r">"+str(address)+r"</a>"
+    picchop = picslist[1:-1].replace(",","").replace("'","").split(" ")
+    print ('    Figuring out date of Post : ',title)
+    #specifify the formatting of the date_string.
+    # formatting = '%b/%Y/%d'
+    date_string = date
+    newdate,newdate2 = get_wordpress_post_date_string(date_string,date)
+    if picslist and picslist != '':
+        content_pics = build_picslist(picchop,piclink)
+        featured_photo_id = get_wordpress_featured_photo_id(post_id)
+        print(f"    Featured photo ID:  for {title} post {post_id} is: {featured_photo_id}")
+    if env.block_google_maps is not True or env.forcegoogleupdate is True:
+        try:
+            database_update_row(title,"wpurl",post_link,"forceall",local_outputs)
+        except  AttributeError  as error :
+            print (f'     Error: {error}')
+    else:
+        post_id, post_link = check_wordpress_post(title,newdate2,headers)
+        if post_id:
+            print ('    Post already existed: Post ID : ',post_id)
+            print ('    Found post for : '+title)
+            if env.force_web_create:
+                create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,local_outputs,content,googleadress,rating,featured_photo_id)
+                #update_wordpress()
+            else:
+                print ('    Found existing post but skipping updating post')
+        else:
+            create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,local_outputs,content,googleadress,rating,featured_photo_id)
+            print ('    Creating wordpress post from scratch for: '+title)
     return True
 
 ##################################################################################################
