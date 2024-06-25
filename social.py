@@ -792,8 +792,7 @@ def check_wordpress_media(filename, headers):
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
                         headers=headers,timeout=env.request_timeout)
     try:
-        result = response.json()
-        if result:
+        if result := response.json():
             file_id = int(result[0]['id'])
             link = result[0]['guid']['rendered']
             return file_id, link
@@ -1152,7 +1151,7 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     # code            string          The authorization code from the web, iOS, Android or desktop
     #               authorization callback. The value should be URL decoded.
     # grant_type      string          Its value should always be set as
-    #               authorization_code.         
+    #               authorization_code.
     # redirect_uri    string          Its value must be the same as the redirect_uri used
     #                 for requesting code.
     # curl --location --request POST 'https://open.tiktokapis.com/v2/oauth/token/' \
@@ -1350,7 +1349,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     visitdate2 = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
             .all()[0].visitdate
     if visitdate != visitdate2:
-        database_update_row(name,"visitdate",visitdate,"forceall",local_outputs)
+        database_update_row(title,"visitdate",visitdate,"forceall",local_outputs)
         print (f'UPDATED: {visitdate2} to {visitdate} for {title}')
     #dateparts = dateparts2[0]
 #    print ('dateparts',dateparts)
@@ -1534,7 +1533,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 
 ##################################################################################################
 
-def build_picslist(picchop, piclink):
+def build_picslist(picchop, piclink, file_id):
     """
     Builds a list of pictures for posting based on the provided picture links.
 
@@ -1680,6 +1679,7 @@ def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, l
     """
 
     if not post_id:
+        addresshtml = re.sub(" ", ".",address)
         googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
                 addresshtml+ r">"+address+r"</a>"
         post_data = {
@@ -1855,8 +1855,9 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
     # formatting = '%b/%Y/%d'
     date_string = date
     newdate,newdate2,visitdate = get_wordpress_post_date_string(date_string,date)
+    post_id, post_link = check_wordpress_post(title,visitdate,headers)
     if picslist and picslist != '':
-        content_pics = build_picslist(picchop,piclink)
+        content_pics = build_picslist(picchop,picslist,file_id)
         featured_photo_id = get_wordpress_featured_photo_id(post_id)
         print(f"    Featured photo ID:  for {title} post {post_id} is: {featured_photo_id}")
     if env.block_google_maps is not True or env.forcegoogleupdate is True:
@@ -1865,7 +1866,7 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
         except  AttributeError  as error :
             print (f'     Error: {error}')
     else:
-        post_id, post_link = check_wordpress_post(title,visitdate,headers)
+        
         if post_id:
             print ('    Post already existed: Post ID : ',post_id)
             print ('    Found post for : '+title)
