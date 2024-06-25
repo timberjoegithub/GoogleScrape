@@ -792,8 +792,7 @@ def check_wordpress_media(filename, headers):
     response = requests.get(env.wpAPI + "/media?search="+file_name_minus_extension,\
                         headers=headers,timeout=env.request_timeout)
     try:
-        result = response.json()
-        if result:
+        if result := response.json():
             file_id = int(result[0]['id'])
             link = result[0]['guid']['rendered']
             return file_id, link
