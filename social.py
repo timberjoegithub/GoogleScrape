@@ -514,7 +514,6 @@ def get_google_data(driver, local_outputs):
                 #iframe = driver.find_element(By.TAG_NAME, "iframe")
                 tempdate = str((driver.find_element(By.CLASS_NAME,'mqX5ad')).text).rsplit("-",1)
                 visitdate = re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
-                database_update_row(name,"visitdate",True,"onlyempty",local_outputs)
                 #print ('  Visited: ',visitdate)
             # Check to see if it has a sub div, which represents the label with the video length
             # displayed, this will be done
@@ -554,6 +553,7 @@ def get_google_data(driver, local_outputs):
             'instagram':0,'tiktok':0}
         lst_data.append([name , text, score,pics,pics2,"GoogleMaps",visitdate,address,
             dict_post_complete])
+        database_update_row(name,"visitdate",visitdate,"forceall",local_outputs)
     return lst_data
 
 ##################################################################################################
@@ -573,7 +573,7 @@ def google_scroll(counter_google_scroll,driver):
     Raises:
         AttributeError: If an error occurs during scrolling.
     """
-    print('google_scroll...')
+    print('google_scroll...', end ="")
     time.sleep(3)
     scrollable_div = driver.find_element(By.XPATH,
         '//*[@id="QA0Szd"]/div/div/div[1]/div[2]/div/div[1]/div/div/div[5]/div[2]')
@@ -586,9 +586,11 @@ def google_scroll(counter_google_scroll,driver):
                     scrollable_div
             )
             time.sleep(3)
+            print('.')
         except AttributeError  as e:
             print(f"Error while google_scroll: {e}")
             break
+    print ('')
     return google_scroller
 
 ##################################################################################################
@@ -675,9 +677,9 @@ def write_to_database(data, local_outputs):
         if not (x[0].startswith('_') or 'metadata' in x[0]):
             column_list.append(x[0])
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
-        'dictPostComplete']
+        'dictPostComplete','visitdate']
     cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
-        'address','dictPostComplete']
+        'address','dictPostComplete','visitdate']
     #df = pd.DataFrame(local_outputs["xls"], columns=cols)
 #    df = pd.DataFrame(local_outputs['xlsdf'])
     df = pd.DataFrame(local_outputs['xlsdf'].values, columns=column_list)
@@ -1257,6 +1259,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         date = dt.timedelta(days=-1)
 #        newdate = dt.datetime.strptime(date_string, formatting).date()
         newdate = datetime.today() - date
+        visitdate = newdate.strftime("%b%Y")
     else:
         if "day" in date:
             tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
@@ -1264,11 +1267,13 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 #           date = dt.timedelta(days=tempdate)
 #            newdate = dt.datetime.strptime(date_string, formatting).date()
             newdate = datetime.today() + relativedelta(days=tempdate)
+            visitdate = newdate.strftime("%b%Y")
         else:
             if "a week" in date:
 #               date = dt.timedelta(weeks= -1)
 #                newdate = dt.datetime.strptime(date_string, formatting).date()
                 newdate = datetime.today() - relativedelta(weeks= 1)
+                visitdate = newdate.strftime("%b%Y")
             else:
                 if "week" in date:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
@@ -1276,11 +1281,13 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 #                   date = dt.timedelta(weeks= tempdate)
 #                    newdate = dt.datetime.strptime(date_string, formatting).date()
                     newdate = datetime.today() + relativedelta(weeks= tempdate)
+                    visitdate = newdate.strftime("%b%Y")
                 else:
                     if "a month" in date:
 #                       date = dt.timedelta(months= -1)
 #                       newdate = dt.datetime.strptime(date_string, formatting).date()
                         newdate = datetime.today() - relativedelta(months = 1)
+                        visitdate = newdate.strftime("%b%Y")
                     else:
                         if "month" in date:
                             tempdate = -int(re.sub( r'[^0-9]','',date_string))
@@ -1288,11 +1295,13 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 #                           date = dt.timedelta(months= tempdate)
 #                           newdate = dt.datetime.strptime(date_string, formatting).date()
                             newdate = datetime.today() + relativedelta(months =  tempdate)
+                            visitdate = newdate.strftime("%b%Y")
                         else:
                             if "a year" in date:
 #                               date = dt.timedelta(years= -1)
 #                               newdate = dt.datetime.strptime(date_string, formatting).date()
                                 newdate = datetime.today() - relativedelta(years= 1)
+                                visitdate = newdate.strftime("%b%Y")
                             else:
                                 if "year" in date:
                                     try:
@@ -1301,6 +1310,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 #                                       date = dt.timedelta( years= tempdate)
 #                                       newdate = dt.datetime.strptime(date_string).date()
                                         newdate = datetime.today() + relativedelta(years= tempdate)
+                                        visitdate = newdate.strftime("%b%Y")
                                     except AttributeError  as error:
                                         print("    An error getting date occurred:",error)
                                 else:
@@ -1325,7 +1335,10 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     #newdate2 = dt.datetime.strptime(str(newdate), formatting).date()
     dateparts = (str(newdate)).split("-")
     dateparts2 = dateparts[2].split(" ")
-    visitdate = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()[0].visitdate
+    visitdate2 = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()[0].visitdate
+    if visitdate != visitdate2:
+        database_update_row(name,"visitdate",visitdate,"forceall",local_outputs)
+        print (f'UPDATED: {visitdate2} to {visitdate} for {title}')
     #dateparts = dateparts2[0]
 #    print ('dateparts',dateparts)
     newdate2 = dateparts[0]+'-'+dateparts[1]+'-'+dateparts2[0]+'T22:00:00'
@@ -1536,36 +1549,44 @@ def get_wordpress_post_date_string(date_string,date):
     if "a day" in date_string:
         date = dt.timedelta(days=-1)
         newdate = datetime.today() - date
+        visitdate = newdate.strftime("%b%Y")
     else:
         if "day" in date:
             tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
             print ('Stuff - > ',tempdate)
             newdate = datetime.today() + relativedelta(days=tempdate)
+            visitdate = newdate.strftime("%b%Y")
         else:
             if "a week" in date:
                 newdate = datetime.today() - relativedelta(weeks= 1)
+                visitdate = newdate.strftime("%b%Y")
             else:
                 if "week" in date:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
                     print ('Stuff - > ',tempdate)
                     newdate = datetime.today() + relativedelta(weeks= tempdate)
+                    visitdate = newdate.strftime("%b%Y")
                 else:
                     if "a month" in date:
                         newdate = datetime.today() - relativedelta(months = 1)
+                        visitdate = newdate.strftime("%b%Y")
                     else:
                         if "month" in date:
                             tempdate = -int(re.sub( r'[^0-9]','',date_string))
                             print ('Stuff - > ',tempdate)
                             newdate = datetime.today() + relativedelta(months =  tempdate)
+                            visitdate = newdate.strftime("%b%Y")
                         else:
                             if "a year" in date:
                                 newdate = datetime.today() - relativedelta(years= 1)
+                                visitdate = newdate.strftime("%b%Y")
                             else:
                                 if "year" in date:
                                     try:
                                         tempdate = -int(re.sub( r'[^0-9]','',date_string))
                                         print ('Stuff - > ',tempdate)
                                         newdate = datetime.today() + relativedelta(years= tempdate)
+                                        visitdate = newdate.strftime("%b%Y")
                                     except AttributeError  as error:
                                         print("    An error getting date occurred:",error)
                                 else:
@@ -1587,7 +1608,7 @@ def get_wordpress_post_date_string(date_string,date):
     dateparts2 = dateparts[2].split(" ")
     newdate2 = dateparts[0]+'-'+dateparts[1]+'-'+dateparts2[0]+'T22:00:00'
     print ('    Got Date: ', newdate2, newdate)
-    return (newdate,newdate2)
+    return (newdate,newdate2,visitdate)
 
 ##################################################################################################
 
@@ -1764,7 +1785,7 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
     #specifify the formatting of the date_string.
     # formatting = '%b/%Y/%d'
     date_string = date
-    newdate,newdate2 = get_wordpress_post_date_string(date_string,date)
+    newdate,newdate2,visitdate = get_wordpress_post_date_string(date_string,date)
     if picslist and picslist != '':
         content_pics = build_picslist(picchop,piclink)
         featured_photo_id = get_wordpress_featured_photo_id(post_id)
