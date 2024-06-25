@@ -675,7 +675,7 @@ def write_to_database(data, local_outputs):
     column_list=[]
     print('write to database ...')
     for x in inspect.getmembers(Posts):
-        if not (x[0].startswith('_') or 'metadata' in x[0]):
+        if not (x[0].startswith('_') or 'metadata' in x[0] or 'registry' in x[0]):
             column_list.append(x[0])
     cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
         'dictPostComplete','visitdate']
