@@ -184,7 +184,8 @@ def get_auth_connect():
             if not (x[0].startswith('_') or 'metadata' in x[0]):
                 column_list.append(x[0])
         # solumn_list2[0][0]
-        #solumn_list2 = tuple(x for x in solumn_list2 if ('metadata' not in solumn_list2[0][0]) or (not solumn_list2[0][0].startswith('_')))
+        #solumn_list2 = tuple(x for x in solumn_list2 if ('metadata' not in solumn_list2[0][0])\
+        #           or(not solumn_list2[0][0].startswith('_')))
 #        for a in range(1, c_row + 1):
         for a in range(1, c_row + 1):
             for b in range(2, c_column+1):
@@ -326,7 +327,7 @@ def make_montage_video_from_google(inphotos):
         inphotos (list): List of paths to input photo files.
 
     Returns:
-        tuple: A tuple containing the path to the output video file and a boolean indicating succes
+        tuple: A tuple containing the path to the output video file and a boolean indicating succe
     """
 
 # Load the photos from the folder
@@ -752,12 +753,13 @@ def database_update_row(review_name, column_name, column_value, update_style, lo
             postval = local_outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(null())).all()
             if len(postval) == 0 :
-                local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
-                    ({column_name : column_value})
-                print ('    Updated blank ',postval ,' on value',column_name, ' to: ',column_value)
+                local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).\
+                    update({column_name : column_value})
+                print ('    Updated blank ',postval ,' on value',column_name, ' to: ',\
+                    column_value)
         elif update_style == "toggletrue":
-            postval = local_outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
-                            getattr(Posts,column_name).is_not(1)).all()
+            postval = local_outputs['postssession'].query(Posts).filter(Posts.name == review_name\
+                    ,getattr(Posts,column_name).is_not(1)).all()
             local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
                     ({column_name : "1"})
             print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',\
@@ -837,7 +839,8 @@ def get_wordpress_post_id_and_link(postname, headers2):
         tuple: A tuple containing the ID and link of the WordPress post.
     """
 
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=env.request_timeout)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=\
+                env.request_timeout)
     result = response.json()
     if len(result) > 0:
         return int(result[0]['id']), result[0]['link']
@@ -860,7 +863,8 @@ def check_wordpress_post(postname, postdate, headers2):
         otherwise (False, False).
     """
 
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,timeout=env.request_timeout)
+    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,\
+                            timeout=env.request_timeout)
     result = response.json()
     if len(result) > 0 and postdate == result[0]['date']:
         return int(result[0]['id']), result[0]['link']
@@ -954,7 +958,8 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,local_out
                         business_url + '\n'
                 else:
                     status_message = str(title) + ': My Review - '+ wpurl +  '\n'
-                status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))+' '
+                status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))\
+                    +' '
                 status_message_short = status_message2[:279]
                 # Upload video
                 media = client_v1.media_upload(filename=video_path)
@@ -1139,24 +1144,31 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
         #     print("  An error occurred uploading video to Instagram:", type(error).__name__)
         #     return False
         # return True
-"""
-    client_key             string                        The unique identification key provisioned to the partner.
-    client_secret         string                  The unique identification secret provisioned to the partner.
-    code          string            The authorization code from the web, iOS, Android or desktop authorization callback. The value should be URL decoded.
-    grant_type         string                 Its value should always be set as authorization_code.             
-    redirect_uri    string               Its value must be the same as the redirect_uri used for requesting code.
-    curl --location --request POST 'https://open.tiktokapis.com/v2/oauth/token/' \
-    --header 'Content-Type: application/x-www-form-urlencoded' \
-    --header 'Cache-Control: no-cache' \
-    --data-urlencode 'client_key=CLIENT_KEY' \
-    --data-urlencode 'client_secret=CLIENT_SECRET' \
-    --data-urlencode 'code=CODE' \
-    --data-urlencode 'grant_type=authorization_code' \
-    --data-urlencode 'redirect_uri=REDIRECT_URI'
-"""
+    # """
+    # client_key      string          The unique identification key
+    #                 provisioned to the partner.
+    # client_secret   string          The unique identification secret provisioned
+    #                 to the partner.
+    # code            string          The authorization code from the web, iOS, Android or desktop
+    #               authorization callback. The value should be URL decoded.
+    # grant_type      string          Its value should always be set as
+    #               authorization_code.         
+    # redirect_uri    string          Its value must be the same as the redirect_uri used
+    #                 for requesting code.
+    # curl --location --request POST 'https://open.tiktokapis.com/v2/oauth/token/' \
+    # --header 'Content-Type: application/x-www-form-urlencoded' \
+    # --header 'Cache-Control: no-cache' \
+    # --data-urlencode 'client_key=CLIENT_KEY' \
+    # --data-urlencode 'client_secret=CLIENT_SECRET' \
+    # --data-urlencode 'code=CODE' \
+    # --data-urlencode 'grant_type=authorization_code' \
+    # --data-urlencode 'redirect_uri=REDIRECT_URI'
+    # """
     headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
-    data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,'code=CODE','grant_type=authorization_code','redirect_uri=REDIRECT_URI']
-    response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=headers, data=data)
+    data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,\
+            'code=CODE','grant_type=authorization_code','redirect_uri=REDIRECT_URI']
+    response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=headers,\
+                            data=data,timeout=env.request_timeout)
 
     # Call the function to upload the video
     # response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
@@ -1190,14 +1202,14 @@ def post_to_instagram2(title, content, headers, date, rating, address, picslist,
             data =  title + "\n"+ address+"\n"+business_url+"\n"+"Review: "+wpurl+\
                 "\nGoogle map to destination: " \
                 r"https://www.google.com/maps/dir/?api=1&destination="\
-                +addresshtml +"\n"+"Review: "+wpurl+"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"\
-                +get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
+                +addresshtml +"\n"+"Review: "+wpurl+"\n\n"+ content + "\n"+rating+"\n"+date+\
+                "\n\n"+get_hastags(address, title,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
         else:
             print ("    Missing business url for : "+title+" not using it in intagram post")
             data =  title + "\n"+ address+"\n"+"Review: "+wpurl+"\nGoogle map to destination: " \
                 r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\nReview: "\
-                +wpurl+"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,\
-                'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
+                +wpurl+"\n\n"+ content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title\
+                ,'long')+"\n\nhttps://www.joeeatswhat.com"+"\n\n"
         instasession = local_outputs['instagram']
         if picslist != '[]' and "montage.mp4" in picslist:
             #content = content + get_hastags(address, title)
@@ -1335,7 +1347,8 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     #newdate2 = dt.datetime.strptime(str(newdate), formatting).date()
     dateparts = (str(newdate)).split("-")
     dateparts2 = dateparts[2].split(" ")
-    visitdate2 = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()[0].visitdate
+    visitdate2 = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
+            .all()[0].visitdate
     if visitdate != visitdate2:
         database_update_row(name,"visitdate",visitdate,"forceall",local_outputs)
         print (f'UPDATED: {visitdate2} to {visitdate} for {title}')
@@ -1353,8 +1366,8 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         except  AttributeError  as error :
             print ('Could not check to see post already exists',error)
     if not post_id:
-        googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml\
-            + r">"+address+r"</a>"
+        googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
+                addresshtml+ r">"+address+r"</a>"
         post_data = {
             "title": title,
     #        "content": address+'\n\n'+content+'\n'+rating+'\n\n' ,
@@ -1366,7 +1379,8 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         }
         try:
             headers2 = headers
-            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=env.request_timeout)
+            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=\
+                        env.request_timeout)
             if response.status_code != 201:
                 print ('Error: ',response, response.text)
             else:
@@ -1405,8 +1419,8 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
                     print("    An error uploading picture ' + picname+ ' occurred:", \
                         type(error).__name__)
                 if image_response.status_code != 201 :
-                    print ('      Error:Image ',picname,' was not successfully uploaded.  response: ',\
-                        image_response)
+                    print ('      Error:Image ',picname,' wasnot successfully uploaded.response:'\
+                        ,image_response)
                 else:
                     pic_dic=image_response.json()
                     file_id= pic_dic.get('id')
@@ -1420,7 +1434,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
                     print("    An error adding to dictionary " , file_id , link , " occurred:",\
                         type(error).__name__) # An error occurred:
             else:
-                print ('    Photo ',picname,' was already in library and added to post with ID: ',\
+                print ('    Photo ',picname,' was already in library and added to post with ID:',\
                     file_id,' : ',link)
                 try:
                     image_response = requests.post(env.wpAPI + "/media/" + str(file_id),\
@@ -1460,8 +1474,8 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
                         contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
     #[evp_embed_video url="http://example.com/wp-content/uploads/videos/vid1.mp4" autoplay="true"]
                 else:
-                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+r'src="'+\
-                        piclink['link'] + r'"></div>'
+                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'\
+                            +r'src="'+piclink['link'] + r'"></div>'
                     if first_pic:
                         fmedia = piclink['file_id']
                         first_pic = False
@@ -1481,9 +1495,10 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             if linkslist:
                 fmedia = linkslist[0]['file_id']
 #            print ('featured_media2 = ',file_id)
-        business_url_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
-                .all()
-        business_url = "<a href="+str(business_url_list[0].businessurl)+">"+str(business_url_list[0].businessurl)+"</a>"
+        business_url_list = local_outputs['postssession'].query(Posts).filter(Posts.name == \
+                title).all()
+        business_url = "<a href="+str(business_url_list[0].businessurl)+">"+\
+                    str(business_url_list[0].businessurl)+"</a>"
         # wpurllist = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
         # wpurl = wpurllist[0].wpurl
 #        if business_url or business_url is False:
@@ -1499,16 +1514,18 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             print ("    fmedia is still empty and need to populate")
             if fmedia:
                 response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
-                    rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
-                    headers=headers,timeout=env.request_timeout)
-                print ('    Results of new results ID value : '+str(get_wordpress_featured_photo_id(post_id)))
+                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+
+                    '\n'+rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":\
+                    title},headers=headers,timeout=env.request_timeout)
+                print ('    Results of new results ID value : '+str(\
+                    get_wordpress_featured_photo_id(post_id)))
             else:
                 response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
-                    rating+contentpics,"rank_math_focus_keyword":title},\
+                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress\
+                    +'\n'+rating+contentpics,"rank_math_focus_keyword":title},\
                     headers=headers,timeout=env.request_timeout)
-                print ('Results of new results ID  with no picture value : '+str(get_wordpress_featured_photo_id(post_id)))
+                print ('Results of new results ID  with no picture value : '+str\
+                    (get_wordpress_featured_photo_id(post_id)))
     except AttributeError  as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:',\
             type(error).__name__) # An error occurred')
@@ -1544,8 +1561,8 @@ def build_picslist(picchop, piclink):
                     else:
                         contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
                 else:
-                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+r'src="'+\
-                        piclink['link'] + r'"></div>'
+                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+\
+                        r'src="'+piclink['link'] + r'"></div>'
                     if first_pic:
                         fmedia = piclink['file_id']
                         first_pic = False
@@ -1637,7 +1654,8 @@ def get_wordpress_post_date_string(date_string, date):
 
 ##################################################################################################
 
-def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, linkslist, local_outputs, content, googleadress, rating, featured_photo_id):
+def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, linkslist,\
+                        local_outputs, content, googleadress, rating, featured_photo_id):
     """
     Creates a WordPress post with pictures and content.
 
@@ -1662,8 +1680,8 @@ def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, l
     """
 
     if not post_id:
-        googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml\
-            + r">"+address+r"</a>"
+        googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+\
+                addresshtml+ r">"+address+r"</a>"
         post_data = {
             "title": title,
             "content": googleadress+'\n\n'+content+'\n'+rating ,
@@ -1672,7 +1690,8 @@ def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, l
         }
         try:
             headers2 = headers
-            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=env.request_timeout)
+            response = requests.post(env.wpAPOurl, json = post_data, headers=headers2,timeout=\
+                                    env.request_timeout)
             if response.status_code != 201:
                 print ('Error: ',response, response.text)
             else:
@@ -1707,8 +1726,8 @@ def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, l
                     print(f"    An error uploading picture {picname} occurred:", \
                         type(error).__name__)
                 if image_response.status_code != 201 :
-                    print (f'      Error:Image {picname} was not successfully uploaded.  response: ',\
-                        image_response)
+                    print (f'      Error:Image {picname} wasnot successfully uploaded. response:'\
+                        ,image_response)
                 else:
                     pic_dic=image_response.json()
                     file_id= pic_dic.get('id')
@@ -1758,8 +1777,8 @@ def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, l
                     else:
                         contentpics += '\n' +r'[evp_embed_video url="' + piclink['link'] + r'"]'
                 else:
-                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+r'src="'+\
-                        piclink['link'] + r'"></div>'
+                    contentpics+='\n '+r'<div class="col-xs-4"><img id="'+str(file_id)+r'"'+\
+                        r'src="'+piclink['link'] + r'"></div>'
                     if first_pic:
                         fmedia = piclink['file_id']
                         first_pic = False
@@ -1787,16 +1806,18 @@ def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, l
             print ("    fmedia is still empty and need to populate")
             if fmedia:
                 response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
-                    rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
-                    headers=headers,timeout=env.request_timeout)
-                print ('    Results of new results ID value : '+str(get_wordpress_featured_photo_id(post_id)))
+                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress\
+                    +'\n'+rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":\
+                    title},headers=headers,timeout=env.request_timeout)
+                print ('    Results of new results ID value : '+\
+                    str(get_wordpress_featured_photo_id(post_id)))
             else:
                 response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
-                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
-                    rating+contentpics,"rank_math_focus_keyword":title},\
+                    data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+\
+                        googleadress+'\n'+rating+contentpics,"rank_math_focus_keyword":title},\
                     headers=headers,timeout=env.request_timeout)
-                print ('Results of new results ID  with no picture value : '+str(get_wordpress_featured_photo_id(post_id)))
+                print ('Results of new results ID  with no picture value : '+\
+                    str(get_wordpress_featured_photo_id(post_id)))
     except AttributeError  as error:
         print("    An error writing images to the post " + post_response.title + ' occurred:',\
             type(error).__name__) # An error occurred')
@@ -1849,12 +1870,14 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
             print ('    Post already existed: Post ID : ',post_id)
             print ('    Found post for : '+title)
             if env.force_web_create:
-                create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,local_outputs,content,googleadress,rating,featured_photo_id)
+                create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,\
+                                    local_outputs,content,googleadress,rating,featured_photo_id)
                 #update_wordpress()
             else:
                 print ('    Found existing post but skipping updating post')
         else:
-            create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,local_outputs,content,googleadress,rating,featured_photo_id)
+            create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,\
+                                local_outputs,content,googleadress,rating,featured_photo_id)
             print ('    Creating wordpress post from scratch for: '+title)
     return True
 
@@ -1885,7 +1908,8 @@ def process_reviews2(outputs):
         rows4 = pd.DataFrame(outputs['xlsdf'])
         rows5 = pd.DataFrame(outputs['posts'])
         rows6 = pd.DataFrame(outputs['data'])
-# df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2).iter_rows(min_row=1, max_row=outputs['data'].max_row)
+# df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2).iter_rows(min_row=1, max_row=outputs\
+#           ['data'].max_row)
 #   df3 = pd.DataFrame(outputs['xlsdf'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
 # rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL},\
 #   {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete})\
@@ -1947,7 +1971,7 @@ def process_reviews2(outputs):
             writtento = ast.literal_eval(processrow.dictPostComplete)
             # Check to see if the website has already been written to according to the xls sheet,\
             # if it has not... then process
-            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or \
+            if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or\
                 writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or \
                 writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
                 or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
@@ -2002,7 +2026,8 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
             getattr(Posts, social_name) is True).all())==0) and ((local_outputs['postssession'].\
                     query(Posts).filter(Posts.name == social_post.name).all()[0].wpurl is not \
                     None)or social_name == 'web'):
-        if social_count < env.postsperrun or (social_name == 'web' and env.force_web_create is True):
+        if social_count < env.postsperrun or (social_name == 'web' and env.force_web_create is \
+                                            True):
             try:
                 print('  Starting to generate ',social_name,' post')
                 new_social_post = eval(sub_process)(social_post.name, social_post.comment,\
