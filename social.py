@@ -1006,12 +1006,13 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, loca
     attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
     business_url = attrib_list[0].businessurl
     wpurl = attrib_list[0].wpurl
-    if wpurl and (attrib_list[0].picsLocalpath != '[]') :
+    if wpurl and (attrib_list[0].picsLocalpath != '[]'):
         if business_url:
-            status_message = str(title) + ': My Review - '+ wpurl + '\n Business website: '+ \
-                business_url+' \n\n'+ content
+            status_message = (
+                    f'{str(title)}: My Review - {wpurl} \n Business website: {business_url}'\
+                        + ' \n\n') + content
         else:
-            status_message = str(title) + ': My Review - '+ wpurl +' \n\n'+ content
+            status_message = f'{str(title)}: My Review - ' + wpurl + ' \n\n' + content
         for img in img_list:
             if 'montage.mp4' in img:
                 imgs_vid.append(img.strip())
@@ -1134,7 +1135,7 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
         #     print("  An error occurred uploading video to Instagram:", type(error).__name__)
         #     return False
         # return True
-    """
+"""
     client_key             string                        The unique identification key provisioned to the partner.
     client_secret         string                  The unique identification secret provisioned to the partner.
     code          string            The authorization code from the web, iOS, Android or desktop authorization callback. The value should be URL decoded.
@@ -1148,7 +1149,7 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     --data-urlencode 'code=CODE' \
     --data-urlencode 'grant_type=authorization_code' \
     --data-urlencode 'redirect_uri=REDIRECT_URI'
-    """
+"""
     headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
     data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,'code=CODE','grant_type=authorization_code','redirect_uri=REDIRECT_URI']
     response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=headers, data=data)
@@ -1176,13 +1177,12 @@ def post_to_instagram2(title, content, headers, date, rating, address, picslist,
     Returns:
         bool: True if the post was successfully uploaded, False otherwise.
     """
+
     outputmontage = ''
     addresshtml = re.sub(" ", ".",address)
     attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
-    business_url = attrib_list[0].businessurl
-    wpurl = attrib_list[0].wpurl
-    if wpurl:
-        if business_url:
+    if wpurl := attrib_list[0].wpurl:
+        if business_url := attrib_list[0].businessurl:
             data =  title + "\n"+ address+"\n"+business_url+"\n"+"Review: "+wpurl+\
                 "\nGoogle map to destination: " \
                 r"https://www.google.com/maps/dir/?api=1&destination="\
@@ -1501,7 +1501,19 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 
 ##################################################################################################
 
-def build_picslist(picchop,piclink):
+def build_picslist(picchop, piclink):
+    """
+    Builds a list of pictures for posting based on the provided picture links.
+
+    Args:
+        picchop (list): List of picture links to process.
+        piclink (str): The picture link to be added to the list.
+
+    Returns:
+        str: A string containing the formatted list of pictures for posting.
+    Raises:
+        AttributeError: If an error occurs during picture processing.
+    """
 
     for piclink in picchop:
         if piclink != '':
@@ -1528,7 +1540,20 @@ def build_picslist(picchop,piclink):
 
 ##################################################################################################
 
-def get_wordpress_post_date_string(date_string,date):
+def get_wordpress_post_date_string(date_string, date):
+    """
+    Parses a date string and returns two formatted date strings.
+
+    Args:
+        date_string (str): The input date string to be parsed.
+        date (str): The keyword indicating the date offset.
+
+    Returns:
+        tuple: A tuple containing two formatted date strings.
+    Raises:
+        AttributeError: If an error occurs during date parsing.
+    """
+
 
     if "a day" in date_string:
         date = dt.timedelta(days=-1)
@@ -1588,7 +1613,30 @@ def get_wordpress_post_date_string(date_string,date):
 
 ##################################################################################################
 
-def create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,local_outputs,content,googleadress,rating,featured_photo_id):
+def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, linkslist, local_outputs, content, googleadress, rating, featured_photo_id):
+    """
+    Creates a WordPress post with pictures and content.
+
+    Args:
+        newdate2: The date of the post.
+        picchop (list): List of picture links to process.
+        title: The title of the post.
+        address: The address associated with the post.
+        headers: The headers for the HTTP request.
+        post_id: The ID of the post.
+        linkslist: List of links to pictures.
+        local_outputs: Local outputs for the post.
+        content: The content of the post.
+        googleadress: The Google address for the post.
+        rating: The rating of the post.
+        featured_photo_id: The ID of the featured photo.
+
+    Returns:
+        bool: True if the post creation is successful, False otherwise.
+    Raises:
+        AttributeError: If an error occurs during post creation or processing.
+    """
+
     if not post_id:
         googleadress =  r"<a href=https://www.google.com/maps/dir/?api=1&destination="+addresshtml\
             + r">"+address+r"</a>"
@@ -1813,8 +1861,8 @@ def process_reviews2(outputs):
         rows4 = pd.DataFrame(outputs['xlsdf'])
         rows5 = pd.DataFrame(outputs['posts'])
         rows6 = pd.DataFrame(outputs['data'])
-       # df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2).iter_rows(min_row=1, max_row=outputs['data'].max_row)
-     #   df3 = pd.DataFrame(outputs['xlsdf'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
+# df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2).iter_rows(min_row=1, max_row=outputs['data'].max_row)
+#   df3 = pd.DataFrame(outputs['xlsdf'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
 # rows = [({0:p.id},{1:p.name}, { 2:p.comment}, {3: p.rating}, {4:p.picsURL},\
 #   {5:p.picsLocalpath},{6:p.source},{7:p.date},{8:p.address},{9:p.dictPostComplete})\
 #   for p in rows_orig]
