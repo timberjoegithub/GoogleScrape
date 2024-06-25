@@ -96,6 +96,7 @@ class Posts(Base):
     #businessurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
     pluscode = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
     googleurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
+    visitdate = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
 
 
 ##################################################################################################
@@ -513,6 +514,7 @@ def get_google_data(driver, local_outputs):
                 #iframe = driver.find_element(By.TAG_NAME, "iframe")
                 tempdate = str((driver.find_element(By.CLASS_NAME,'mqX5ad')).text).rsplit("-",1)
                 visitdate = re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
+                database_update_row(name,"visitdate",True,"onlyempty",local_outputs)
                 #print ('  Visited: ',visitdate)
             # Check to see if it has a sub div, which represents the label with the video length
             # displayed, this will be done
@@ -1323,12 +1325,13 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     #newdate2 = dt.datetime.strptime(str(newdate), formatting).date()
     dateparts = (str(newdate)).split("-")
     dateparts2 = dateparts[2].split(" ")
+    visitdate = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()[0].visitdate
     #dateparts = dateparts2[0]
 #    print ('dateparts',dateparts)
     newdate2 = dateparts[0]+'-'+dateparts[1]+'-'+dateparts2[0]+'T22:00:00'
     #newdate2 = str(re.sub(r'-','/',str(newdate.date())))+'T22:00:00'
     print ('    Got Date: ', newdate2, newdate)
-    post_id, post_link = check_wordpress_post(title,newdate2,headers)
+    post_id, post_link = check_wordpress_post(title,visitdate,headers)
     featured_photo_id = get_wordpress_featured_photo_id(post_id)
     print(f"    Featured photo ID:  for {title} post {post_id} is: {featured_photo_id}")
     if env.block_google_maps is not True:
@@ -1772,7 +1775,7 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
         except  AttributeError  as error :
             print (f'     Error: {error}')
     else:
-        post_id, post_link = check_wordpress_post(title,newdate2,headers)
+        post_id, post_link = check_wordpress_post(title,visitdate,headers)
         if post_id:
             print ('    Post already existed: Post ID : ',post_id)
             print ('    Found post for : '+title)
