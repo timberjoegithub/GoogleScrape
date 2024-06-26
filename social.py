@@ -448,7 +448,11 @@ def get_google_data(driver, local_outputs):
             visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
         except NoSuchElementException :
             visitdate = "Unknown"
-        print('  Visited: ',visitdate)
+        print('  Visited: ',visitdate, visitdate[:1])
+        if re.match('^[a-zA-Z]+', visitdate) is None:
+        #if visitdate[:1].isalpha:
+            newdate,newdate2,visitdate = get_wordpress_post_date_string(str(visitdate), str(datetime.now()))
+            print('  Visited altered to : ',visitdate)
         try:
             text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
         except NoSuchElementException :
@@ -677,14 +681,14 @@ def write_to_database(data, local_outputs):
     for x in inspect.getmembers(Posts):
         if not (x[0].startswith('_') or 'metadata' in x[0] or 'registry' in x[0]):
             column_list.append(x[0])
-    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
-        'dictPostComplete','visitdate']
-    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
-        'address','dictPostComplete','visitdate']
+    #cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
+    #    'dictPostComplete','visitdate']
+    #cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+    #    'address','dictPostComplete','visitdate']
     #df = pd.DataFrame(local_outputs["xls"], columns=cols)
 #    df = pd.DataFrame(local_outputs['xlsdf'])
     df = pd.DataFrame(local_outputs['xlsdf'].values, columns=column_list)
-    df2 = pd.DataFrame(local_outputs['posts'])
+    #df2 = pd.DataFrame(local_outputs['posts'])
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
 #    rows = list(data)
     # if env.needreversed:
@@ -804,7 +808,7 @@ def check_wordpress_media(filename, headers):
 
 ##################################################################################################
 
-def check_is_port_open(host, port):
+def check_is_port_open(host):
     """
     Checks if a port on a host is open.
 
@@ -1593,37 +1597,37 @@ def get_wordpress_post_date_string(date_string, date):
         newdate = datetime.today() - date
         visitdate = newdate.strftime("%b%Y")
     else:
-        if "day" in date:
+        if "day" in date_string:
             tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
             print ('Stuff - > ',tempdate)
             newdate = datetime.today() + relativedelta(days=tempdate)
             visitdate = newdate.strftime("%b%Y")
         else:
-            if "a week" in date:
+            if "a week" in date_string:
                 newdate = datetime.today() - relativedelta(weeks= 1)
                 visitdate = newdate.strftime("%b%Y")
             else:
-                if "week" in date:
+                if "week" in date_string:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
                     print ('Stuff - > ',tempdate)
                     newdate = datetime.today() + relativedelta(weeks= tempdate)
                     visitdate = newdate.strftime("%b%Y")
                 else:
-                    if "a month" in date:
+                    if "a month" in date_string:
                         newdate = datetime.today() - relativedelta(months = 1)
                         visitdate = newdate.strftime("%b%Y")
                     else:
-                        if "month" in date:
+                        if "month" in date_string:
                             tempdate = -int(re.sub( r'[^0-9]','',date_string))
                             print ('Stuff - > ',tempdate)
                             newdate = datetime.today() + relativedelta(months =  tempdate)
                             visitdate = newdate.strftime("%b%Y")
                         else:
-                            if "a year" in date:
+                            if "a year" in date_string:
                                 newdate = datetime.today() - relativedelta(years= 1)
                                 visitdate = newdate.strftime("%b%Y")
                             else:
-                                if "year" in date:
+                                if "year" in date_string:
                                     try:
                                         tempdate = -int(re.sub( r'[^0-9]','',date_string))
                                         print ('Stuff - > ',tempdate)
@@ -1975,7 +1979,7 @@ def process_reviews2(outputs):
             # if it has not... then process
             if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or\
                 writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or \
-                writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
+                writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI)) and (env.web \
                 or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
                 env.threads or env.google)and (processrow.comment is not None) :
                 if env.web  and processrow.web is False or env.force_web_create is True:
