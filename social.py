@@ -587,7 +587,7 @@ def google_scroll(counter_google_scroll,driver):
                     scrollable_div
             )
             time.sleep(3)
-            print('.')
+            print('.',end = "")
         except AttributeError  as e:
             print(f"Error while google_scroll: {e}")
             break
@@ -693,32 +693,32 @@ def write_to_database(data, local_outputs):
     #print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(local_outputs['posts'], unpicklable=False)
     for processrow in data:
-        if processrow.name in df.values:
-            print ('  Row ',processrow.id,' ', processrow.name ,'  already in database')
-            d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.\
-                rating,picsURL=processrow.picsURL,pics_local_path=processrow.picsLocalpath,\
-                source=processrow.source,date=processrow.date,address=processrow.address,\
-                dict_post_complete=processrow.dictPostComplete)
-        elif processrow.name is not None:
+        if processrow[0] in df.values:
+            print ('  Row ',processrow[0],' ', processrow[1] ,'  already in database')
+            d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
+                ,picsURL=processrow[3],picsLocalpath=processrow[4],\
+                source=processrow[5],date=processrow[6],address=processrow[7],\
+                dictPostComplete=processrow[8])
+        elif processrow[0] is not None:
 # Create a Python dictionary object with all the column values
 # d_row = {'name':processrow.name ,'comment':processrow.comment,'rating':processrow.rating,
 #     'picsURL':processrow.picsURL,'pics_local_path':processrow.picsLocalpath, 'source':
 #      processrow.source,'date':processrow.date,'address':processrow.address,'dict_post_complete'
 #      :processrow.dictPostComplete}
-            d2_row = Posts(name=processrow.name ,comment=processrow.comment,rating=processrow.\
-                rating,picsURL=processrow.picsURL,pics_local_path=processrow.picsLocalpath,\
-                source=processrow.source,date=processrow.date,address=processrow.address,\
-                dict_post_complete=processrow.dictPostComplete)
-            print ('  Row ',processrow[0],' ', processrow.name ,'  added to XLS sheet')
+            d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
+                ,picsURL=processrow[3],picsLocalpath=processrow[4],\
+                source=processrow[5],date=processrow[6],address=processrow[7],\
+                dictPostComplete=processrow[8])
+            print ('  Row ',processrow[0],' ', processrow[1] ,'  added to XLS sheet')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
-            if processrow.name in jsonposts : #local_outputs['posts']):
-                print ('  Row ',processrow[0],' ', processrow.name ,'  already in Database')
+            if processrow[0] in jsonposts : #local_outputs['posts']):
+                print ('  Row ',processrow[0],' ', processrow[1],'  already in Database')
             else:
                 local_outputs['postssession'].add(d2_row)
                 local_outputs['postssession'].commit()
-                print ('  Row ',processrow[0],' ', processrow.name ,'  added to Database')
+                print ('  Row ',processrow[0],' ', processrow[1] ,'  added to Database')
         except AttributeError as error:
             print('    Not able to write to post data table: ' , type(error))
             local_outputs['postssession'].rollback()
@@ -1341,6 +1341,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 #                                               .date()
 #                                    except AttributeError as error:
 #                                        print("    An error getting date occurred:", error)
+                                    visitdate = newdate.strftime("%b%Y")
                                     newdate = str(newdate)
     #formatting = '%b/%Y/%d' #specifify the formatting of the date_string.
     #newdate2 = dt.datetime.strptime(str(newdate), formatting).date()
