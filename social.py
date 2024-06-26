@@ -1597,37 +1597,37 @@ def get_wordpress_post_date_string(date_string, date):
         newdate = datetime.today() - date
         visitdate = newdate.strftime("%b%Y")
     else:
-        if "day" in date:
+        if "day" in date_string:
             tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
             print ('Stuff - > ',tempdate)
             newdate = datetime.today() + relativedelta(days=tempdate)
             visitdate = newdate.strftime("%b%Y")
         else:
-            if "a week" in date:
+            if "a week" in date_string:
                 newdate = datetime.today() - relativedelta(weeks= 1)
                 visitdate = newdate.strftime("%b%Y")
             else:
-                if "week" in date:
+                if "week" in date_string:
                     tempdate = -(int(re.sub( r'[^0-9]','',date_string)))
                     print ('Stuff - > ',tempdate)
                     newdate = datetime.today() + relativedelta(weeks= tempdate)
                     visitdate = newdate.strftime("%b%Y")
                 else:
-                    if "a month" in date:
+                    if "a month" in date_string:
                         newdate = datetime.today() - relativedelta(months = 1)
                         visitdate = newdate.strftime("%b%Y")
                     else:
-                        if "month" in date:
+                        if "month" in date_string:
                             tempdate = -int(re.sub( r'[^0-9]','',date_string))
                             print ('Stuff - > ',tempdate)
                             newdate = datetime.today() + relativedelta(months =  tempdate)
                             visitdate = newdate.strftime("%b%Y")
                         else:
-                            if "a year" in date:
+                            if "a year" in date_string:
                                 newdate = datetime.today() - relativedelta(years= 1)
                                 visitdate = newdate.strftime("%b%Y")
                             else:
-                                if "year" in date:
+                                if "year" in date_string:
                                     try:
                                         tempdate = -int(re.sub( r'[^0-9]','',date_string))
                                         print ('Stuff - > ',tempdate)
