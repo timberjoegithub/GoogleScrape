@@ -449,9 +449,9 @@ def get_google_data(driver, local_outputs):
         except NoSuchElementException :
             visitdate = "Unknown"
         print('  Visited: ',visitdate, visitdate[:1])
-        if re.match('^[a-zA-Z]+', visitdate) is None:
+        if re.match('^[a-zA-Z]+', visitdate) is None and re.match('^[a-zA-Z]+', visitdate) is not None:
         #if visitdate[:1].isalpha:
-            newdate,newdate2,visitdate = get_wordpress_post_date_string(str(visitdate), str(datetime.now()))
+            newdate,newdate2,visitdate = get_wordpress_post_date_string(visitdate, str(datetime.now()))
             print('  Visited altered to : ',visitdate)
         try:
             text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
@@ -866,9 +866,12 @@ def check_wordpress_post(postname, postdate, headers2):
         otherwise (False, False).
     """
 
-    response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,\
+    try:
+        response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,\
                             timeout=env.request_timeout)
-    result = response.json()
+        result = response.json()
+    except AttributeError as error:
+        print ('Could not query for post on wordpress: ', postname,postdate,  type(error))
     if len(result) > 0 and postdate == result[0]['date']:
         return int(result[0]['id']), result[0]['link']
     print('No existing post with same name: ' + postname)
@@ -894,7 +897,6 @@ def get_wordpress_featured_photo_id(post_id):
         media_items = response.json()
 
         # Loop through the media items associated with the post
-           
         # for item in media_items:
         #     # Check if the media item is the featured image
         #     if item.get('post', None) == int(post_id):
