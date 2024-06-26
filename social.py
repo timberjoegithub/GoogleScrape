@@ -449,6 +449,7 @@ def get_google_data(driver, local_outputs):
         except NoSuchElementException :
             visitdate = "Unknown"
         print('  Visited: ',visitdate)
+        newdate,newdate2,visitdate = get_wordpress_post_date_string(visitdate, datetime.now())
         try:
             text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
         except NoSuchElementException :
@@ -677,14 +678,14 @@ def write_to_database(data, local_outputs):
     for x in inspect.getmembers(Posts):
         if not (x[0].startswith('_') or 'metadata' in x[0] or 'registry' in x[0]):
             column_list.append(x[0])
-    cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
-        'dictPostComplete','visitdate']
-    cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
-        'address','dictPostComplete','visitdate']
+    #cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
+    #    'dictPostComplete','visitdate']
+    #cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+    #    'address','dictPostComplete','visitdate']
     #df = pd.DataFrame(local_outputs["xls"], columns=cols)
 #    df = pd.DataFrame(local_outputs['xlsdf'])
     df = pd.DataFrame(local_outputs['xlsdf'].values, columns=column_list)
-    df2 = pd.DataFrame(local_outputs['posts'])
+    #df2 = pd.DataFrame(local_outputs['posts'])
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
 #    rows = list(data)
     # if env.needreversed:
@@ -804,7 +805,7 @@ def check_wordpress_media(filename, headers):
 
 ##################################################################################################
 
-def check_is_port_open(host, port):
+def check_is_port_open(host):
     """
     Checks if a port on a host is open.
 
@@ -1341,6 +1342,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
 #                                               .date()
 #                                    except AttributeError as error:
 #                                        print("    An error getting date occurred:", error)
+                                    visitdate = newdate.strftime("%b%Y")
                                     newdate = str(newdate)
     #formatting = '%b/%Y/%d' #specifify the formatting of the date_string.
     #newdate2 = dt.datetime.strptime(str(newdate), formatting).date()
@@ -1974,7 +1976,7 @@ def process_reviews2(outputs):
             # if it has not... then process
             if (writtento["web"] == 0 or writtento["instagram"]==0 or writtento["facebook"]==0 or\
                 writtento["xtwitter"]==0 or writtento["yelp"]==0 or writtento["tiktok"]==0 or \
-                writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI, 443)) and (env.web \
+                writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI)) and (env.web \
                 or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
                 env.threads or env.google)and (processrow.comment is not None) :
                 if env.web  and processrow.web is False or env.force_web_create is True:
