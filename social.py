@@ -448,8 +448,11 @@ def get_google_data(driver, local_outputs):
             visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
         except NoSuchElementException :
             visitdate = "Unknown"
-        print('  Visited: ',visitdate)
-        newdate,newdate2,visitdate = get_wordpress_post_date_string(visitdate, datetime.now())
+        print('  Visited: ',visitdate, visitdate[:1])
+        if re.match('^[a-zA-Z]+', visitdate) is None:
+        #if visitdate[:1].isalpha:
+            newdate,newdate2,visitdate = get_wordpress_post_date_string(str(visitdate), str(datetime.now()))
+            print('  Visited altered to : ',visitdate)
         try:
             text = data.find_element(By.CSS_SELECTOR, 'div.MyEned').text
         except NoSuchElementException :
