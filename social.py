@@ -773,8 +773,8 @@ def database_update_row(review_name, column_name, column_value, update_style, lo
             to: ",column_value , type(error), error)
         local_outputs['postssession'].rollback()
         raise
-    else:
-        local_outputs['postssession'].commit()
+#    else:
+    local_outputs['postssession'].commit()
     return True
 
 ##################################################################################################
@@ -847,12 +847,12 @@ def get_wordpress_post_id_and_link(postname, headers2):
     result = response.json()
     if len(result) > 0:
         return int(result[0]['id']), result[0]['link']
-    print('No existing post with same name: ' + postname)
+    print('    No existing post with same name: ' + postname)
     return False, False
 
 ##################################################################################################
 
-def check_wordpress_post(postname, postdate, headers2):
+def check_wordpress_post(postname, postdate, headers2,local_outputs):
     """
     Checks if a WordPress post with the given name and date exists.
 
@@ -872,9 +872,20 @@ def check_wordpress_post(postname, postdate, headers2):
         result = response.json()
     except AttributeError as error:
         print ('Could not query for post on wordpress: ', postname,postdate,  type(error))
-    if len(result) > 0 and postdate == result[0]['date']:
+        return False, False
+    try:
+        if result[0]['visitdate']:
+            print ('Post exists, checking visit date')
+    except KeyError as error:
+        print ('  Post exists but does not have post date in visitdate field:',error)
+        database_update_row(postname,"visitdate",postdate,"forceall",local_outputs)
+        response2 = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,\
+                            timeout=env.request_timeout)
+        
+        result = response2.json()
+    if len(result) > 0 and postdate == result[0]['visitdate']:
         return int(result[0]['id']), result[0]['link']
-    print('No existing post with same name: ' + postname)
+    print('    -No existing post with same name: ' + postname)
     return False, False
 
 ##################################################################################################
@@ -1363,7 +1374,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     newdate2 = dateparts[0]+'-'+dateparts[1]+'-'+dateparts2[0]+'T22:00:00'
     #newdate2 = str(re.sub(r'-','/',str(newdate.date())))+'T22:00:00'
     print ('    Got Date: ', newdate2, newdate)
-    post_id, post_link = check_wordpress_post(title,visitdate,headers)
+    post_id, post_link = check_wordpress_post(title,visitdate,headers,local_outputs)
     featured_photo_id = get_wordpress_featured_photo_id(post_id)
     print(f"    Featured photo ID:  for {title} post {post_id} is: {featured_photo_id}")
     if env.block_google_maps is not True:
@@ -1862,7 +1873,7 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
     # formatting = '%b/%Y/%d'
     date_string = date
     newdate,newdate2,visitdate = get_wordpress_post_date_string(date_string,date)
-    post_id, post_link = check_wordpress_post(title,visitdate,headers)
+    post_id, post_link = check_wordpress_post(title,visitdate,headers,local_outputs)
     if picslist and picslist != '':
         content_pics = build_picslist(picchop,picslist,file_id)
         featured_photo_id = get_wordpress_featured_photo_id(post_id)
@@ -1987,8 +1998,9 @@ def process_reviews2(outputs):
                 if env.web  and processrow.web is False or env.force_web_create is True:
                     #if writtento["web"] == 0 :
                     try:
-                        post_id, post_link = get_wordpress_post_id_and_link(processrow.name,\
-                                outputs['web'] )
+#                        post_id, post_link = get_wordpress_post_id_and_link(processrow.name,\
+                        post_id, post_link = check_wordpress_post(processrow.name,processrow.visitdate,outputs['web'],outputs)
+#                                outputs['web'] )
                         if env.forcegoogleupdate is True and env.block_google_maps is not True:
                             if post_link:
                                 database_update_row(processrow.name,"wpurl",post_link,"forceall"\
