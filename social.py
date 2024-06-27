@@ -423,11 +423,13 @@ def get_google_data(driver, local_outputs):
     Returns:
         list: A list of data extracted from Google Maps.
     """
-    print('get google data...')
+    print('get google data...', end ="")
     # Click on more botton on each text reviews
     more_elemets = driver.find_elements(By.CSS_SELECTOR, '.w8nwRe.kyuRq')
     for list_more_element in more_elemets:
+        print (".", end ="")
         list_more_element.click()
+    print ("")
     # Find Pictures that have the expansion indicator to see the rest of the pictures under
     #    them and click it to expose them all
     more_pics = driver.find_elements(By.CLASS_NAME, 'Tya61d')
@@ -694,11 +696,12 @@ def write_to_database(data, local_outputs):
     # if env.needreversed:
     #     rows = reversed(rows)
     #jsonposts = json.dumps(local_outputs['posts'], default=Posts)
-    #print("Encode Object into JSON formatted Data using jsonpickle")
+    df.to_excel(env.xls)
+    print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(local_outputs['posts'], unpicklable=False)
     for processrow in data:
         if processrow[0] in df.values:
-            print ('  Row ',processrow[0],' ', processrow[1] ,'  already in database')
+            print ('  Row ',processrow[0],' already in database')
             d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
                 ,picsURL=processrow[3],picsLocalpath=processrow[4],\
                 source=processrow[5],date=processrow[6],address=processrow[7],\
@@ -713,7 +716,7 @@ def write_to_database(data, local_outputs):
                 ,picsURL=processrow[3],picsLocalpath=processrow[4],\
                 source=processrow[5],date=processrow[6],address=processrow[7],\
                 dictPostComplete=processrow[8])
-            print ('  Row ',processrow[0],' ', processrow[1] ,'  added to XLS sheet')
+            print ('  Row ',processrow[0],'  added to Database')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
