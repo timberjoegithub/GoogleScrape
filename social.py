@@ -92,6 +92,7 @@ class Posts(Base):
     tiktok = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
     place_id = sqlalchemy.Column(sqlalchemy.String(length=126, collation="utf8"))
+    review_id = sqlalchemy.Column(sqlalchemy.String(length=126, collation="utf8"))
     googledetails = sqlalchemy.Column(sqlalchemy.String(length=4096, collation="utf8"))
     #businessurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
     pluscode = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
@@ -876,18 +877,18 @@ def check_wordpress_post(postname, postdate, headers2,local_outputs):
     except AttributeError as error:
         print ('Could not query for post on wordpress: ', postname,postdate,  type(error))
         return False, False
-    try:
-        if result[0]['visitdate']:
-            print ('Post exists, checking visit date')
-    except KeyError as error:
-        print ('  Post exists but does not have post date in visitdate field:',error)
-        database_update_row(postname,"visitdate",postdate,"forceall",local_outputs)
-        response2 = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,\
-                            timeout=env.request_timeout)
-        
-        result = response2.json()
-    if len(result) > 0 and postdate == result[0]['visitdate']:
-        return int(result[0]['id']), result[0]['link']
+    # try:
+    #     newdate,newdate2,visitdate = get_wordpress_post_date_string(result[0]['date'],result[0]['date'])
+    #     newdate3,newdate4,visitdate2 = get_wordpress_post_date_string(postdate,str(datetime.now()))
+    #     if visitdate and visitdate2:
+    #         print ('Post exists, checking visit date')
+    # except KeyError as error:
+    #     print ('  Post exists but does not have post date in visitdate field:',error)
+    if len(result) > 0:
+        d1list = result[0]['date'].split("-")
+        d2list = postdate.split("-")
+        if  d1list[0] == d2list[0] and d1list[1] == d2list[1]:
+            return int(result[0]['id']), result[0]['link']
     print('    -No existing post with same name: ' + postname)
     return False, False
 
@@ -1377,7 +1378,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     newdate2 = dateparts[0]+'-'+dateparts[1]+'-'+dateparts2[0]+'T22:00:00'
     #newdate2 = str(re.sub(r'-','/',str(newdate.date())))+'T22:00:00'
     print ('    Got Date: ', newdate2, newdate)
-    post_id, post_link = check_wordpress_post(title,visitdate,headers,local_outputs)
+    post_id, post_link = check_wordpress_post(title,newdate2,headers,local_outputs)
     featured_photo_id = get_wordpress_featured_photo_id(post_id)
     print(f"    Featured photo ID:  for {title} post {post_id} is: {featured_photo_id}")
     if env.block_google_maps is not True:
@@ -1394,6 +1395,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             "content": googleadress+'\n\n'+content+'\n'+rating ,
             "status": "publish",  # Set to 'draft' if you want to save as a draft
             "date": newdate2,
+            "meta": {'visitdate':visitdate}
     #       "date": str(newdate)+'T22:00:00',
         # "author":"joesteele"
         }
@@ -1876,7 +1878,7 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
     # formatting = '%b/%Y/%d'
     date_string = date
     newdate,newdate2,visitdate = get_wordpress_post_date_string(date_string,date)
-    post_id, post_link = check_wordpress_post(title,visitdate,headers,local_outputs)
+    post_id, post_link = check_wordpress_post(title,newdate2,headers,local_outputs)
     if picslist and picslist != '':
         content_pics = build_picslist(picchop,picslist,file_id)
         featured_photo_id = get_wordpress_featured_photo_id(post_id)
@@ -2001,9 +2003,11 @@ def process_reviews2(outputs):
                 if env.web  and processrow.web is False or env.force_web_create is True:
                     #if writtento["web"] == 0 :
                     try:
-#                        post_id, post_link = get_wordpress_post_id_and_link(processrow.name,\
-                        post_id, post_link = check_wordpress_post(processrow.name,processrow.visitdate,outputs['web'],outputs)
-#                                outputs['web'] )
+                        #date_string = date
+                        #newdate,newdate2,visitdate = get_wordpress_post_date_string(date_string,date)
+                        post_id, post_link = get_wordpress_post_id_and_link(processrow.name,\
+                                outputs['web'] )
+#                       post_id, post_link = check_wordpress_post(processrow.name,processrow.date,outputs['web'],outputs)
                         if env.forcegoogleupdate is True and env.block_google_maps is not True:
                             if post_link:
                                 database_update_row(processrow.name,"wpurl",post_link,"forceall"\
