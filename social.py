@@ -538,6 +538,8 @@ def get_google_data(driver, local_outputs):
                 # Now find button and click on button
                 video_elements = driver.find_elements(By.XPATH ,'//video') #.get_attribute('src')
                 urlmedia = str((video_elements[0]).get_attribute("src"))
+                current_url = video_elements[0]._parent.current_url
+                database_update_row(name,"review_id",current_url,"forceall",local_outputs)
                 # return back away from iframe
                 driver.switch_to.default_content()
             else:
