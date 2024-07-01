@@ -434,10 +434,12 @@ def get_google_data(driver, local_outputs):
     # Find Pictures that have the expansion indicator to see the rest of the pictures under
     #    them and click it to expose them all
     more_pics = driver.find_elements(By.CLASS_NAME, 'Tya61d')
+    print('    Found extra pics',end = "")
     for list_more_pics in more_pics:
         if 'showMorePhotos' in  list_more_pics.get_attribute("jsaction") :
-            print('    Found extra pics')
+            print('.', end = '')
             list_more_pics.click()
+    print ('.')
     elements = driver.find_elements(By.CLASS_NAME, 'jftiEf')
     lst_data = []
     for data in elements:
@@ -716,9 +718,9 @@ def write_to_database(data, local_outputs):
 #      processrow.source,'date':processrow.date,'address':processrow.address,'dict_post_complete'
 #      :processrow.dictPostComplete}
             d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
-                ,picsURL=processrow[3],picsLocalpath=processrow[4],\
+                ,picsURL=str(processrow[3]),picsLocalpath=str(processrow[4]),\
                 source=processrow[5],date=processrow[6],address=processrow[7],\
-                dictPostComplete=processrow[8])
+                dictPostComplete=str(processrow[8]))
             print ('  Row ',processrow[0],'  added to Database')
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
@@ -728,7 +730,7 @@ def write_to_database(data, local_outputs):
             else:
                 local_outputs['postssession'].add(d2_row)
                 local_outputs['postssession'].commit()
-                print ('  Row ',processrow[0],' ', processrow[1] ,'  added to Database')
+                print ('  Row ',processrow[0],'  added to Database')
         except AttributeError as error:
             print('    Not able to write to post data table: ' , type(error))
             local_outputs['postssession'].rollback()
