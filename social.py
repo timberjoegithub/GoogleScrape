@@ -92,7 +92,7 @@ class Posts(Base):
     tiktok = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     #active = sqlalchemy.Column(sqlalchemy.Boolean, default=True)
     place_id = sqlalchemy.Column(sqlalchemy.String(length=126, collation="utf8"))
-    review_id = sqlalchemy.Column(sqlalchemy.String(length=126, collation="utf8"))
+    review_id = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
     googledetails = sqlalchemy.Column(sqlalchemy.String(length=4096, collation="utf8"))
     #businessurl = sqlalchemy.Column(sqlalchemy.String(length=512, collation="utf8"))
     pluscode = sqlalchemy.Column(sqlalchemy.String(length=64, collation="utf8"))
