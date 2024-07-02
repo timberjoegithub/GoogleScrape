@@ -695,7 +695,7 @@ def write_to_database(data, local_outputs):
     #df = pd.DataFrame(local_outputs["xls"], columns=cols)
 #    df = pd.DataFrame(local_outputs['xlsdf'])
     df = pd.DataFrame(local_outputs['xlsdf'].values, columns=column_list)
-    #df2 = pd.DataFrame(local_outputs['posts'])
+    df2 = pd.DataFrame(local_outputs['posts'], columns=column_list)
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
 #    rows = list(data)
     # if env.needreversed:
@@ -861,6 +861,43 @@ def get_wordpress_post_id_and_link(postname, headers2):
 ##################################################################################################
 
 def check_wordpress_post(postname, postdate, headers2,local_outputs):
+    """
+    Checks if a WordPress post with the given name and date exists.
+
+    Args:
+        postname (str): The name of the WordPress post to check.
+        postdate: The date of the WordPress post to check.
+        headers2: Additional headers for the request.
+
+    Returns:
+        tuple: A tuple containing the ID and link of the existing post if found, 
+        otherwise (False, False).
+    """
+
+    try:
+        response = requests.get(env.wpAPI+"/posts?search="+postname, headers=headers2,\
+                            timeout=env.request_timeout)
+        result = response.json()
+    except AttributeError as error:
+        print ('Could not query for post on wordpress: ', postname,postdate,  type(error))
+        return False, False
+    # try:
+    #     newdate,newdate2,visitdate = get_wordpress_post_date_string(result[0]['date'],result[0]['date'])
+    #     newdate3,newdate4,visitdate2 = get_wordpress_post_date_string(postdate,str(datetime.now()))
+    #     if visitdate and visitdate2:
+    #         print ('Post exists, checking visit date')
+    # except KeyError as error:
+    #     print ('  Post exists but does not have post date in visitdate field:',error)
+    if len(result) > 0:
+        d1list = result[0]['date'].split("-")
+        d2list = postdate.split("-")
+        if  d1list[0] == d2list[0] and d1list[1] == d2list[1]:
+            return int(result[0]['id']), result[0]['link']
+    print('    -No existing post with same name: ' + postname)
+    return False, False
+
+##################################################################################################
+def check_wordpress_post2(postname, postdate, post_id, headers2,local_outputs):
     """
     Checks if a WordPress post with the given name and date exists.
 
