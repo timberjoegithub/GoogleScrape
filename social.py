@@ -500,7 +500,8 @@ def get_google_data(driver, local_outputs):
                     print('Error writing business details from google maps : ',error)
         else:
             print ('  Post was already in database, skipping update unless you activate override')
-        database_update_row(name,"google",True,"forceall",local_outputs)
+            if env.forcegoogleupdate:
+                database_update_row(name,"google",True,"forceall",local_outputs)
         pics= []
         pics2 = []
         # check to see if folder for pictures and videos already exists, if not, create it
@@ -565,7 +566,8 @@ def get_google_data(driver, local_outputs):
             'instagram':0,'tiktok':0}
         lst_data.append([name , text, score,pics,pics2,"GoogleMaps",visitdate,address,
             dict_post_complete])
-        database_update_row(name,"visitdate",visitdate,"forceall",local_outputs)
+        if env.force_web_create:
+            database_update_row(name,"visitdate",visitdate,"forceall",local_outputs)
     return lst_data
 
 ##################################################################################################
@@ -1121,8 +1123,8 @@ def post_to_threads2(title, content, headers, date, rating, address, picslist, l
     Returns:
         bool: True if the post was successfully uploaded to Instagram, False otherwise.
     """
-
-    if picslist != '[]' and "montage.mp4" in picslist:
+    pics = ((picslist[1:-1]).replace("'","")).split(",")
+    if pics != '[]' and "montage.mp4" in pics:
         outputmontage = ''
         addresshtml = re.sub(" ", ".",address)
         #content = content + get_hastags(address, title)
@@ -1192,10 +1194,13 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     # If you want to schedule your video, replace 'schedule_timestamp' with the Unix timestamp.
     # Leave it as None if you want to upload immediately.
     schedule_time = None  # or Unix timestamp (e.g., 1672592400)
-    if picslist != '[]' and "montage.mp4" in picslist:
-        for pic in picslist:
+    pics = ((picslist[1:-1]).replace("'","")).split(",")
+    if any(element.endswith("montage.mp4") for element in pics):
+        for pic in pics:
             if 'montage.mp4' in pic:
                 file_path = pic
+    else:
+        return False
         #content = content + get_hastags(address, title)
         #pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
 #        video, outputmontage = make_montage_video_from_google(pics)
@@ -1225,16 +1230,58 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     # --data-urlencode 'grant_type=authorization_code' \
     # --data-urlencode 'redirect_uri=REDIRECT_URI'
     # """
+
+# curl --location 'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/' \
+# --header 'Authorization: Bearer act.example12345Example12345Example' \
+# --header 'Content-Type: application/json; charset=UTF-8'
+# --data '{
+#     "source_info": {
+#         "source": "FILE_UPLOAD",
+#         "video_size": exampleVideoSize,
+#         "chunk_size" : exampleChunkSize,
+#         "total_chunk_count": exampleTotalChunkCount
+#     }
+# }'
+
+
+# curl --location 'https://open.tiktokapis.com/v2/post/publish/video/init/' \
+# --header 'Authorization: Bearer act.example12345Example12345Example' \
+# --header 'Content-Type: application/json; charset=UTF-8' \
+# --data-raw '{
+#   "post_info": {
+#     "title": "this will be a funny #cat video on your @tiktok #fyp",
+#     "privacy_level": "MUTUAL_FOLLOW_FRIENDS",
+#     "disable_duet": false,
+#     "disable_comment": true,
+#     "disable_stitch": false,
+#     "video_cover_timestamp_ms": 1000
+#   },
+#   "source_info": {
+#       "source": "FILE_UPLOAD",
+#       "video_size": 50000123,
+#       "chunk_size":  10000000,
+#       "total_chunk_count": 5
+#   }
+# }'
+
+
+    
     headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
     data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,\
-            'code=CODE','grant_type=authorization_code','redirect_uri=REDIRECT_URI']
-    response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=headers,\
-                            data=data,timeout=env.request_timeout)
-
+            'code='+env.tiktok_app_id,'grant_type=authorization_code','redirect_uri=http://www.joeeatswhat.com']
+    allheaders = headers + data
+    
+    try:
+        data2 = {'source_info':{'source':file_path}}
+        response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=allheaders,\
+                            data=data2,timeout=env.request_timeout)
+    except BaseException as error:
+        print("  An error occurred uploading video to TikTok:", type(error).__name__)
+        return False
     # Call the function to upload the video
     # response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
-    print(response)
-    return
+    print('    tikTok response: ',response)
+    return True
 ###################################################################################################
 
 def post_to_instagram2(title, content, headers, date, rating, address, picslist, local_outputs):
@@ -1981,7 +2028,7 @@ def process_reviews2(outputs):
     """
 
     # Process
-    webcount = xtwittercount = instagramcount = facebookcount = 0
+    webcount = xtwittercount = instagramcount = facebookcount = tiktokcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
     if env.datasource == 'db':
         cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
@@ -2089,6 +2136,9 @@ def process_reviews2(outputs):
                 if env.xtwitter and processrow.xtwitter is False:
                     xtwittercount = process_socials("xtwitter",processrow,outputs['web'],\
                             "post_to_x2",xtwittercount, outputs)
+                if env.tiktok and processrow.tiktok is False:
+                    tiktokcount = process_socials("tiktok",processrow,outputs['web'],\
+                            "post_to_tiktok",tiktokcount, outputs)
     return
 
 ##################################################################################################
