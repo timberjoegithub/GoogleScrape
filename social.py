@@ -1240,14 +1240,33 @@ def post_to_instagram2(title, content, headers, date, rating, address, picslist,
             pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
             video, outputmontage = make_montage_video_from_google(pics)
             try:
-                instasession.video_upload(outputmontage, data)
-            except AttributeError  as error:
+                duration, fps, (width, height)=with_moviepy(outputmontage)
+                if duration < 60:
+                    instasession.video_upload(outputmontage, data)
+                else:
+                    if not os.path.isfile(outputmontage+".trim.mp4"):
+                        video = VideoFileClip(outputmontage)
+                        video = video.subclip(0, 60)
+                        print ('    IG video duration too long 60 : ',duration, fps, (width,height))
+                        video.write_videofile(outputmontage+".trim.mp4")
+                    instasession.video_upload(outputmontage+".trim.mp4", data)
+            except BaseException as error:
                 print("  An error occurred uploading video to Instagram:", type(error).__name__)
                 return False
             return True
     else:
         print ('    Missing wordpress post for instagram : ',title)
         return False
+
+##################################################################################################
+
+def with_moviepy(filename):
+    from moviepy.editor import VideoFileClip
+    clip = VideoFileClip(filename)
+    duration       = clip.duration
+    fps            = clip.fps
+    width, height  = clip.size
+    return duration, fps, (width, height)
 
 ##################################################################################################
 
@@ -1419,6 +1438,8 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         #postneedsupdate = True
     else:
         print ('    Post already existed: Post ID : ',post_id)
+        if not env.force_web_create:
+            return True
     for pic in picchop:
         if pic != '':
             picslice2 = pic.split("/")[-1]
@@ -1524,11 +1545,11 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
         business_url_list = local_outputs['postssession'].query(Posts).filter(Posts.name == \
                 title).all()
         business_url = "<a href="+str(business_url_list[0].businessurl)+">"+\
-                    str(business_url_list[0].businessurl)+"</a>"
+                    title+"</a>"
         # wpurllist = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
         # wpurl = wpurllist[0].wpurl
 #        if business_url or business_url is False:
-        status_message = str(title) + ': Business website: '+ business_url
+        status_message = str(title) + ':\nBusiness website: '+ business_url
         response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
             data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
             rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
