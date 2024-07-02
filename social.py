@@ -1194,7 +1194,7 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     # If you want to schedule your video, replace 'schedule_timestamp' with the Unix timestamp.
     # Leave it as None if you want to upload immediately.
     schedule_time = None  # or Unix timestamp (e.g., 1672592400)
-    pics = ((picslist[1:-1]).replace("'","")).split(",")
+    pics = ((picslist[1:-1]).replace("'","").replace(" ","")).split(",")
     if any(element.endswith("montage.mp4") for element in pics):
         for pic in pics:
             if 'montage.mp4' in pic:
@@ -1273,8 +1273,8 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
     
     try:
         data2 = {'source_info':{'source':file_path}}
-        response = requests.post('https://open.tiktokapis.com/v2/oauth/token/', headers=allheaders,\
-                            data=data2,timeout=env.request_timeout)
+        response = requests.post('https://open.tiktokapis.com/v2/oauth/token/,headers:',allheaders,\
+                            'data:',data2,'timeout:',env.request_timeout)
     except BaseException as error:
         print("  An error occurred uploading video to TikTok:", type(error).__name__)
         return False
