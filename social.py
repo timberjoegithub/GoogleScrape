@@ -424,7 +424,7 @@ def get_google_data(driver, local_outputs):
     Returns:
         list: A list of data extracted from Google Maps.
     """
-    print('get google data...', end ="")
+    print('    get google data...', end ="")
     # Click on more botton on each text reviews
     more_elemets = driver.find_elements(By.CSS_SELECTOR, '.w8nwRe.kyuRq')
     for list_more_element in more_elemets:
@@ -453,7 +453,7 @@ def get_google_data(driver, local_outputs):
             visitdate = data.find_element(By.CSS_SELECTOR, 'span.rsqaWe').text
         except NoSuchElementException :
             visitdate = "Unknown"
-        print('  Visited: ',visitdate, visitdate[:1])
+        print('  Visited: ',visitdate)
         if re.match('^[a-zA-Z]+', visitdate) is None and re.match('^[a-zA-Z]+', visitdate) is not None:
         #if visitdate[:1].isalpha:
             newdate,newdate2,visitdate = get_wordpress_post_date_string(visitdate, str(datetime.now()))
