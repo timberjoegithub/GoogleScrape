@@ -1161,7 +1161,7 @@ def post_to_threads2(title, content, headers, date, rating, address, picslist, l
 #     response = requests.post(url, headers=headers, data=data, files=files)
 #     return response.json()
 
-def post_to_tiktok(title, content, headers, date, rating, address, picslist, local_outputs):
+def post_to_tiktok(title, content, headers2, date, rating, address, picslist, local_outputs):
     """
     Posts content to TikTok with specified session ID, video file, title, hashtags, and optional
         scheduling.
@@ -1265,19 +1265,89 @@ def post_to_tiktok(title, content, headers, date, rating, address, picslist, loc
 # }'
 
 
+
+
+# https://api.tiktok.com/open-api/v2/aweme/post/?aweme-type=video
+# You will need to include the following headers:
+
+# Content-Type: application/json
+# X-SS-TOKEN: [Your App ID]
+# X-TikTok-Signature: [Your App Secret]
+# And the following JSON body:
+
+# {
+# "device_platform": "android",
+# "device_version": "11",
+# "app_name": "musical.ly",
+# "app_version": "7.0.3",
+# "resolution": "1080*1920",
+# "os_version": "11",
+# "model": "vivo 1906",
+# "manufacturer": "vivo",
+# "language": "en",
+# "country": "US"
+# }
+
+    connect_json_body = {
+    "device_platform": "android",
+    "device_version": "11",
+    "app_name": "musical.ly",
+    "app_version": "7.0.3",
+    "resolution": "1080*1920",
+    "os_version": "11",
+    "model": "vivo 1906",
+    "manufacturer": "vivo",
+    "language": "en",
+    "country": "US"
+    }
+    connect_json_header = {
+    'Content-Type': 'application/json',
+    'X-SS-TOKEN': env.tiktok_app_id, #[Your App ID],
+    'X-TikTok-Signature': env.tiktok_client_secret, #[Your App Secret]
+    }
+    connect_response = requests.post('https://open.tiktokapis.com/v2/post/publish/video/init/',headers=connect_json_header,\
+                                data=connect_json_body,timeout=env.request_timeout)
+
+#request https://api.tiktok.com/open-api/v2/aweme/post/?aweme-type=video
+# https://api.tiktok.com/open-api/v2/aweme/post/
+# You will need to include the following headers:
+
+# Content-Type: multipart/form-data
+# X-SS-TOKEN: [Your App ID]
+# X-TikTok-Signature: [Your App Secret]
+# Authorization: Bearer [Your Access Token]
+# And the following form data:
+
+# video: [Your Video File]
+# desc: [Your Video Description]
+# Once you have made this request, your video will be uploaded to TikTok.
+    post_json_header = {
+    'X-SS-TOKEN': env.tiktok_app_id,#[Your App ID],
+    'X-TikTok-Signature': env.tiktok_client_secret,#[Your App Secret]
+    'Authorization': 'ww'#Bearer [Your Access Token]
+    }
+    post_json_body = {
+    'video': file_path,
+    'desc': content+tags
+    }
     
-    headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
-    data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,\
-            'code='+env.tiktok_app_id,'grant_type=authorization_code','redirect_uri=http://www.joeeatswhat.com']
-    allheaders = headers + data
+    post_response = requests.post('https://api.tiktok.com/open-api/v2/aweme/post/',headers=post_json_header,\
+                                data=post_json_body,timeout=env.request_timeout)
+
+
     
-    try:
-        data2 = {'source_info':{'source':file_path}}
-        response = requests.post('https://open.tiktokapis.com/v2/oauth/token/,headers:',allheaders,\
-                            'data:',data2,'timeout:',env.request_timeout)
-    except BaseException as error:
-        print("  An error occurred uploading video to TikTok:", type(error).__name__)
-        return False
+    # headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
+    # data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,\
+    #         'code='+env.tiktok_app_id,'grant_type=authorization_code','redirect_uri=http://www.joeeatswhat.com']
+    # allheaders = headers + data
+    
+    # try:
+    #     data2 = {'source_info':{'source':"FILE_UPLOAD",file_path}}
+    #     response = requests.post('https://open.tiktokapis.com/v2/oauth/token/,headers:',allheaders,\
+    #                         'data:',data2,'timeout:',env.request_timeout)
+    # except BaseException as error:
+    #     print("  An error occurred uploading video to TikTok:", type(error).__name__)
+    #     return False
     # Call the function to upload the video
     # response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
     print('    tikTok response: ',response)
