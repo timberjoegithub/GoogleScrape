@@ -28,7 +28,7 @@ import tweepy
 #import aiohttp
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import null
+from sqlalchemy import null, update
 import googlemaps
 import env
 #import inspect
@@ -279,7 +279,10 @@ def get_hastags(address, name, hashtype):
 
     name_no_spaces = re.sub( r'[^a-zA-Z]','',name)
     addressdict = address.rsplit(r' ',3)
-    zip_code = addressdict[3]
+    try:
+        zip_code = addressdict[3]
+    except:
+        zip_code = '34787'
     state = addressdict[2]
     city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
     if 'short' in hashtype:
@@ -290,7 +293,7 @@ def get_hastags(address, name, hashtype):
     citytag = "#"+city
     statetag = "#"+state
     ziptag = "#"+zip_code
-    if statetag == 'FL':
+    if statetag in ['FL', 'fl','Fl']:
         statetag += '#Florida'
     if statetag == 'OR':
         statetag += '#Oregon'
@@ -320,7 +323,7 @@ def counter_google(driver):
 
 ##################################################################################################
 
-def make_montage_video_from_google(inphotos):
+def make_montage_video_from_google(inphotos,cleanname):
     """
     Creates a montage video from a list of input photos.
 
@@ -337,8 +340,8 @@ def make_montage_video_from_google(inphotos):
         return False, False
     directory = inphotos[0].rsplit(r'/', 1)
     folder = directory[0]
-    output = folder+"/montage.mp4"
-    if not os.path.exists(output) and len(inphotos) >1:
+    output = folder+"/"+cleanname+"-montage.mp4"
+    if not os.path.exists(output) and len(inphotos) >0:
         video = VideoFileClip(inphotos[0])
         for photo in inphotos :
             #clip = VideoFileClip("myHolidays.mp4").subclip(50,60)
@@ -355,7 +358,7 @@ def make_montage_video_from_google(inphotos):
         # Set the audio as the soundtrack of the montage
         #    montage = montage.set_audio(audio)
         # Write the final montage to a file
-        outputvideo = video.write_videofile(folder+"/montage.mp4", fps=24)
+        outputvideo = video.write_videofile(output, fps=24)
     else:
         outputvideo = False
     return outputvideo, output
@@ -395,6 +398,46 @@ def post_facebook_video(group_id, video_path, auth_token, title, content, date, 
     """
 
     url = f"https://graph-video.facebook.com/{group_id}/videos?access_token=" + auth_token
+    addresshtml = re.sub(" ", ".",address)
+    files = {eachfile: open(eachfile, 'rb') for eachfile in video_path}
+    data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
+            r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n"+ content +
+            "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title, 'long')+
+            "\n\nhttps://www.joeeatswhat.com"+"\n\n","published" : True,
+            "alt_text" : title
+    }
+    try:
+        r = requests.post(url, files=files, data=data,timeout=env.request_timeout).json()
+    except AttributeError as error:
+        print("    An error getting date occurred:", error) # An error occurred:
+        r = False
+    time.sleep(env.facebooksleep)
+    return r
+
+##################################################################################################
+
+##################################################################################################
+
+def post_threads_video(group_id, video_path, auth_token, title, content, date, rating, address):
+    """
+    Posts a video to a Facebook group with specified details.
+
+    Args:
+        group_id (str): The ID of the Facebook group.
+        video_path (list): List of paths to the video files to be uploaded.
+        auth_token (str): The authentication token for posting to Facebook.
+        title (str): The title of the video.
+        content (str): Additional content to be included in the post.
+        date (str): The date of the post.
+        rating (str): The rating associated with the post.
+        address (str): The address related to the post.
+
+    Returns:
+        dict or bool: The response JSON if successful, False if an error occurs.
+    """
+    # Get url from wordpress - right now threads can only get video and pics from and external URL
+
+    connect_url = f"https://graph.threads.net/v1.0/{env.threads_page_id}/threads?media_type=VIDEO&video_url=https://www.example.com/images/bronz-fonz.jpg&text=#BronzFonz&access_token=" + auth_token
     addresshtml = re.sub(" ", ".",address)
     files = {eachfile: open(eachfile, 'rb') for eachfile in video_path}
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
@@ -502,66 +545,73 @@ def get_google_data(driver, local_outputs):
             print ('  Post was already in database, skipping update unless you activate override')
             if env.forcegoogleupdate:
                 database_update_row(name,"google",True,"forceall",local_outputs)
-        pics= []
-        pics2 = []
-        # check to see if folder for pictures and videos already exists, if not, create it
-        cleanname = re.sub( r'[^a-zA-Z0-9]','', name)
-        if not os.path.exists('./Output/Pics/'+cleanname):
-            os.makedirs('./Output/Pics/'+cleanname)
-        # Walk through all the pictures and videos for a given review
-        for lmpics in more_specific_pics:
-            # Grab URL from style definiton (long multivalue string), and remove the -p-k so that
-            #   it is full size
-            urlmedia = re.sub(r'=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
-                lmpics.get_attribute("style")))[0])
-            print ('    Pic URL : ',urlmedia)
-            pics.append(urlmedia)
-            # Grab the name of the file and remove all spaces and special charecters to name the
-            #    folder
-            filename = re.sub( r'[^a-zA-Z0-9]','', str(lmpics.get_attribute("aria-label")))
-            if lmpics == more_specific_pics[0]:
-                lmpics.click()
-                time.sleep(2)
-                #iframe = driver.find_element(By.TAG_NAME, "iframe")
-                tempdate = str((driver.find_element(By.CLASS_NAME,'mqX5ad')).text).rsplit("-",1)
-                visitdate = re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
-                #print ('  Visited: ',visitdate)
-            # Check to see if it has a sub div, which represents the label with the video length
-            # displayed, this will be done
-            # because videos are represented by pictures in the main dialogue, so we need to click
-            # through and grab the video URL
-            if lmpics.find_elements(By.CSS_SELECTOR,'div.fontLabelMedium.e5A3N') :
-                ext='.mp4'
-                lmpics.click()
-                time.sleep(2)
-                # After we click the right side is rendered in an inframe, Store iframe web element
-                iframe = driver.find_element(By.TAG_NAME, "iframe")
-                # switch to selected iframe
-                driver.switch_to.frame(iframe)
-                # Now find button and click on button
-                video_elements = driver.find_elements(By.XPATH ,'//video') #.get_attribute('src')
-                urlmedia = str((video_elements[0]).get_attribute("src"))
-                current_url = video_elements[0]._parent.current_url
-                database_update_row(name,"review_id",current_url,"forceall",local_outputs)
-                # return back away from iframe
-                driver.switch_to.default_content()
-            else:
-                # The default path if it is not a video link
-                ext='.jpg'
-            # Add the correct extension to the file name
-            filename = filename+ext
-            # Test to see if file already exists, and if it does not grab the media and store it
-            #   in location folder
-            if not os.path.exists('./Output/Pics/'+cleanname+'/'+visitdate):
-                os.makedirs('./Output/Pics/'+cleanname+'/'+visitdate)
-            if not os.path.isfile('./Output/Pics/'+cleanname+'/'+visitdate+'/'+filename):
-                urlretrieve(urlmedia, './Output/Pics/'+cleanname+'/'+visitdate+'/'+filename)
-            # Store the local path to be used in the excel document
-            pics_local_path = "./Output/Pics/"+cleanname+"/"+visitdate+'/'+filename
-            pics2.append(pics_local_path)
-        if pics2:
-            make_montage_video_from_google(pics2)
-            pics2.append("./Output/Pics/"+cleanname+"/"+visitdate+'/'+'montage.mp4')
+        if len(more_specific_pics) > 0:
+            pics= []
+            pics2 = []
+            # check to see if folder for pictures and videos already exists, if not, create it
+            cleanname = re.sub( r'[^a-zA-Z0-9]','', name)
+            if not os.path.exists('./Output/Pics/'+cleanname):
+                os.makedirs('./Output/Pics/'+cleanname)
+            # Walk through all the pictures and videos for a given review
+            for lmpics in more_specific_pics:
+                # Grab URL from style definiton (long multivalue string), and remove the -p-k so that
+                #   it is full size
+                urlmedia = re.sub(r'=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
+                    lmpics.get_attribute("style")))[0])
+                print ('    Pic URL : ',urlmedia)
+                pics.append(urlmedia)
+                # Grab the name of the file and remove all spaces and special charecters to name the
+                #    folder
+                filename = re.sub( r'[^a-zA-Z0-9]','', str(lmpics.get_attribute("aria-label")))
+                if lmpics == more_specific_pics[0]:
+                    lmpics.click()
+                    time.sleep(2)
+                    #iframe = driver.find_element(By.TAG_NAME, "iframe")
+                    tempdate = str((driver.find_element(By.CLASS_NAME,'mqX5ad')).text).rsplit("-",1)
+                    visitdate = re.sub( r'[^a-zA-Z0-9]','',tempdate[1])
+                    #print ('  Visited: ',visitdate)
+                # Check to see if it has a sub div, which represents the label with the video length
+                # displayed, this will be done
+                # because videos are represented by pictures in the main dialogue, so we need to click
+                # through and grab the video URL
+                if lmpics.find_elements(By.CSS_SELECTOR,'div.fontLabelMedium.e5A3N') :
+                    ext='.mp4'
+                    lmpics.click()
+                    time.sleep(2)
+                    # After we click the right side is rendered in an inframe, Store iframe web element
+                    iframe = driver.find_element(By.TAG_NAME, "iframe")
+                    # switch to selected iframe
+                    driver.switch_to.frame(iframe)
+                    # Now find button and click on button
+                    video_elements = driver.find_elements(By.XPATH ,'//video') #.get_attribute('src')
+                    urlmedia = str((video_elements[0]).get_attribute("src"))
+                    current_url = video_elements[0]._parent.current_url
+
+                    # return back away from iframe
+                    driver.switch_to.default_content()
+                else:
+                    # The default path if it is not a video link
+                    ext='.jpg'
+                if env.forcegoogleupdate:
+                    database_update_row(name,"review_id",current_url,"forceall",local_outputs)# Add the correct extension to the file name
+                filename = filename+ext
+                # Test to see if file already exists, and if it does not grab the media and store it
+                #   in location folder
+                if not os.path.exists('./Output/Pics/'+cleanname+'/'+visitdate):
+                    os.makedirs('./Output/Pics/'+cleanname+'/'+visitdate)
+                if not os.path.isfile('./Output/Pics/'+cleanname+'/'+visitdate+'/'+filename):
+                    urlretrieve(urlmedia, './Output/Pics/'+cleanname+'/'+visitdate+'/'+filename)
+                # Store the local path to be used in the excel document
+                pics_local_path = "./Output/Pics/"+cleanname+"/"+visitdate+'/'+filename
+                pics2.append(pics_local_path)
+            if len(pics2) > 0 and not os.path.isfile("./Output/Pics/"+cleanname+"/"+visitdate+'/'+cleanname+'-montage.mp4'):
+                make_montage_video_from_google(pics2,cleanname)
+            for loop in pics2:
+                if "montage.mp4" in loop:
+                    outputmontage = loop
+                    break
+                #sif pathlib.Path.exists(outputmontage):
+            pics2.append("./Output/Pics/"+cleanname+"/"+visitdate+'/'+cleanname+'-montage.mp4')
         dict_post_complete= {'google':1,'web':0,'yelp':0,'facebook':0,'xtwitter':0,
             'instagram':0,'tiktok':0}
         lst_data.append([name , text, score,pics,pics2,"GoogleMaps",visitdate,address,
@@ -688,7 +738,8 @@ def write_to_database(data, local_outputs):
     column_list=[]
     print('write to database ...')
     for x in inspect.getmembers(Posts):
-        if not (x[0].startswith('_') or 'metadata' in x[0] or 'registry' in x[0] or 'id' in x[0]):
+#        if not (x[0].startswith('_') or 'metadata' in x[0] or 'registry' in x[0] or 'id' in x[0]):
+        if not (x[0].startswith('_') or 'metadata' in x[0] or 'registry' in x[0]):
             column_list.append(x[0])
     #cols = ["name", "comment", 'rating','picsURL','picsLocalpath','source','date','address',
     #    'dictPostComplete','visitdate']
@@ -697,7 +748,8 @@ def write_to_database(data, local_outputs):
     #df = pd.DataFrame(local_outputs["xls"], columns=cols)
 #    df = pd.DataFrame(local_outputs['xlsdf'])
     df = pd.DataFrame(local_outputs['xlsdf'].values, columns=column_list)
-    df2 = pd.DataFrame(local_outputs['posts'], columns=column_list)
+    #df2 = pd.DataFrame(local_outputs['posts'], columns=column_list)
+    df2 = pd.DataFrame(local_outputs['posts'])
     # print ('Dropped items not included in sync to database: ',df2.dropna(inplace=True))
 #    rows = list(data)
     # if env.needreversed:
@@ -707,12 +759,24 @@ def write_to_database(data, local_outputs):
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(local_outputs['posts'], unpicklable=False)
     for processrow in data:
-        if processrow[0] in df.values:
+        getdata = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
+        #if processrow[0] in local_outputs['posts']:
+        if getdata.count() >0:
+    #   if len(result) > 0:
             print ('  Row ',processrow[0],' already in database')
             d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
                 ,picsURL=processrow[3],picsLocalpath=processrow[4],\
                 source=processrow[5],date=processrow[6],address=processrow[7],\
                 dictPostComplete=processrow[8])
+            d2_dict = {'name':processrow[0] ,'comment':processrow[1],'rating':processrow[2]\
+                ,'picsURL':str(processrow[3]),'picsLocalpath':str(processrow[4]),\
+                'source':processrow[5],'date':processrow[6],'address':processrow[7],\
+                'dictPostComplete':str(processrow[8])}
+            if env.forcegoogleupdate:
+                print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
+                local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
+                        (d2_dict)
+                local_outputs['postssession'].commit()
         elif processrow[0] is not None:
 # Create a Python dictionary object with all the column values
 # d_row = {'name':processrow.name ,'comment':processrow.comment,'rating':processrow.rating,
@@ -727,8 +791,18 @@ def write_to_database(data, local_outputs):
         # Append the above Python dictionary object as a row to the existing pandas DataFrame
         # Using the DataFrame.append() function
         try:
-            if processrow[0] in jsonposts : #local_outputs['posts']):
-                print ('  Row ',processrow[0],' ', processrow[1],'  already in Database')
+            getdata2 = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
+            if getdata2.count() >0:
+                print ('  Row ',processrow[0],'  already in Database')
+                if env.forcegoogleupdate:
+                    print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
+                    d2_dict = {'name':processrow[0] ,'comment':processrow[1],'rating':processrow[2]\
+                        ,'picsURL':str(processrow[3]),'picsLocalpath':str(processrow[4]),\
+                        'source':processrow[5],'date':processrow[6],'address':processrow[7],\
+                        'dictPostComplete':str(processrow[8])}
+                    local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
+                        (d2_dict)
+                    local_outputs['postssession'].commit()
             else:
                 local_outputs['postssession'].add(d2_row)
                 local_outputs['postssession'].commit()
@@ -1050,6 +1124,44 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,local_out
 
 ##################################################################################################
 
+def post_to_threads(title, content,headers, date, rating, address, picslist, local_outputs):
+    img_list = ((picslist[1:-1]).replace("'","")).split(",")
+    attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+    business_url = attrib_list[0].businessurl
+    wpurl = attrib_list[0].wpurl
+    auth_token = env.threads_access_token
+    group_id = env.threads_page_id
+    imgs_id = []
+    imgs_vid = []
+    imgs_pic = []
+    if wpurl and (attrib_list[0].picsLocalpath != '[]'):
+        if business_url:
+            status_message = (
+                    f'{str(title)}: My Review - {wpurl} \n Business website: {business_url}'\
+                        + ' \n\n') + content
+        else:
+            status_message = f'{str(title)}: My Review - ' + wpurl + ' \n\n' + content
+        for img in img_list:
+            if 'montage.mp4' in img:
+                imgs_vid.append(img.strip())
+            else:
+                imgs_pic.append(img.strip())
+        if imgs_vid:
+            try:
+                post_id = post_threads_video(group_id, imgs_vid,auth_token,title, status_message,
+                    date, rating, address)
+                imgs_id.append(post_id['id'])
+            except AttributeError  as error:
+                print("    An error occurred:",error)
+                return False
+        time.sleep(env.facebooksleep)
+        print('    threads response: ',post_id)
+    else:
+        print ('    threads: Wordpress URL or no pictures so skipping threads posting')
+    return True
+
+##################################################################################################
+
 def post_facebook3(title, content,headers, date, rating, address, picslist, local_outputs):
     """
     Post to Facebook3.
@@ -1129,17 +1241,22 @@ def post_to_threads2(title, content, headers, date, rating, address, picslist, l
         addresshtml = re.sub(" ", ".",address)
         #content = content + get_hastags(address, title)
         pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-        video, outputmontage = make_montage_video_from_google(pics)
-        try:
-            data =  title + "\n"+ address+"\nGoogle map to destination: " \
-                r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n" \
-                + content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+ \
-                "\n\nhttps://www.joeeatswhat.com "+"\n\n"
-            local_outputs['instasession'].video_upload(outputmontage, data)
-        except AttributeError  as error:
-            print("  An error occurred uploading video to Threads:", type(error).__name__)
-            return False
-        return True
+        #video, outputmontage = make_montage_video_from_google(pics)
+        for loop in pics:
+            if "montage.mp4" in loop:
+                outputmontage = loop
+                break
+        if pathlib.Path.exists(outputmontage):
+            try:
+                data =  title + "\n"+ address+"\nGoogle map to destination: " \
+                    r"https://www.google.com/maps/dir/?api=1&destination="+addresshtml +"\n\n" \
+                    + content + "\n"+rating+"\n"+date+"\n\n"+ get_hastags(address, title,'long')+ \
+                    "\n\nhttps://www.joeeatswhat.com "+"\n\n"
+                local_outputs['instasession'].video_upload(outputmontage, data)
+            except AttributeError  as error:
+                print("  An error occurred uploading video to Threads:", type(error).__name__)
+                return False
+            return True
     else:
         return False
 
@@ -1392,21 +1509,26 @@ def post_to_instagram2(title, content, headers, date, rating, address, picslist,
         if picslist != '[]' and "montage.mp4" in picslist:
             #content = content + get_hastags(address, title)
             pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-            video, outputmontage = make_montage_video_from_google(pics)
-            try:
-                duration, fps, (width, height)=with_moviepy(outputmontage)
-                if duration < 60:
-                    instasession.video_upload(outputmontage, data)
-                else:
-                    if not os.path.isfile(outputmontage+".trim.mp4"):
-                        video = VideoFileClip(outputmontage)
-                        video = video.subclip(0, 60)
-                        print ('    IG video duration too long 60 : ',duration, fps, (width,height))
-                        video.write_videofile(outputmontage+".trim.mp4")
-                    instasession.video_upload(outputmontage+".trim.mp4", data)
-            except BaseException as error:
-                print("  An error occurred uploading video to Instagram:", type(error).__name__)
-                return False
+            #video, outputmontage = make_montage_video_from_google(pics)
+            for loop in pics:
+                if "montage.mp4" in loop:
+                    outputmontage = loop
+                    break
+            if pathlib.Path.exists(outputmontage):
+                try:
+                    duration, fps, (width, height)=with_moviepy(outputmontage)
+                    if duration < 60:
+                        instasession.video_upload(outputmontage, data)
+                    else:
+                        if not os.path.isfile(outputmontage+".trim.mp4"):
+                            video = VideoFileClip(outputmontage)
+                            video = video.subclip(0, 60)
+                            print ('    IG video duration too long 60 : ',duration, fps, (width,height))
+                            video.write_videofile(outputmontage+".trim.mp4")
+                        instasession.video_upload(outputmontage+".trim.mp4", data)
+                except BaseException as error:
+                    print("  An error occurred uploading video to Instagram:", type(error).__name__)
+                    return False
             return True
     else:
         print ('    Missing wordpress post for instagram : ',title)
@@ -1708,7 +1830,7 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             data={"content" : title+' - '+status_message+'\n\n'+content+'\n'+googleadress+'\n'+\
             rating+contentpics,"featured_media":fmedia,"rank_math_focus_keyword":title},\
             headers=headers,timeout=env.request_timeout)
-        print ('  ',response_piclinks)
+        print ('  response_piclinks: ',response_piclinks)
         if fmedia and fmedia != 0 and featured_photo_id and featured_photo_id !=0:
             print ("    Featured Media: "+str(featured_photo_id)+" "+str(fmedia)+"  looks OK")
         else:
