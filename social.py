@@ -447,7 +447,7 @@ def post_threads_video(group_id, video_path, auth_token, title, content, date, r
             "alt_text" : title
     }
     try:
-        r = requests.post(url, files=files, data=data,timeout=env.request_timeout).json()
+        r = requests.post(connect_urlurl, files=files, data=data,timeout=env.request_timeout).json()
     except AttributeError as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
@@ -514,7 +514,6 @@ def get_google_data(driver, local_outputs):
         except NoSuchElementException  as error:
             score = "Unknown"
             print ('Error: ',error)
-        more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
     #  Grab more info from google maps entry on this particular review
         if len(local_outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google\
                 is not True).all()) == 0 or env.forcegoogleupdate or env.block_google_maps is not\
@@ -545,14 +544,17 @@ def get_google_data(driver, local_outputs):
             print ('  Post was already in database, skipping update unless you activate override')
             if env.forcegoogleupdate:
                 database_update_row(name,"google",True,"forceall",local_outputs)
+        pics= []
+        pics2 = []
+        more_specific_pics = []
+        more_specific_pics = data.find_elements(By.CLASS_NAME, 'Tya61d')
         if len(more_specific_pics) > 0:
-            pics= []
-            pics2 = []
             # check to see if folder for pictures and videos already exists, if not, create it
             cleanname = re.sub( r'[^a-zA-Z0-9]','', name)
             if not os.path.exists('./Output/Pics/'+cleanname):
                 os.makedirs('./Output/Pics/'+cleanname)
             # Walk through all the pictures and videos for a given review
+            lmpics = ''
             for lmpics in more_specific_pics:
                 # Grab URL from style definiton (long multivalue string), and remove the -p-k so that
                 #   it is full size
@@ -586,14 +588,11 @@ def get_google_data(driver, local_outputs):
                     video_elements = driver.find_elements(By.XPATH ,'//video') #.get_attribute('src')
                     urlmedia = str((video_elements[0]).get_attribute("src"))
                     current_url = video_elements[0]._parent.current_url
-
                     # return back away from iframe
                     driver.switch_to.default_content()
                 else:
                     # The default path if it is not a video link
                     ext='.jpg'
-                if env.forcegoogleupdate:
-                    database_update_row(name,"review_id",current_url,"forceall",local_outputs)# Add the correct extension to the file name
                 filename = filename+ext
                 # Test to see if file already exists, and if it does not grab the media and store it
                 #   in location folder
@@ -604,6 +603,8 @@ def get_google_data(driver, local_outputs):
                 # Store the local path to be used in the excel document
                 pics_local_path = "./Output/Pics/"+cleanname+"/"+visitdate+'/'+filename
                 pics2.append(pics_local_path)
+            if env.forcegoogleupdate:
+                database_update_row(name,"review_id",current_url,"forceall",local_outputs)# Add the correct extension to the file name
             if len(pics2) > 0 and not os.path.isfile("./Output/Pics/"+cleanname+"/"+visitdate+'/'+cleanname+'-montage.mp4'):
                 make_montage_video_from_google(pics2,cleanname)
             for loop in pics2:
@@ -763,54 +764,60 @@ def write_to_database(data, local_outputs):
         #if processrow[0] in local_outputs['posts']:
         if getdata.count() >0:
     #   if len(result) > 0:
-            print ('  Row ',processrow[0],' already in database')
-            d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
-                ,picsURL=processrow[3],picsLocalpath=processrow[4],\
-                source=processrow[5],date=processrow[6],address=processrow[7],\
-                dictPostComplete=processrow[8])
-            d2_dict = {'name':processrow[0] ,'comment':processrow[1],'rating':processrow[2]\
-                ,'picsURL':str(processrow[3]),'picsLocalpath':str(processrow[4]),\
-                'source':processrow[5],'date':processrow[6],'address':processrow[7],\
-                'dictPostComplete':str(processrow[8])}
-            if env.forcegoogleupdate:
-                print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
-                local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
-                        (d2_dict)
-                local_outputs['postssession'].commit()
-        elif processrow[0] is not None:
-# Create a Python dictionary object with all the column values
-# d_row = {'name':processrow.name ,'comment':processrow.comment,'rating':processrow.rating,
-#     'picsURL':processrow.picsURL,'pics_local_path':processrow.picsLocalpath, 'source':
-#      processrow.source,'date':processrow.date,'address':processrow.address,'dict_post_complete'
-#      :processrow.dictPostComplete}
-            d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
-                ,picsURL=str(processrow[3]),picsLocalpath=str(processrow[4]),\
-                source=processrow[5],date=processrow[6],address=processrow[7],\
-                dictPostComplete=str(processrow[8]))
-            print ('  Row ',processrow[0],'  added to Database')
-        # Append the above Python dictionary object as a row to the existing pandas DataFrame
-        # Using the DataFrame.append() function
-        try:
-            getdata2 = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
-            if getdata2.count() >0:
-                print ('  Row ',processrow[0],'  already in Database')
-                if env.forcegoogleupdate:
-                    print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
-                    d2_dict = {'name':processrow[0] ,'comment':processrow[1],'rating':processrow[2]\
-                        ,'picsURL':str(processrow[3]),'picsLocalpath':str(processrow[4]),\
-                        'source':processrow[5],'date':processrow[6],'address':processrow[7],\
-                        'dictPostComplete':str(processrow[8])}
-                    local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
-                        (d2_dict)
+#             print ('  Row ',processrow[0],' already in database')
+#             d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
+#                 ,picsURL=processrow[3],picsLocalpath=processrow[4],\
+#                 source=processrow[5],date=processrow[6],address=processrow[7],\
+#                 dictPostComplete=processrow[8])
+#             d2_dict = {'name':processrow[0] ,'comment':processrow[1],'rating':processrow[2]\
+#                 ,'picsURL':str(processrow[3]),'picsLocalpath':str(processrow[4]),\
+#                 'source':processrow[5],'date':processrow[6],'address':processrow[7],\
+#                 'dictPostComplete':str(processrow[8])}
+#             if env.forcegoogleupdate:
+#                 print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
+#                 local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
+#                         (d2_dict)
+#                 local_outputs['postssession'].commit()
+#         elif processrow[0] is not None:
+# # Create a Python dictionary object with all the column values
+# # d_row = {'name':processrow.name ,'comment':processrow.comment,'rating':processrow.rating,
+# #     'picsURL':processrow.picsURL,'pics_local_path':processrow.picsLocalpath, 'source':
+# #      processrow.source,'date':processrow.date,'address':processrow.address,'dict_post_complete'
+# #      :processrow.dictPostComplete}
+#             d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
+#                 ,picsURL=str(processrow[3]),picsLocalpath=str(processrow[4]),\
+#                 source=processrow[5],date=processrow[6],address=processrow[7],\
+#                 dictPostComplete=str(processrow[8]))
+#             print ('  Row ',processrow[0],'  added to Database')
+#         # Append the above Python dictionary object as a row to the existing pandas DataFrame
+#         # Using the DataFrame.append() function
+            try:
+
+                getdata2 = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
+                if getdata2.count() >0:
+                    print ('  Row ',processrow[0],'  already in Database')
+                    if env.forcegoogleupdate:
+                        print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
+                        d2_dict = {'name':processrow[0] ,'comment':processrow[1],'rating':processrow[2]\
+                            ,'picsURL':str(processrow[3]),'picsLocalpath':str(processrow[4]),\
+                            'source':processrow[5],'date':processrow[6],'address':processrow[7],\
+                            'dictPostComplete':str(processrow[8])}
+                        local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
+                            (d2_dict)
+                        local_outputs['postssession'].commit()
+                else:
+                    d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
+                        ,picsURL=processrow[3],picsLocalpath=processrow[4],\
+                        source=processrow[5],date=processrow[6],address=processrow[7],\
+                        dictPostComplete=processrow[8])
+                    local_outputs['postssession'].add(d2_row)
                     local_outputs['postssession'].commit()
-            else:
-                local_outputs['postssession'].add(d2_row)
-                local_outputs['postssession'].commit()
-                print ('  Row ',processrow[0],'  added to Database')
-        except AttributeError as error:
-            print('    Not able to write to post data table: ' , type(error))
-            local_outputs['postssession'].rollback()
-            raise
+                    print ('  Row ',processrow[0],'  added to Database')
+            except AttributeError as error:
+                print('    Not able to write to post data table: ' , type(error))
+                local_outputs['postssession'].rollback()
+                raise
+            processrow = []
     df.to_excel(env.xls)
     return data
 
@@ -859,6 +866,7 @@ def database_update_row(review_name, column_name, column_value, update_style, lo
         raise
 #    else:
     local_outputs['postssession'].commit()
+    time.sleep(env.facebooksleep)
     return True
 
 ##################################################################################################
@@ -969,7 +977,8 @@ def check_wordpress_post(postname, postdate, headers2,local_outputs):
         d2list = postdate.split("-")
         if  d1list[0] == d2list[0] and d1list[1] == d2list[1]:
             return int(result[0]['id']), result[0]['link']
-    print('    -No existing post with same name: ' + postname)
+    else:
+        print('    -No existing post with same name: ' + postname)
     return False, False
 
 ##################################################################################################
@@ -1467,7 +1476,7 @@ def post_to_tiktok(title, content, headers2, date, rating, address, picslist, lo
     #     return False
     # Call the function to upload the video
     # response = tiktok_upload_video(session_id, file_path, title, tags, schedule_time)
-    print('    tikTok response: ',response)
+    print('    tikTok response: ',post_response)
     return True
 ###################################################################################################
 
@@ -2181,7 +2190,7 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
     newdate,newdate2,visitdate = get_wordpress_post_date_string(date_string,date)
     post_id, post_link = check_wordpress_post(title,newdate2,headers,local_outputs)
     if picslist and picslist != '':
-        content_pics = build_picslist(picchop,picslist,file_id)
+        content_pics = build_picslist(picchop,picslist,post_id) #file_id
         featured_photo_id = get_wordpress_featured_photo_id(post_id)
         print(f"    Featured photo ID:  for {title} post {post_id} is: {featured_photo_id}")
     if env.block_google_maps is not True or env.forcegoogleupdate is True:
@@ -2248,8 +2257,9 @@ def process_reviews2(outputs):
         print('Configuration says to update google Reviews prior to processing them')
         options = webdriver.ChromeOptions()
         options.add_argument("--log-level=3")
-        options.add_argument("--ignore-certificate-error")
-        options.add_argument("--ignore-ssl-errors")
+        #options.add_argument("--ignore-certificate-error")
+        options.add_argument("--ignore-certificate-errors-spki-list")
+        #options.add_argument("--ignore-ssl-errors")
         if not env.showchrome:
             options.add_argument("--headless")
             # show browser or not ||| HEAD =>  43.03 ||| No Head => 39 seg
