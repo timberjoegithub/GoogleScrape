@@ -447,7 +447,7 @@ def post_threads_video(group_id, video_path, auth_token, title, content, date, r
             "alt_text" : title
     }
     try:
-        r = requests.post(connect_urlurl, files=files, data=data,timeout=env.request_timeout).json()
+        r = requests.post(connect_url, files=files, data=data,timeout=env.request_timeout).json()
     except AttributeError as error:
         print("    An error getting date occurred:", error) # An error occurred:
         r = False
