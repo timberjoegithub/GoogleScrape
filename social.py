@@ -283,8 +283,14 @@ def get_hastags(address, name, hashtype):
         zip_code = addressdict[3]
     except:
         zip_code = '34787'
-    state = addressdict[2]
-    city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
+    try:
+        state = addressdict[2]
+    except:
+        state = 'Florida'
+    try:
+        city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
+    except: 
+        city = 'WinterGarden'
     if 'short' in hashtype:
         defaulttags = '#'+name_no_spaces+' #foodie #food #joeeatswhat @timberjoe'
     else:
@@ -866,7 +872,7 @@ def database_update_row(review_name, column_name, column_value, update_style, lo
         raise
 #    else:
     local_outputs['postssession'].commit()
-    time.sleep(env.facebooksleep)
+    #time.sleep(env.facebooksleep)
     return True
 
 ##################################################################################################
@@ -1523,7 +1529,8 @@ def post_to_instagram2(title, content, headers, date, rating, address, picslist,
                 if "montage.mp4" in loop:
                     outputmontage = loop
                     break
-            if pathlib.Path.exists(outputmontage):
+            pathoutputmontage = outputmontage[1:-1]
+            if pathlib.Path.exists(pathoutputmontage):
                 try:
                     duration, fps, (width, height)=with_moviepy(outputmontage)
                     if duration < 60:
