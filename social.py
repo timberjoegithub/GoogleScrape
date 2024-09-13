@@ -521,8 +521,8 @@ def get_google_data(driver, local_outputs):
             score = "Unknown"
             print ('Error: ',error)
     #  Grab more info from google maps entry on this particular review
-        if len(local_outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google\
-                is not True).all()) == 0 or env.forcegoogleupdate or env.block_google_maps is not\
+        if (len(local_outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google\
+                is not True).all()) == 0 or env.forcegoogleupdate) and env.block_google_maps is not\
                 True:
             gmaps = googlemaps.Client(env.googleapipass)
             place_ids = gmaps.find_place(name+address, input_type = 'textquery', fields='')
@@ -547,9 +547,13 @@ def get_google_data(driver, local_outputs):
                 except KeyError as error:
                     print('Error writing business details from google maps : ',error)
         else:
-            print ('  Post was already in database, skipping update unless you activate override')
             if env.forcegoogleupdate:
                 database_update_row(name,"google",True,"forceall",local_outputs)
+            if len(local_outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google\
+                is not True).all()) > 0:
+                print ('  Post was already in database, skipping update unless you activate override')
+            # else: 
+            #     database_update_row(name,"google",True,"forceall",local_outputs)
         pics= []
         pics2 = []
         more_specific_pics = []
@@ -766,9 +770,9 @@ def write_to_database(data, local_outputs):
     print("Encode Object into JSON formatted Data using jsonpickle")
     jsonposts = jsonpickle.encode(local_outputs['posts'], unpicklable=False)
     for processrow in data:
-        getdata = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
+#        getdata = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
         #if processrow[0] in local_outputs['posts']:
-        if getdata.count() >0:
+#        if getdata.count() >0:
     #   if len(result) > 0:
 #             print ('  Row ',processrow[0],' already in database')
 #             d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
@@ -797,33 +801,35 @@ def write_to_database(data, local_outputs):
 #             print ('  Row ',processrow[0],'  added to Database')
 #         # Append the above Python dictionary object as a row to the existing pandas DataFrame
 #         # Using the DataFrame.append() function
-            try:
+        try:
 
-                getdata2 = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
-                if getdata2.count() >0:
-                    print ('  Row ',processrow[0],'  already in Database')
-                    if env.forcegoogleupdate:
-                        print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
-                        d2_dict = {'name':processrow[0] ,'comment':processrow[1],'rating':processrow[2]\
-                            ,'picsURL':str(processrow[3]),'picsLocalpath':str(processrow[4]),\
-                            'source':processrow[5],'date':processrow[6],'address':processrow[7],\
-                            'dictPostComplete':str(processrow[8])}
-                        local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
-                            (d2_dict)
-                        local_outputs['postssession'].commit()
-                else:
-                    d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
-                        ,picsURL=processrow[3],picsLocalpath=processrow[4],\
-                        source=processrow[5],date=processrow[6],address=processrow[7],\
-                        dictPostComplete=processrow[8])
-                    local_outputs['postssession'].add(d2_row)
+            getdata2 = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
+            if getdata2.count() >0:
+                print ('  Row ',processrow[0],'  already in Database')
+                if env.forcegoogleupdate:
+                    print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
+                    d2_dict = {'name':processrow[0] ,'comment':processrow[1],'rating':processrow[2]\
+                        ,'picsURL':str(processrow[3]),'picsLocalpath':str(processrow[4]),\
+                        'source':processrow[5],'date':processrow[6],'address':processrow[7],\
+                        'dictPostComplete':str(processrow[8])}
+                    print ('  Row ',processrow[0],'  updated in Database')
+                    local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
+                        (d2_dict)
                     local_outputs['postssession'].commit()
-                    print ('  Row ',processrow[0],'  added to Database')
-            except AttributeError as error:
-                print('    Not able to write to post data table: ' , type(error))
-                local_outputs['postssession'].rollback()
-                raise
-            processrow = []
+            else:
+                d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
+                    ,picsURL=str(processrow[3]),picsLocalpath=str(processrow[4]),\
+                    source=processrow[5],date=processrow[6],address=processrow[7],\
+                    dictPostComplete=str(processrow[8]))
+                print ('  Row ',processrow[0],'  added to Database')
+                local_outputs['postssession'].add(d2_row)
+                local_outputs['postssession'].commit()
+                print ('  Row ',processrow[0],'  added to Database')
+        except AttributeError as error:
+            print('    Not able to write to post data table: ' , type(error))
+            local_outputs['postssession'].rollback()
+            raise
+        processrow = []
     df.to_excel(env.xls)
     return data
 
@@ -2318,7 +2324,7 @@ def process_reviews2(outputs):
                 writtento["threads"]==0 ) and (check_is_port_open(env.wpAPI)) and (env.web \
                 or env.instagram or env.yelp or env.xtwitter or env.tiktok or env.facebook or \
                 env.threads or env.google)and (processrow.comment is not None) :
-                if env.web  and processrow.web is False or env.force_web_create is True:
+                if (env.web  and processrow.web is False) or env.force_web_create is True:
                     #if writtento["web"] == 0 :
                     try:
                         #date_string = date
@@ -2336,6 +2342,7 @@ def process_reviews2(outputs):
                         print ('Could not check to see post already exists',error)
                     webcount=process_socials("web",processrow,outputs['web'],"post_to_wordpress",\
                             webcount, outputs)
+                    webcount = 0 # force all web content get created asap
                 if env.instagram and processrow.instagram is False:
                     instagramcount = process_socials("instagram",processrow,outputs['web'],\
                             "post_to_instagram2",instagramcount, outputs)
