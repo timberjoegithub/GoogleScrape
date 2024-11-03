@@ -1029,8 +1029,10 @@ def check_wordpress_post2(postname, postdate, post_id, headers2,local_outputs):
         print ('Could not query for post on wordpress: ', postname,postdate,  type(error))
         return False, False
     # try:
-    #     newdate,newdate2,visitdate = get_wordpress_post_date_string(result[0]['date'],result[0]['date'])
-    #     newdate3,newdate4,visitdate2 = get_wordpress_post_date_string(postdate,str(datetime.now()))
+    #     newdate,newdate2,visitdate = get_wordpress_post_date_string(result[0]['date'],\
+    #               result[0]['date'])
+    #     newdate3,newdate4,visitdate2 = get_wordpress_post_date_string(postdate,\
+    #               str(datetime.now()))
     #     if visitdate and visitdate2:
     #         print ('Post exists, checking visit date')
     # except KeyError as error:
