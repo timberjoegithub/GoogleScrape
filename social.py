@@ -2219,21 +2219,19 @@ def post_to_wordpress2(title,content,headers,date,rating,address,picslist,local_
             database_update_row(title,"wpurl",post_link,"forceall",local_outputs)
         except  AttributeError  as error :
             print (f'     Error: {error}')
-    else:
-        
-        if post_id:
-            print ('    Post already existed: Post ID : ',post_id)
-            print ('    Found post for : '+title)
-            if env.force_web_create:
-                create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,\
-                                    local_outputs,content,googleadress,rating,featured_photo_id)
-                #update_wordpress()
-            else:
-                print ('    Found existing post but skipping updating post')
-        else:
+    elif post_id:
+        print ('    Post already existed: Post ID : ',post_id)
+        print ('    Found post for : '+title)
+        if env.force_web_create:
             create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,\
                                 local_outputs,content,googleadress,rating,featured_photo_id)
-            print ('    Creating wordpress post from scratch for: '+title)
+            #update_wordpress()
+        else:
+            print ('    Found existing post but skipping updating post')
+    else:
+        create_wordpress_post(newdate2,picchop,title,address,headers,post_id,linkslist,\
+                            local_outputs,content,googleadress,rating,featured_photo_id)
+        print ('    Creating wordpress post from scratch for: '+title)
     return True
 
 ##################################################################################################
