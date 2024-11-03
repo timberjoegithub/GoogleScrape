@@ -175,12 +175,12 @@ def get_auth_connect():
         c_column = sheet.max_column
         #out_data=[]
         #import inspect
-        local_dict=Posts
+        #local_dict=Posts
         column_list = []
         my_list = []
         my_list_data = []
-        my_post = Posts
-        my_dict = {}
+        #my_post = Posts
+        #my_dict = {}
         for x in inspect.getmembers(Posts):
             if not (x[0].startswith('_') or 'metadata' in x[0]):
                 column_list.append(x[0])
@@ -296,9 +296,9 @@ def get_hastags(address, name, hashtype):
     else:
         defaulttags = "\n\n\n#"+name_no_spaces+\
             " #foodie #music #food #travel #drinks #instagood #feedme #joeeatswhat @timberjoe"
-    citytag = "#"+city
-    statetag = "#"+state
-    ziptag = "#"+zip_code
+    citytag = f"#{city}"
+    statetag = f"#{state}"
+    ziptag = f"#{zip_code}"
     if statetag in ['FL', 'fl','Fl']:
         statetag += '#Florida'
     if statetag == 'OR':
@@ -549,10 +549,10 @@ def get_google_data(driver, local_outputs):
         else:
             if env.forcegoogleupdate:
                 database_update_row(name,"google",True,"forceall",local_outputs)
-            if len(local_outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google\
-                is not True).all()) > 0:
-                print ('  Post was already in database, skipping update unless you activate override')
-            # else: 
+            if len(local_outputs['postssession'].query(Posts).filter(Posts.name == name,\
+                        Posts.google is not True).all()) > 0:
+                print ('  Post was already in database, skipping update unless overriden')
+            # else:
             #     database_update_row(name,"google",True,"forceall",local_outputs)
         pics= []
         pics2 = []
@@ -566,8 +566,8 @@ def get_google_data(driver, local_outputs):
             # Walk through all the pictures and videos for a given review
             lmpics = ''
             for lmpics in more_specific_pics:
-                # Grab URL from style definiton (long multivalue string), and remove the -p-k so that
-                #   it is full size
+                # Grab URL from style definiton (long multivalue string), and remove the -p-k
+                # so that  it is full size
                 urlmedia = re.sub(r'=\S*-p-k-no', '=-no', (re.findall(r"['\"](.*?)['\"]",
                     lmpics.get_attribute("style")))[0])
                 print ('    Pic URL : ',urlmedia)
@@ -584,13 +584,14 @@ def get_google_data(driver, local_outputs):
                     #print ('  Visited: ',visitdate)
                 # Check to see if it has a sub div, which represents the label with the video length
                 # displayed, this will be done
-                # because videos are represented by pictures in the main dialogue, so we need to click
-                # through and grab the video URL
+                # because videos are represented by pictures in the main dialogue, so we need
+                # to click through and grab the video URL
                 if lmpics.find_elements(By.CSS_SELECTOR,'div.fontLabelMedium.e5A3N') :
                     ext='.mp4'
                     lmpics.click()
                     time.sleep(2)
-                    # After we click the right side is rendered in an inframe, Store iframe web element
+                    # After we click the right side is rendered in an iframe Store iframe 
+                    # web element
                     iframe = driver.find_element(By.TAG_NAME, "iframe")
                     # switch to selected iframe
                     driver.switch_to.frame(iframe)
@@ -614,8 +615,17 @@ def get_google_data(driver, local_outputs):
                 pics_local_path = "./Output/Pics/"+cleanname+"/"+visitdate+'/'+filename
                 pics2.append(pics_local_path)
             if env.forcegoogleupdate:
-                database_update_row(name,"review_id",current_url,"forceall",local_outputs)# Add the correct extension to the file name
-            if len(pics2) > 0 and not os.path.isfile("./Output/Pics/"+cleanname+"/"+visitdate+'/'+cleanname+'-montage.mp4'):
+                database_update_row(name,"review_id",current_url,"forceall",local_outputs)
+                # Add the correct extension to the file name
+            if pics2 and not os.path.isfile(
+                "./Output/Pics/"
+                + cleanname
+                + "/"
+                + visitdate
+                + '/'
+                + cleanname
+                + '-montage.mp4'
+            ):
                 make_montage_video_from_google(pics2,cleanname)
             for loop in pics2:
                 if "montage.mp4" in loop:
@@ -803,7 +813,8 @@ def write_to_database(data, local_outputs):
 #         # Using the DataFrame.append() function
         try:
 
-            getdata2 = local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0])
+            getdata2 = local_outputs['postssession'].query(Posts).filter(Posts.name \
+                        == processrow[0])
             if getdata2.count() >0:
                 print ('  Row ',processrow[0],'  already in Database')
                 if env.forcegoogleupdate:
@@ -813,8 +824,8 @@ def write_to_database(data, local_outputs):
                         'source':processrow[5],'date':processrow[6],'address':processrow[7],\
                         'dictPostComplete':str(processrow[8])}
                     print ('  Row ',processrow[0],'  updated in Database')
-                    local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
-                        (d2_dict)
+                    local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).\
+                                update(d2_dict)
                     local_outputs['postssession'].commit()
             else:
                 d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
@@ -1104,21 +1115,24 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,local_out
             imgs_pic.append(img.strip())
     if imgs_vid:
         try:
-            video_path = imgs_vid[0]
             # Message to post along with the video
             attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
                     .all()
-            business_url = attrib_list[0].businessurl
-            wpurl = attrib_list[0].wpurl
-            if wpurl:  # Don't post of website URL does not exist yet
-                if business_url:  #Sometimes Business URL does not exist, so account for it
-                    status_message=str(title)+': My Review - '+wpurl+'\n Business website: '+\
-                        business_url + '\n'
+            if wpurl := attrib_list[0].wpurl:
+                if business_url := attrib_list[0].businessurl:
+                    status_message = (
+                        f'{str(title)}: My Review - '
+                        + wpurl
+                        + '\n Business website: '
+                        + business_url
+                        + '\n'
+                    )
                 else:
-                    status_message = str(title) + ': My Review - '+ wpurl +  '\n'
+                    status_message = f'{str(title)}: My Review - ' + wpurl + '\n'
                 status_message2  = status_message +' '+str(get_hastags(address, title, 'short'))\
                     +' '
                 status_message_short = status_message2[:279]
+                video_path = imgs_vid[0]
                 # Upload video
                 media = client_v1.media_upload(filename=video_path)
                 # Post tweet with video
@@ -1152,9 +1166,7 @@ def post_to_threads(title, content,headers, date, rating, address, picslist, loc
     wpurl = attrib_list[0].wpurl
     auth_token = env.threads_access_token
     group_id = env.threads_page_id
-    imgs_id = []
     imgs_vid = []
-    imgs_pic = []
     if wpurl and (attrib_list[0].picsLocalpath != '[]'):
         if business_url:
             status_message = (
@@ -1162,12 +1174,14 @@ def post_to_threads(title, content,headers, date, rating, address, picslist, loc
                         + ' \n\n') + content
         else:
             status_message = f'{str(title)}: My Review - ' + wpurl + ' \n\n' + content
+        imgs_pic = []
         for img in img_list:
             if 'montage.mp4' in img:
                 imgs_vid.append(img.strip())
             else:
                 imgs_pic.append(img.strip())
         if imgs_vid:
+            imgs_id = []
             try:
                 post_id = post_threads_video(group_id, imgs_vid,auth_token,title, status_message,
                     date, rating, address)
@@ -1204,9 +1218,7 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, loca
     pics = ((picslist[1:-1]).replace("'","")).split(",")
     group_id = env.facebookpageID
     auth_token = env.facebookpass
-    imgs_id = []
     imgs_vid = []
-    imgs_pic = []
     img_list = pics
     attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
     business_url = attrib_list[0].businessurl
@@ -1218,12 +1230,14 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, loca
                         + ' \n\n') + content
         else:
             status_message = f'{str(title)}: My Review - ' + wpurl + ' \n\n' + content
+        imgs_pic = []
         for img in img_list:
             if 'montage.mp4' in img:
                 imgs_vid.append(img.strip())
             else:
                 imgs_pic.append(img.strip())
         if imgs_vid:
+            imgs_id = []
             try:
                 post_id = post_facebook_video(group_id, imgs_vid,auth_token,title, status_message,
                     date, rating, address)
@@ -1331,23 +1345,13 @@ def post_to_tiktok(title, content, headers2, date, rating, address, picslist, lo
 
     # If you want to schedule your video, replace 'schedule_timestamp' with the Unix timestamp.
     # Leave it as None if you want to upload immediately.
-    schedule_time = None  # or Unix timestamp (e.g., 1672592400)
+    #schedule_time = None  # or Unix timestamp (e.g., 1672592400)
     pics = ((picslist[1:-1]).replace("'","").replace(" ","")).split(",")
-    if any(element.endswith("montage.mp4") for element in pics):
-        for pic in pics:
-            if 'montage.mp4' in pic:
-                file_path = pic
-    else:
+    if not any(element.endswith("montage.mp4") for element in pics):
         return False
-        #content = content + get_hastags(address, title)
-        #pics = ((picslist[1:-1].replace(",","")).replace("'","")).split(" ")
-#        video, outputmontage = make_montage_video_from_google(pics)
-        # try:
-        #     instasession.video_upload(outputmontage, data)
-        # except AttributeError  as error:
-        #     print("  An error occurred uploading video to Instagram:", type(error).__name__)
-        #     return False
-        # return True
+    for pic in pics:
+        if 'montage.mp4' in pic:
+            file_path = pic
     # """
     # client_key      string          The unique identification key
     #                 provisioned to the partner.
@@ -1468,17 +1472,17 @@ def post_to_tiktok(title, content, headers2, date, rating, address, picslist, lo
     'video': file_path,
     'desc': content+tags
     }
-    
+
     post_response = requests.post('https://api.tiktok.com/open-api/v2/aweme/post/',headers=post_json_header,\
                                 data=post_json_body,timeout=env.request_timeout)
 
 
-    
+
     # headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
     # data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,\
     #         'code='+env.tiktok_app_id,'grant_type=authorization_code','redirect_uri=http://www.joeeatswhat.com']
     # allheaders = headers + data
-    
+
     # try:
     #     data2 = {'source_info':{'source':"FILE_UPLOAD",file_path}}
     #     response = requests.post('https://open.tiktokapis.com/v2/oauth/token/,headers:',allheaders,\
