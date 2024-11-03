@@ -289,7 +289,7 @@ def get_hastags(address, name, hashtype):
         state = 'Florida'
     try:
         city =  re.sub( r'[^a-zA-Z]','',addressdict[1])
-    except: 
+    except:
         city = 'WinterGarden'
     if 'short' in hashtype:
         defaulttags = '#'+name_no_spaces+' #foodie #food #joeeatswhat @timberjoe'
@@ -505,7 +505,8 @@ def get_google_data(driver, local_outputs):
         except NoSuchElementException :
             visitdate = "Unknown"
         print('  Visited: ',visitdate)
-        if re.match('^[a-zA-Z]+', visitdate) is None and re.match('^[a-zA-Z]+', visitdate) is not None:
+        if re.match('^[a-zA-Z]+', visitdate) is None and re.match('^[a-zA-Z]+', visitdate) \
+                    is not None:
         #if visitdate[:1].isalpha:
             newdate,newdate2,visitdate = get_wordpress_post_date_string(visitdate, str(datetime.now()))
             print('  Visited altered to : ',visitdate)
