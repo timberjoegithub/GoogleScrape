@@ -443,7 +443,9 @@ def post_threads_video(group_id, video_path, auth_token, title, content, date, r
     """
     # Get url from wordpress - right now threads can only get video and pics from and external URL
 
-    connect_url = f"https://graph.threads.net/v1.0/{env.threads_page_id}/threads?media_type=VIDEO&video_url=https://www.example.com/images/bronz-fonz.jpg&text=#BronzFonz&access_token=" + auth_token
+    connect_url = f"https://graph.threads.net/v1.0/{env.threads_page_id}/threads?media_type="+\
+            "VIDEO&video_url=https://www.example.com/images/bronz-fonz.jpg&text=#BronzFonz&"+\
+            "access_token=" + auth_token
     addresshtml = re.sub(" ", ".",address)
     files = {eachfile: open(eachfile, 'rb') for eachfile in video_path}
     data = { "title":title,"description" : title + "\n"+ address+"\nGoogle map to destination: "
@@ -1477,20 +1479,21 @@ def post_to_tiktok(title, content, headers2, date, rating, address, picslist, lo
     'desc': content+tags
     }
 
-    post_response = requests.post('https://api.tiktok.com/open-api/v2/aweme/post/',headers=post_json_header,\
-                                data=post_json_body,timeout=env.request_timeout)
+    post_response = requests.post('https://api.tiktok.com/open-api/v2/aweme/post/',\
+                headers=post_json_header,data=post_json_body,timeout=env.request_timeout)
 
 
 
     # headers = ['Content-Type: application/x-www-form-urlencoded','Cache-Control: no-cache']
     # data = ['client_key='+env.tiktok_client_key,'client_secret='+env.tiktok_client_secret,\
-    #         'code='+env.tiktok_app_id,'grant_type=authorization_code','redirect_uri=http://www.joeeatswhat.com']
+    #         'code='+env.tiktok_app_id,'grant_type=authorization_code',\
+    #         'redirect_uri=http://www.joeeatswhat.com']
     # allheaders = headers + data
 
     # try:
     #     data2 = {'source_info':{'source':"FILE_UPLOAD",file_path}}
-    #     response = requests.post('https://open.tiktokapis.com/v2/oauth/token/,headers:',allheaders,\
-    #                         'data:',data2,'timeout:',env.request_timeout)
+    #     response = requests.post('https://open.tiktokapis.com/v2/oauth/token/,headers:',\
+    #           allheaders,'data:',data2,'timeout:',env.request_timeout)
     # except BaseException as error:
     #     print("  An error occurred uploading video to TikTok:", type(error).__name__)
     #     return False
@@ -2337,7 +2340,8 @@ def process_reviews2(outputs):
                         #newdate,newdate2,visitdate = get_wordpress_post_date_string(date_string,date)
                         post_id, post_link = get_wordpress_post_id_and_link(processrow.name,\
                                 outputs['web'] )
-#                       post_id, post_link = check_wordpress_post(processrow.name,processrow.date,outputs['web'],outputs)
+#                       post_id, post_link = check_wordpress_post(processrow.name,processrow.date,\
+#                               outputs['web'],outputs)
                         if env.forcegoogleupdate is True and env.block_google_maps is not True:
                             if post_link:
                                 database_update_row(processrow.name,"wpurl",post_link,"forceall"\
