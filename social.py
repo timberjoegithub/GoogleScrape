@@ -590,13 +590,13 @@ def get_google_data(driver, local_outputs):
                     ext='.mp4'
                     lmpics.click()
                     time.sleep(2)
-                    # After we click the right side is rendered in an iframe Store iframe 
+                    # After we click the right side is rendered in an iframe Store iframe
                     # web element
                     iframe = driver.find_element(By.TAG_NAME, "iframe")
                     # switch to selected iframe
                     driver.switch_to.frame(iframe)
                     # Now find button and click on button
-                    video_elements = driver.find_elements(By.XPATH ,'//video') #.get_attribute('src')
+                    video_elements = driver.find_elements(By.XPATH ,'//video')#.get_attribute('src')
                     urlmedia = str((video_elements[0]).get_attribute("src"))
                     current_url = video_elements[0]._parent.current_url
                     # return back away from iframe
@@ -795,8 +795,8 @@ def write_to_database(data, local_outputs):
 #                 'dictPostComplete':str(processrow[8])}
 #             if env.forcegoogleupdate:
 #                 print ('  Row ',processrow[0],' updated in database due to forcegoogleupdate')
-#                 local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).update\
-#                         (d2_dict)
+#                 local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).\
+#                       update (d2_dict)
 #                 local_outputs['postssession'].commit()
 #         elif processrow[0] is not None:
 # # Create a Python dictionary object with all the column values
@@ -989,8 +989,10 @@ def check_wordpress_post(postname, postdate, headers2,local_outputs):
         print ('Could not query for post on wordpress: ', postname,postdate,  type(error))
         return False, False
     # try:
-    #     newdate,newdate2,visitdate = get_wordpress_post_date_string(result[0]['date'],result[0]['date'])
-    #     newdate3,newdate4,visitdate2 = get_wordpress_post_date_string(postdate,str(datetime.now()))
+    #     newdate,newdate2,visitdate = get_wordpress_post_date_string(result[0]['date'],\
+    #               result[0]['date'])
+    #     newdate3,newdate4,visitdate2 = get_wordpress_post_date_string(postdate,\
+    #               str(datetime.now()))
     #     if visitdate and visitdate2:
     #         print ('Post exists, checking visit date')
     # except KeyError as error:
@@ -1447,8 +1449,8 @@ def post_to_tiktok(title, content, headers2, date, rating, address, picslist, lo
     'X-SS-TOKEN': env.tiktok_app_id, #[Your App ID],
     'X-TikTok-Signature': env.tiktok_client_secret, #[Your App Secret]
     }
-    connect_response = requests.post('https://open.tiktokapis.com/v2/post/publish/video/init/',headers=connect_json_header,\
-                                data=connect_json_body,timeout=env.request_timeout)
+    connect_response = requests.post('https://open.tiktokapis.com/v2/post/publish/video/init/',\
+                headers=connect_json_header,data=connect_json_body,timeout=env.request_timeout)
 
 #request https://api.tiktok.com/open-api/v2/aweme/post/?aweme-type=video
 # https://api.tiktok.com/open-api/v2/aweme/post/
