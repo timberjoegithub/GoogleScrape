@@ -164,6 +164,7 @@ def get_auth_connect():
             xls_wb_df = pd.read_excel('./GoogleScrape/'+ env.xls)
         else:
             input("Not able to find xls file Press any key to continue...")
+            wb = ""
         ws = wb['Sheet1']
         #xls_wb_df = pd.read_excel(xls)
         connections |= {'xlsdf':xls_wb_df,'data':ws,'datawb':wb}
@@ -2255,16 +2256,16 @@ def process_reviews2(outputs):
     webcount = xtwittercount = instagramcount = facebookcount = tiktokcount = 0
 #    webcount=xtwittercount=instagramcount=yelpcount=threadscount=facebookcount=tiktokcount = 0
     if env.datasource == 'db':
-        cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
-        'address','dictPostComplete']
+        #cols2 = ["num","name", "comment", 'rating','picsURL','picsLocalpath','source','date',
+            #'address','dictPostComplete']
         rows_orig = list(outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
-        ttt = list(outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
+        #ttt = list(outputs['data'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
         ows_orig = list(outputs['data'])
         rows_orig2 = list(outputs['xlsdf'].values)
-        rows3 = outputs['data'].iter_rows(min_row=1, max_row=outputs['data'])
-        rows4 = pd.DataFrame(outputs['xlsdf'])
-        rows5 = pd.DataFrame(outputs['posts'])
-        rows6 = pd.DataFrame(outputs['data'])
+        #rows3 = outputs['data'].iter_rows(min_row=1, max_row=outputs['data'])
+        #rows4 = pd.DataFrame(outputs['xlsdf'])
+        #rows5 = pd.DataFrame(outputs['posts'])
+        #rows6 = pd.DataFrame(outputs['data'])
 # df2 = pd.DataFrame(outputs['xlsdf'].values, columns=cols2).iter_rows(min_row=1, max_row=outputs\
 #           ['data'].max_row)
 #   df3 = pd.DataFrame(outputs['xlsdf'].iter_rows(min_row=1, max_row=outputs['data'].max_row))
