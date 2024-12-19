@@ -141,8 +141,10 @@ def get_auth_connect():
     if env.mariadb:
         print('Connecting to MariaDB for configuration and storage')
         #from sqlalchemy import create_engine
-        engine = sqlalchemy.create_engine("mysql+mysqldb://"+env.mariadbuser+":"+env.mariadbpass+
-            "@"+env.mariadbserver+"/"+env.mariadbdb+"?charset=utf8mb4", echo=False)
+        engine = sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+
+#        engine = sqlalchemy.create_engine("mysql+mysqldb://"+env.mariadbuser+":"+env.mariadbpass+
+            "@"+env.mariadbserver+"/"+env.mariadbdb, echo=False)
+#            "@"+env.mariadbserver+"/"+env.mariadbdb+"?charset=utf8mb4", echo=False)
         Session = sqlalchemy.orm.sessionmaker()
         Session.configure(bind=engine)
         session = Session()
@@ -154,6 +156,8 @@ def get_auth_connect():
         posts = session.query(Posts).all()
         connections['posts'] = posts
         connections['postssession'] = session
+        # sqlalchemy.orm.sessionmaker().configure(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+        # connections['postssession'] = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
     if env.data:
         print('  loading XLS content data source ...')
         if os.path.exists(env.xls):
@@ -476,6 +480,12 @@ def get_google_data(driver, local_outputs):
     Returns:
         list: A list of data extracted from Google Maps.
     """
+    engine = sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+
+        "@"+env.mariadbserver+"/"+env.mariadbdb, echo=False, pool_recycle=3600)
+    Session = sqlalchemy.orm.sessionmaker()
+    Session.configure(bind=engine)
+    sqlconnection = Session()
+    #sqlconnection = sqlalchemy.orm.sessionmaker().configure(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
     print('    get google data...', end ="")
     # Click on more botton on each text reviews
     more_elemets = driver.find_elements(By.CSS_SELECTOR, '.w8nwRe.kyuRq')
@@ -525,7 +535,7 @@ def get_google_data(driver, local_outputs):
             score = "Unknown"
             print ('Error: ',error)
     #  Grab more info from google maps entry on this particular review
-        if (len(local_outputs['postssession'].query(Posts).filter(Posts.name == name,Posts.google\
+        if (len(sqlconnection.query(Posts).filter(Posts.name == name,Posts.google\
                 is not True).all()) == 0 or env.forcegoogleupdate) and env.block_google_maps is not\
                 True:
             gmaps = googlemaps.Client(env.googleapipass)
@@ -553,7 +563,7 @@ def get_google_data(driver, local_outputs):
         else:
             if env.forcegoogleupdate:
                 database_update_row(name,"google",True,"forceall",local_outputs)
-            if len(local_outputs['postssession'].query(Posts).filter(Posts.name == name,\
+            if len(sqlconnection.query(Posts).filter(Posts.name == name,\
                         Posts.google is not True).all()) > 0:
                 print ('  Post was already in database, skipping update unless overriden')
             # else:
@@ -643,6 +653,7 @@ def get_google_data(driver, local_outputs):
             dict_post_complete])
         if env.force_web_create:
             database_update_row(name,"visitdate",visitdate,"forceall",local_outputs)
+        sqlconnection.close()
     return lst_data
 
 ##################################################################################################
@@ -762,6 +773,13 @@ def write_to_database(data, local_outputs):
     """
     column_list=[]
     print('write to database ...')
+
+    #sqlconnection = sqlalchemy.orm.sessionmaker().configure(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+    engine = sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+
+        "@"+env.mariadbserver+"/"+env.mariadbdb, echo=False)
+    Session = sqlalchemy.orm.sessionmaker()
+    Session.configure(bind=engine)
+    sqlconnection = Session()
     for x in inspect.getmembers(Posts):
 #        if not (x[0].startswith('_') or 'metadata' in x[0] or 'registry' in x[0] or 'id' in x[0]):
         if not (x[0].startswith('_') or 'metadata' in x[0] or 'registry' in x[0]):
@@ -817,7 +835,7 @@ def write_to_database(data, local_outputs):
 #         # Using the DataFrame.append() function
         try:
 
-            getdata2 = local_outputs['postssession'].query(Posts).filter(Posts.name \
+            getdata2 = sqlconnection.query(Posts).filter(Posts.name \
                         == processrow[0])
             if getdata2.count() >0:
                 print ('  Row ',processrow[0],'  already in Database')
@@ -828,23 +846,24 @@ def write_to_database(data, local_outputs):
                         'source':processrow[5],'date':processrow[6],'address':processrow[7],\
                         'dictPostComplete':str(processrow[8])}
                     print ('  Row ',processrow[0],'  updated in Database')
-                    local_outputs['postssession'].query(Posts).filter(Posts.name == processrow[0]).\
+                    sqlconnection.query(Posts).filter(Posts.name == processrow[0]).\
                                 update(d2_dict)
-                    local_outputs['postssession'].commit()
+                    sqlconnection.commit()
             else:
                 d2_row = Posts(name=processrow[0] ,comment=processrow[1],rating=processrow[2]\
                     ,picsURL=str(processrow[3]),picsLocalpath=str(processrow[4]),\
                     source=processrow[5],date=processrow[6],address=processrow[7],\
                     dictPostComplete=str(processrow[8]))
                 print ('  Row ',processrow[0],'  added to Database')
-                local_outputs['postssession'].add(d2_row)
-                local_outputs['postssession'].commit()
+                sqlconnection.add(d2_row)
+                sqlconnection.commit()
                 print ('  Row ',processrow[0],'  added to Database')
         except AttributeError as error:
             print('    Not able to write to post data table: ' , type(error))
-            local_outputs['postssession'].rollback()
+            sqlconnection.rollback()
             raise
         processrow = []
+    sqlconnection.close()
     df.to_excel(env.xls)
     return data
 
@@ -865,34 +884,38 @@ def database_update_row(review_name, column_name, column_value, update_style, lo
     Returns:
         bool: True if the row was successfully updated, False otherwise.
     """
-
+# connections['postssession'] = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+    sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+  #  sqlconnection.commit()
+    #sqlconnection.close()
     try:
         if update_style == "forceall" and column_value is not False:
-            local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+            sqlconnection.query(Posts).filter(Posts.name == review_name).update\
                         ({column_name : column_value})
             print ('    Force Updated ',column_name, ' to: ',column_value)
         elif update_style == "onlyempty"  and column_value is not False:
-            postval = local_outputs['postssession'].query(Posts).filter(Posts.name == review_name,\
+            postval = sqlconnection.query(Posts).filter(Posts.name == review_name,\
                             getattr(Posts,column_name).is_not(null())).all()
             if len(postval) == 0 :
-                local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).\
+                sqlconnection.query(Posts).filter(Posts.name == review_name).\
                     update({column_name : column_value})
                 print ('    Updated blank ',postval ,' on value',column_name, ' to: ',\
                     column_value)
         elif update_style == "toggletrue":
-            postval = local_outputs['postssession'].query(Posts).filter(Posts.name == review_name\
+            postval = sqlconnection.query(Posts).filter(Posts.name == review_name\
                     ,getattr(Posts,column_name).is_not(1)).all()
-            local_outputs['postssession'].query(Posts).filter(Posts.name == review_name).update\
+            sqlconnection.query(Posts).filter(Posts.name == review_name).update\
                     ({column_name : "1"})
             print ('    Updated ',column_name, ' on value: ',postval[0].column_value, ' to: ',\
                 column_value)
     except AttributeError as error:
         print("    Not able to write to post data table to update ",review_name," ",column_name,"\
             to: ",column_value , type(error), error)
-        local_outputs['postssession'].rollback()
+        sqlconnection.rollback()
         raise
 #    else:
-    local_outputs['postssession'].commit()
+    sqlconnection.commit()
+    sqlconnection.close()
     #time.sleep(env.facebooksleep)
     return True
 
@@ -1124,8 +1147,10 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,local_out
     if imgs_vid:
         try:
             # Message to post along with the video
-            attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
+            sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+            attrib_list = sqlconnection.query(Posts).filter(Posts.name == title)\
                     .all()
+            sqlconnection.close()
             if wpurl := attrib_list[0].wpurl:
                 if business_url := attrib_list[0].businessurl:
                     status_message = (
@@ -1169,7 +1194,9 @@ def post_to_x2(title, content, headers,date, rating, address, picslist,local_out
 
 def post_to_threads(title, content,headers, date, rating, address, picslist, local_outputs):
     img_list = ((picslist[1:-1]).replace("'","")).split(",")
-    attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+    sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+    attrib_list = sqlconnection.query(Posts).filter(Posts.name == title).all()
+    sqlconnection.close()
     business_url = attrib_list[0].businessurl
     wpurl = attrib_list[0].wpurl
     auth_token = env.threads_access_token
@@ -1228,7 +1255,9 @@ def post_facebook3(title, content,headers, date, rating, address, picslist, loca
     auth_token = env.facebookpass
     imgs_vid = []
     img_list = pics
-    attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+    sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+    attrib_list = sqlconnection.query(Posts).filter(Posts.name == title).all()
+    sqlconnection.close()
     business_url = attrib_list[0].businessurl
     wpurl = attrib_list[0].wpurl
     if wpurl and (attrib_list[0].picsLocalpath != '[]'):
@@ -1525,7 +1554,9 @@ def post_to_instagram2(title, content, headers, date, rating, address, picslist,
 
     outputmontage = ''
     addresshtml = re.sub(" ", ".",address)
-    attrib_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
+    sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+    attrib_list = sqlconnection.query(Posts).filter(Posts.name == title).all()
+    sqlconnection.close()
     if wpurl := attrib_list[0].wpurl:
         if business_url := attrib_list[0].businessurl:
             data =  title + "\n"+ address+"\n"+business_url+"\n"+"Review: "+wpurl+\
@@ -1702,8 +1733,10 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
     #newdate2 = dt.datetime.strptime(str(newdate), formatting).date()
     dateparts = (str(newdate)).split("-")
     dateparts2 = dateparts[2].split(" ")
-    visitdate2 = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
+    sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+    visitdate2 = sqlconnection.query(Posts).filter(Posts.name == title)\
             .all()[0].visitdate
+    sqlconnection.close()
     if visitdate != visitdate2:
         database_update_row(title,"visitdate",visitdate,"forceall",local_outputs)
         print (f'UPDATED: {visitdate2} to {visitdate} for {title}')
@@ -1853,8 +1886,10 @@ def post_to_wordpress(title,content,headers,date,rating,address,picslist,local_o
             if linkslist:
                 fmedia = linkslist[0]['file_id']
 #            print ('featured_media2 = ',file_id)
-        business_url_list = local_outputs['postssession'].query(Posts).filter(Posts.name == \
+        sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+        business_url_list = sqlconnection.query(Posts).filter(Posts.name == \
                 title).all()
+        sqlconnection.close()
         business_url = "<a href="+str(business_url_list[0].businessurl)+">"+\
                     title+"</a>"
         # wpurllist = local_outputs['postssession'].query(Posts).filter(Posts.name == title).all()
@@ -2150,8 +2185,10 @@ def create_wordpress_post(newdate2, picchop, title, address, headers, post_id, l
         else:
             if linkslist:
                 fmedia = linkslist[0]['file_id']
-        business_url_list = local_outputs['postssession'].query(Posts).filter(Posts.name == title)\
+        sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+        business_url_list = sqlconnection.query(Posts).filter(Posts.name == title)\
                 .all()
+        sqlconnection.close()
         business_url = f"<a href={str(business_url_list[0].businessurl)}>{title}</a>"
         status_message = f'{str(title)}: Business website: {business_url}'
         response_piclinks = requests.post(env.wpAPI+"/posts/"+ str(post_id), \
@@ -2388,6 +2425,12 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
     Returns:
     Count of the social that was selected
     """
+    #sqlconnection = sqlalchemy.orm.sessionmaker(bind=sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+"@"+env.mariadbserver+"/"+env.mariadbdb, echo=False))
+    engine = sqlalchemy.create_engine("mariadb+mariadbconnector://"+env.mariadbuser+":"+env.mariadbpass+
+        "@"+env.mariadbserver+"/"+env.mariadbdb, echo=False)
+    Session = sqlalchemy.orm.sessionmaker()
+    Session.configure(bind=engine)
+    sqlconnection = Session()
     writtento = ast.literal_eval(social_post.dictPostComplete)
     if (len(local_outputs['postssession'].query(Posts).filter(Posts.name == social_post.name,\
             getattr(Posts, social_name) is True).all())==0) and ((local_outputs['postssession'].\
@@ -2434,6 +2477,7 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
                     social_post.name)
     else:
         print ('  ',social_name,': Skipping posting for ',social_post.name,' previously written')
+    sqlconnection.close()
     return social_count
 
 ##################################################################################################
