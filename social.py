@@ -2450,7 +2450,7 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
                 except AttributeError  as error:
                     print("  An error occurred setting value to go into Excel file:", type(error)\
                             .__name__)
-                    print ('  Success Posting to xtwitter: '+social_post.name)
+                    print ('  Success Posting to : '+social_post.name)
                 if new_social_post:
                     social_count +=1
                     try:
@@ -2468,10 +2468,15 @@ def process_socials(social_name,social_post,headers,sub_process,social_count, lo
                     except AttributeError  as error:
                         print("  An error occurred writing database", type(error).__name__)
             except AttributeError as error:
+                # print('  Error writing social - ',social_name,'  post : ',error,social_post.name,\
+                #     social_post.comment, local_outputs,social_post.date, social_post.rating,\
+                #     social_post.address, social_post.picsLocalpath, writtento[social_name],\
+                #     type(error).__name__ )
                 print('  Error writing social - ',social_name,'  post : ',error,social_post.name,\
-                    social_post.comment, local_outputs,social_post.date, social_post.rating,\
-                    social_post.address, social_post.picsLocalpath, writtento[social_name],\
-                    type(error).__name__ )
+                       type(error).__name__ )
+                #     social_post.comment, local_outputs,social_post.date, social_post.rating,\
+                #     social_post.address, social_post.picsLocalpath, writtento[social_name],\
+                #     type(error).__name__ )
         else:
             print ('  Exceeded the number of social - ',social_name,' posts per run, skipping',\
                     social_post.name)
